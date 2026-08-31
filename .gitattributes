@@ -1,0 +1,19 @@
+# Normalise text in the repository, check out native.
+# The Kanjo game repo has a recorded failure where a validator hashed SVG blobs
+# that autocrlf had rewritten on checkout; pinning it here keeps content hashes
+# and diffs stable across machines.
+* text=auto eol=lf
+
+# Fonts and images are binary and must never be line-ending converted.
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.avif binary
+*.mp4 binary
+*.webm binary
+*.ico binary
