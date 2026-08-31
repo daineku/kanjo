@@ -656,3 +656,130 @@ svg {
 .k-prose a:hover {
   color: var(--k-positive);
 }
+
+/* ============================================================================
+   Rich text — the article body and the intro section.
+   ----------------------------------------------------------------------------
+   Class names are emitted by lib/richText.tsx. The measure is the canon's own
+   reading column (~930px), which lands at a 65-75 character line.
+   ========================================================================== */
+
+.k-rt > * + * {
+  margin-top: var(--k-body-leading);
+}
+
+.k-rt p {
+  margin-block: 0;
+  color: var(--k-text-secondary);
+  max-width: 68ch;
+}
+
+.k-rt-h2 {
+  margin-top: clamp(40px, 4vw, 64px) !important;
+  margin-bottom: 0;
+}
+
+.k-rt-h3 {
+  margin-top: clamp(28px, 3vw, 40px) !important;
+  margin-bottom: 0;
+  color: var(--k-text-primary);
+}
+
+.k-rt-h2 + p,
+.k-rt-h3 + p {
+  margin-top: var(--k-space-md);
+}
+
+.k-rt-list {
+  margin-block: 0;
+  padding-left: 0;
+  list-style: none;
+  max-width: 68ch;
+  color: var(--k-text-secondary);
+}
+
+.k-rt-list li {
+  position: relative;
+  padding-left: var(--k-space-lg);
+}
+
+.k-rt-list li + li {
+  margin-top: var(--k-space-sm);
+}
+
+/* The marker is the canon's left rule at list scale, in the divider colour —
+   the same separator language the rest of the page uses. */
+.k-rt-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: var(--k-space-sm);
+  height: var(--k-divider-width);
+  background: var(--k-positive);
+  opacity: var(--k-wedge-opacity);
+}
+
+.k-rt-list li strong {
+  color: var(--k-text-primary);
+  font-weight: 400;
+}
+
+.k-rt-quote {
+  margin: 0;
+  padding-left: clamp(16px, 2vw, 24px);
+  border-left: var(--k-divider-width) solid var(--k-accent);
+}
+
+.k-rt-quote p {
+  color: var(--k-text-primary);
+}
+
+.k-rt-code {
+  margin: 0;
+  padding: var(--k-panel-padding);
+  background: var(--k-surface-panel);
+  border-left: var(--k-divider-width) solid var(--k-divider);
+  /* Code is the one place a long unbroken token can force a horizontal page
+     scroll, so the block scrolls inside itself instead. */
+  overflow-x: auto;
+  font-size: clamp(13px, 0.2vw + 12px, var(--k-small-size));
+  line-height: 1.6;
+  color: var(--k-text-secondary);
+}
+
+.k-rt code {
+  font-family: var(--k-font-technical);
+  color: var(--k-positive-bright);
+}
+
+.k-rt-code code {
+  color: inherit;
+}
+
+.k-rt-image {
+  width: 100%;
+  height: auto;
+}
+
+.k-rt-rule {
+  margin-block: clamp(40px, 4vw, 64px) !important;
+}
+
+.k-rt strong {
+  color: var(--k-text-primary);
+  font-weight: 400;
+  /* Iceland is a single-weight face, so emphasis cannot come from weight. The
+     canon's own hierarchy is opacity, and the body text sits at 0.5 — so bold
+     is "full-strength white" against secondary. */
+}
+
+.k-rt em {
+  font-style: normal;
+  color: var(--k-text-primary);
+  letter-spacing: var(--k-small-tracking);
+}
+
+.k-article-cover {
+  margin-top: clamp(32px, 4vw, 56px);
+}
