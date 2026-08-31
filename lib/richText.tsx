@@ -153,8 +153,8 @@ export function renderRichText(source: string | null | undefined): React.ReactNo
             // no reliable intrinsic dimensions to declare, and a container whose
             // aspect-ratio does not match the real image produces exactly the
             // black bars the Daineku handoff records as a failed approach.
-            // eslint-disable-next-line @next/next/no-img-element
             return (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 key={key}
                 src={block.src}

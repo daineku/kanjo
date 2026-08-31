@@ -201,7 +201,6 @@ export function readImage(
   const src = optionalString(data, prefix)
   if (!src) return undefined
 
-  const cap = prefix.charAt(0).toUpperCase() + prefix.slice(1)
   const width = readNumber(data, `${prefix}Width`, 0)
   const height = readNumber(data, `${prefix}Height`, 0)
 
