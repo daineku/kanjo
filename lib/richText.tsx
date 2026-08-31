@@ -169,12 +169,32 @@ export function renderRichText(source: string | null | undefined): React.ReactNo
             return <hr key={key} className="k-rule k-rt-rule" />
 
           case 'paragraph':
+            /**
+             * A SINGLE NEWLINE IS A SPACE, NOT A LINE BREAK.
+             *
+             * The first version inherited Daineku's rule that one newline is a
+             * `<br>`. That is right for a photo caption, which is what Daineku
+             * uses it for, and wrong for article prose — article Markdown is
+             * conventionally hard-wrapped at ~80 columns, so every source line
+             * ending became a forced break. Measured at 390px on the first
+             * article: "The Kanjo already has a design language. It lives in
+             * the / game repository as a / canon: a set of token files…" —
+             * orphan fragments mid-sentence at every wrap.
+             *
+             * Standard Markdown behaviour instead: newlines inside a paragraph
+             * are soft, and a deliberate break is two trailing spaces (kept as
+             * `hardBreak` by the parser). Prose now reflows to any width.
+             */
             return (
               <p key={key}>
-                {block.lines.flatMap((line, j) => [
-                  ...renderInline(line, `${key}-${j}`),
-                  j < block.lines.length - 1 ? <br key={`${key}-br-${j}`} /> : null,
-                ])}
+                {block.lines.flatMap((line, j) => {
+                  const isLast = j === block.lines.length - 1
+                  const nodes = renderInline(line.text, `${key}-${j}`)
+                  if (isLast) return nodes
+                  return line.hardBreak
+                    ? [...nodes, <br key={`${key}-br-${j}`} />]
+                    : [...nodes, ' ']
+                })}
               </p>
             )
         }

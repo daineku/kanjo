@@ -63,15 +63,10 @@ export default async function ArticlePage({ params }: Props) {
         <div className="k-shell">
           <div className="k-reading">
             <p style={{ margin: 0 }}>
-              <Link
-                className="k-small"
-                href="/updates"
-                prefetch={false}
-                style={{ color: 'var(--k-text-secondary)', textDecoration: 'none' }}
-              >
-                {/* Guillemet rather than an arrow: Iceland has no U+2190, and
-                    the canon's own idiom for a key or an action is bracketed
-                    ASCII ("WRITE TO DISK [ENTER]"), not arrow glyphs. */}
+              {/* Guillemet rather than an arrow: Iceland has no U+2190 in its
+                  cmap, and the canon's idiom for an action is bracketed ASCII
+                  ("WRITE TO DISK [ENTER]"), not arrow glyphs. */}
+              <Link className="k-small k-back-link" href="/updates" prefetch={false}>
                 &laquo; UPDATES
               </Link>
             </p>

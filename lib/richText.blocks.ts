@@ -30,8 +30,19 @@ export const INLINE_PATTERN =
 
 // ── Blocks ───────────────────────────────────────────────────────────────────
 
+/**
+ * One line inside a paragraph.
+ *
+ * `hardBreak` is true only when the source line ended with two or more spaces —
+ * Markdown's explicit line break. Every other newline inside a paragraph is
+ * soft and is rendered as a space, so hard-wrapped source reflows correctly at
+ * any width. See the paragraph case in richText.tsx for what went wrong when
+ * every newline was a break.
+ */
+export type ParagraphLine = { text: string; hardBreak: boolean }
+
 export type Block =
-  | { kind: 'paragraph'; lines: string[] }
+  | { kind: 'paragraph'; lines: ParagraphLine[] }
   | { kind: 'heading'; level: 2 | 3; text: string }
   | { kind: 'list'; ordered: boolean; items: string[] }
   | { kind: 'quote'; lines: string[] }
@@ -96,7 +107,7 @@ export function parseBlocks(source: string): Block[] {
         // that branch's own guard breaks on any line matching IMAGE_LINE, so
         // falling through produced an empty paragraph, no progress, and an
         // infinite loop. Found by richText.test.ts, not by reading the code.
-        blocks.push({ kind: 'paragraph', lines: [line] })
+        blocks.push({ kind: 'paragraph', lines: [{ text: line, hardBreak: false }] })
       }
       index += 1
       continue
@@ -183,11 +194,13 @@ export function parseBlocks(source: string): Block[] {
       continue
     }
 
-    // A paragraph runs to the next blank line. A single newline inside it is a
-    // <br>, matching Daineku's parser so existing authoring habits transfer.
-    const paragraph: string[] = []
+    // A paragraph runs to the next blank line. Trailing whitespace is inspected
+    // BEFORE trimming, because two trailing spaces are the only thing that
+    // makes a newline a hard break.
+    const paragraph: ParagraphLine[] = []
     while (index < lines.length) {
-      const current = (lines[index] ?? '').trim()
+      const rawLine = lines[index] ?? ''
+      const current = rawLine.trim()
       if (
         current === '' ||
         current.startsWith('```') ||
@@ -200,7 +213,7 @@ export function parseBlocks(source: string): Block[] {
       ) {
         break
       }
-      paragraph.push(current)
+      paragraph.push({ text: current, hardBreak: /\s{2,}$/.test(rawLine) })
       index += 1
     }
     if (paragraph.length > 0) blocks.push({ kind: 'paragraph', lines: paragraph })

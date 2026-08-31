@@ -49,7 +49,35 @@ test('a single newline stays inside one paragraph', () => {
   const blocks = parseBlocks('one\ntwo')
   assert.equal(blocks.length, 1)
   assert.equal(blocks[0]?.kind, 'paragraph')
-  assert.deepEqual(blocks[0]?.kind === 'paragraph' ? blocks[0].lines : null, ['one', 'two'])
+  assert.deepEqual(blocks[0]?.kind === 'paragraph' ? blocks[0].lines : null, [
+    { text: 'one', hardBreak: false },
+    { text: 'two', hardBreak: false },
+  ])
+})
+
+test('a plain newline inside a paragraph is SOFT, not a line break', () => {
+  // Article Markdown is hard-wrapped at ~80 columns, so treating every newline
+  // as a <br> broke prose mid-sentence at narrow widths. The renderer joins
+  // soft lines with a space; only hardBreak emits a <br>.
+  const block = parseBlocks(['The Kanjo has a design language.', 'It lives in the repo.'].join('\n'))[0]
+  const lines = block?.kind === 'paragraph' ? block.lines : []
+  assert.equal(lines.length, 2)
+  assert.equal(lines[0]?.hardBreak, false)
+  assert.equal(lines[1]?.hardBreak, false)
+})
+
+test('two trailing spaces make a hard break', () => {
+  const block = parseBlocks(['first line  ', 'second line'].join('\n'))[0]
+  const lines = block?.kind === 'paragraph' ? block.lines : []
+  assert.equal(lines[0]?.hardBreak, true, 'a line ending in two spaces breaks')
+  assert.equal(lines[0]?.text, 'first line', 'trailing spaces are not kept in the text')
+  assert.equal(lines[1]?.hardBreak, false)
+})
+
+test('a single trailing space is not a hard break', () => {
+  const block = parseBlocks(['first line ', 'second line'].join('\n'))[0]
+  const lines = block?.kind === 'paragraph' ? block.lines : []
+  assert.equal(lines[0]?.hardBreak, false)
 })
 
 test('h2 and h3 are recognised and h1 and h4 are not', () => {
