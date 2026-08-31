@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test:content": "node lib/content/local/parse.test.ts",
     "test:markdown": "node lib/richText.test.ts",
-    "test": "npm run test:content && npm run test:markdown",
+    "test:media": "node scripts/validate-media.mjs",
+    "test": "npm run test:content && npm run test:markdown && npm run test:media",
     "check": "npm run typecheck && npm run lint && npm run test && npm run build"
   },
   "dependencies": {
