@@ -1,0 +1,16 @@
+[
+  {
+    "_comment": "Empty by design. No footage has been published, and a fabricated video id would resolve to somebody else's content. Add an entry with provider youtube|vimeo|file, a bare ref (id, not a watch URL) and a poster with real intrinsic dimensions.",
+    "_example": {
+      "id": "first-look",
+      "provider": "youtube",
+      "ref": "REPLACE_WITH_VIDEO_ID",
+      "title": "FIRST LOOK",
+      "description": "",
+      "poster": { "src": "/media/posters/first-look.jpg", "alt": "", "width": 1920, "height": 1080 },
+      "featured": true,
+      "published": true,
+      "order": 0
+    }
+  }
+]

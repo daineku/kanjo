@@ -1,0 +1,20 @@
+[
+  {
+    "_comment": "Empty by design. No screenshots have been captured for the site, and inventing one would mean presenting a fabricated image as the game. The media section renders the canon's own pending-slot treatment (red corner brackets, UI_Canon/Assets/Vectors/profile_frame_corner_*.svg) until real captures land here.",
+    "_example": {
+      "id": "osaka-night-01",
+      "image": {
+        "src": "/media/screenshots/osaka-night-01.jpg",
+        "alt": "Describe what is actually in the frame",
+        "width": 1920,
+        "height": 1080
+      },
+      "title": "",
+      "caption": "",
+      "group": "osaka",
+      "featured": true,
+      "published": true,
+      "order": 0
+    }
+  }
+]

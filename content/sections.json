@@ -1,0 +1,157 @@
+[
+  {
+    "_comment": [
+      "Landing page composition. Each entry is one block: turn it off with",
+      "published:false, move it with order, change its copy in config. Adding a new",
+      "block type is a new entry here plus a component in the registry at",
+      "components/sections/registry.tsx — the page itself never changes.",
+      "",
+      "COPY STATUS: the intro body and the feature descriptions below are drawn only",
+      "from what the game repository already states about itself. Anything not",
+      "stated anywhere is marked PLACEHOLDER and must be written by the owner. No",
+      "release date, platform list, price, store page or player claim is asserted."
+    ],
+    "id": "hero",
+    "type": "hero",
+    "published": true,
+    "order": 0,
+    "config": {
+      "eyebrow": "status",
+      "title": "THE KANJO",
+      "subtitle": "NIGHT HIGHWAY RACING",
+      "description": "An elevated expressway loop after dark, drawing on Japanese highway racing culture and the atmosphere of late 1990s and early 2000s Japan.",
+      "background": {
+        "kind": "none",
+        "treatment": "transparent"
+      },
+      "actionIds": ["wishlist", "updates"],
+      "platformNote": "PLACEHOLDER — platforms not announced"
+    }
+  },
+
+  {
+    "id": "game",
+    "type": "intro",
+    "published": true,
+    "order": 1,
+    "config": {
+      "eyebrow": "THE GAME",
+      "heading": "ONE LOOP, AFTER DARK",
+      "body": "The Kanjo is a racing game built around a single elevated expressway loop at night — a fictionalised Japanese night circuit, loosely inspired rather than reproduced.\n\nHandling aims at believable vehicle behaviour rather than simulation for its own sake, and the interface stays deliberately minimal: the road, the traffic, and the car.\n\nPLACEHOLDER — the owner should replace or extend this section with the positioning they actually want to lead with."
+    }
+  },
+
+  {
+    "id": "video",
+    "type": "video",
+    "published": true,
+    "order": 2,
+    "config": {
+      "eyebrow": "FOOTAGE",
+      "heading": "FEATURED VIDEO",
+      "videoIds": [],
+      "layout": "featured"
+    }
+  },
+
+  {
+    "id": "media",
+    "type": "media",
+    "published": true,
+    "order": 3,
+    "config": {
+      "eyebrow": "MEDIA",
+      "heading": "SCREENSHOTS",
+      "mediaIds": [],
+      "limit": 6
+    }
+  },
+
+  {
+    "id": "status",
+    "type": "status",
+    "published": true,
+    "order": 4,
+    "config": {
+      "eyebrow": "DEVELOPMENT",
+      "heading": "CURRENT STATE",
+      "standfirst": "PLACEHOLDER — replace these rows with whatever the owner is willing to state publicly.",
+      "rows": [
+        { "label": "STAGE", "value": "IN DEVELOPMENT", "emphasis": true },
+        { "label": "BUILD", "value": "PLACEHOLDER" },
+        { "label": "PLATFORMS", "value": "NOT ANNOUNCED" },
+        { "label": "RELEASE", "value": "NOT ANNOUNCED" }
+      ]
+    }
+  },
+
+  {
+    "id": "features",
+    "type": "features",
+    "published": true,
+    "order": 5,
+    "config": {
+      "eyebrow": "SYSTEMS",
+      "heading": "WHAT IS BEING BUILT",
+      "items": [
+        {
+          "id": "loop",
+          "title": "THE LOOP",
+          "description": "PLACEHOLDER — a continuous elevated night circuit with its own junctions and connecting roads."
+        },
+        {
+          "id": "traffic",
+          "title": "TRAFFIC",
+          "description": "PLACEHOLDER — ambient vehicles sharing the carriageway rather than decorating it."
+        },
+        {
+          "id": "handling",
+          "title": "HANDLING",
+          "description": "PLACEHOLDER — believable vehicle behaviour without simulation ceremony."
+        },
+        {
+          "id": "progression",
+          "title": "PROGRESSION",
+          "description": "PLACEHOLDER — describe only what the owner wants to commit to."
+        }
+      ]
+    }
+  },
+
+  {
+    "id": "updates",
+    "type": "updates",
+    "published": true,
+    "order": 6,
+    "config": {
+      "eyebrow": "DEVLOG",
+      "heading": "DEVELOPMENT UPDATES",
+      "limit": 3,
+      "indexHref": "/updates"
+    }
+  },
+
+  {
+    "id": "about",
+    "type": "links",
+    "published": true,
+    "order": 7,
+    "config": {
+      "eyebrow": "ELSEWHERE",
+      "heading": "FOLLOW AND SUPPORT",
+      "standfirst": "Destinations open as they are announced. Nothing here is live yet.",
+      "linkIds": ["wishlist", "discord", "patreon", "updates"]
+    }
+  },
+
+  {
+    "id": "social",
+    "type": "social",
+    "published": true,
+    "order": 8,
+    "config": {
+      "eyebrow": "CHANNELS",
+      "heading": "SOCIAL"
+    }
+  }
+]

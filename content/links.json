@@ -1,0 +1,62 @@
+[
+  {
+    "_comment": "Addressed by id from a section's config. available:false renders the block disabled with unavailableReason shown, which is the canon's behaviour for a locked row: visible, focusable, not submittable. Nothing here invents a destination.",
+    "id": "wishlist",
+    "label": "WISHLIST ON STEAM",
+    "description": "PLACEHOLDER — no store page announced",
+    "href": "",
+    "external": true,
+    "intent": "primary",
+    "available": false,
+    "unavailableReason": "NOT YET ANNOUNCED",
+    "published": true,
+    "order": 0
+  },
+  {
+    "id": "discord",
+    "label": "JOIN THE DISCORD",
+    "description": "PLACEHOLDER — no invite configured",
+    "href": "",
+    "external": true,
+    "intent": "default",
+    "available": false,
+    "unavailableReason": "NOT YET OPEN",
+    "published": true,
+    "order": 1
+  },
+  {
+    "id": "updates",
+    "label": "FOLLOW DEVELOPMENT",
+    "description": "Development updates and technical write-ups",
+    "href": "/updates",
+    "external": false,
+    "intent": "default",
+    "available": true,
+    "published": true,
+    "order": 2
+  },
+  {
+    "id": "patreon",
+    "label": "SUPPORT ON PATREON",
+    "description": "PLACEHOLDER — no page configured",
+    "href": "",
+    "external": true,
+    "intent": "default",
+    "available": false,
+    "unavailableReason": "NOT YET OPEN",
+    "published": true,
+    "order": 3
+  },
+  {
+    "id": "press-kit",
+    "label": "PRESS KIT",
+    "description": "PLACEHOLDER — not assembled",
+    "href": "",
+    "external": false,
+    "intent": "default",
+    "available": false,
+    "unavailableReason": "IN PREPARATION",
+    "published": false,
+    "order": 4
+  }
+]

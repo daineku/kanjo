@@ -1,0 +1,99 @@
+{
+  "_comment": [
+    "Site-wide settings. Every string here is CONTENT, not code — the site reads",
+    "all of it through lib/content/source.ts and hardcodes none of it.",
+    "",
+    "PLACEHOLDER POLICY: entries marked PLACEHOLDER below are structural stand-ins.",
+    "No release date, platform, price, store page, Discord invite or social handle",
+    "has been invented. A social link with an empty url is dropped by the UI, and a",
+    "link block with available:false renders disabled with its own reason rather",
+    "than pretending a destination exists."
+  ],
+
+  "title": "THE KANJO",
+  "subtitle": "PLACEHOLDER — one-line positioning, to be written by the owner",
+  "primaryDomain": "https://thekanjo.com",
+
+  "seo": {
+    "title": "THE KANJO",
+    "titleTemplate": "%s — THE KANJO",
+    "description": "The Kanjo is a night highway racing game set on an elevated expressway loop, drawing on Japanese highway racing culture and the atmosphere of late 1990s and early 2000s Japan.",
+    "game": {
+      "name": "The Kanjo",
+      "genre": ["Racing"]
+    }
+  },
+
+  "nav": [
+    { "label": "GAME", "href": "/#game", "visible": true },
+    { "label": "MEDIA", "href": "/#media", "visible": true },
+    { "label": "UPDATES", "href": "/updates", "visible": true },
+    { "label": "ABOUT", "href": "/#about", "visible": true }
+  ],
+
+  "social": [
+    {
+      "id": "youtube",
+      "platform": "youtube",
+      "label": "YOUTUBE",
+      "url": "",
+      "published": false,
+      "order": 0
+    },
+    {
+      "id": "instagram",
+      "platform": "instagram",
+      "label": "INSTAGRAM",
+      "url": "",
+      "published": false,
+      "order": 1
+    },
+    {
+      "id": "tiktok",
+      "platform": "tiktok",
+      "label": "TIKTOK",
+      "url": "",
+      "published": false,
+      "order": 2
+    },
+    {
+      "id": "discord",
+      "platform": "discord",
+      "label": "DISCORD",
+      "url": "",
+      "published": false,
+      "order": 3
+    },
+    {
+      "id": "patreon",
+      "platform": "patreon",
+      "label": "PATREON",
+      "url": "",
+      "published": false,
+      "order": 4
+    },
+    {
+      "id": "steam",
+      "platform": "steam",
+      "label": "STEAM",
+      "url": "",
+      "published": false,
+      "order": 5
+    }
+  ],
+
+  "status": {
+    "key": "in-development",
+    "label": "IN DEVELOPMENT",
+    "detail": "PLACEHOLDER — replace with the current stage the owner wants stated",
+    "emphasis": true
+  },
+
+  "footer": {
+    "copyrightHolder": "Daineku",
+    "note": "PLACEHOLDER — optional footer note",
+    "links": [
+      { "label": "STUDIO", "href": "https://daineku.com", "external": true, "visible": true }
+    ]
+  }
+}
