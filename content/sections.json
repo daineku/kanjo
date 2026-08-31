@@ -6,10 +6,17 @@
       "block type is a new entry here plus a component in the registry at",
       "components/sections/registry.tsx — the page itself never changes.",
       "",
-      "COPY STATUS: the intro body and the feature descriptions below are drawn only",
-      "from what the game repository already states about itself. Anything not",
-      "stated anywhere is marked PLACEHOLDER and must be written by the owner. No",
-      "release date, platform list, price, store page or player claim is asserted."
+      "ORDER IS MEDIA-FIRST. The visitor meets the hero, then FOOTAGE, then",
+      "SCREENSHOTS, and only then reads about the game. That is the order a game",
+      "presentation uses; leading with prose is the marketing-funnel order the",
+      "brief rules out. Development status rides in the hero's status line rather",
+      "than as its own section.",
+      "",
+      "COPY STATUS: anything containing the word PLACEHOLDER is NOT RENDERED — see",
+      "lib/content/placeholder.ts. So a section with unwritten copy shows less",
+      "rather than showing an instruction to the site's owner. The inventory of",
+      "what is still needed is docs/CONTENT_REQUIRED.md. No release date,",
+      "platform, price, store page or player claim is asserted anywhere."
     ],
     "id": "hero",
     "type": "hero",
@@ -21,23 +28,22 @@
       "subtitle": "NIGHT HIGHWAY RACING",
       "description": "An elevated expressway loop after dark, drawing on Japanese highway racing culture and the atmosphere of late 1990s and early 2000s Japan.",
       "background": {
+        "_comment": [
+          "The canon's own composition is media + dim + UI",
+          "(Screens/MainMenu/layout.json defaultTreatment.mode = 'dim').",
+          "kind is 'none' only because no footage exists yet; the hero already",
+          "reserves the full media footprint, so switching to:",
+          "  { kind: 'image', image: {...}, treatment: 'dim' }",
+          "or",
+          "  { kind: 'video', videoSrc: '...', poster: {...}, treatment: 'dim' }",
+          "is a content change with no layout change. See docs/CONTENT_REQUIRED.md",
+          "for the dimensions and encoding to supply."
+        ],
         "kind": "none",
-        "treatment": "transparent"
+        "treatment": "dim"
       },
-      "actionIds": ["wishlist", "updates"],
+      "actionIds": ["updates", "wishlist"],
       "platformNote": "PLACEHOLDER — platforms not announced"
-    }
-  },
-
-  {
-    "id": "game",
-    "type": "intro",
-    "published": true,
-    "order": 1,
-    "config": {
-      "eyebrow": "THE GAME",
-      "heading": "ONE LOOP, AFTER DARK",
-      "body": "The Kanjo is a racing game built around a single elevated expressway loop at night — a fictionalised Japanese night circuit, loosely inspired rather than reproduced.\n\nHandling aims at believable vehicle behaviour rather than simulation for its own sake, and the interface stays deliberately minimal: the road, the traffic, and the car.\n\nPLACEHOLDER — the owner should replace or extend this section with the positioning they actually want to lead with."
     }
   },
 
@@ -45,10 +51,10 @@
     "id": "video",
     "type": "video",
     "published": true,
-    "order": 2,
+    "order": 1,
     "config": {
       "eyebrow": "FOOTAGE",
-      "heading": "FEATURED VIDEO",
+      "heading": "IN MOTION",
       "videoIds": [],
       "layout": "featured"
     }
@@ -58,7 +64,7 @@
     "id": "media",
     "type": "media",
     "published": true,
-    "order": 3,
+    "order": 2,
     "config": {
       "eyebrow": "MEDIA",
       "heading": "SCREENSHOTS",
@@ -68,28 +74,28 @@
   },
 
   {
-    "id": "status",
-    "type": "status",
+    "id": "game",
+    "type": "intro",
     "published": true,
-    "order": 4,
+    "order": 3,
     "config": {
-      "eyebrow": "DEVELOPMENT",
-      "heading": "CURRENT STATE",
-      "standfirst": "PLACEHOLDER — replace these rows with whatever the owner is willing to state publicly.",
-      "rows": [
-        { "label": "STAGE", "value": "IN DEVELOPMENT", "emphasis": true },
-        { "label": "BUILD", "value": "PLACEHOLDER" },
-        { "label": "PLATFORMS", "value": "NOT ANNOUNCED" },
-        { "label": "RELEASE", "value": "NOT ANNOUNCED" }
-      ]
+      "eyebrow": "THE GAME",
+      "heading": "ONE LOOP, AFTER DARK",
+      "body": "The Kanjo is a racing game built around a single elevated expressway loop at night — a fictionalised Japanese night circuit, loosely inspired rather than reproduced.\n\nHandling aims at believable vehicle behaviour rather than simulation for its own sake, and the interface stays deliberately minimal: the road, the traffic, and the car.\n\nPLACEHOLDER — the owner should replace or extend this section with the positioning they actually want to lead with."
     }
   },
 
   {
+    "_comment": [
+      "Disabled for V1. Its four items were all PLACEHOLDER descriptions, and the",
+      "two that could be written duplicate what the intro above already says.",
+      "Re-enable once there are features worth naming that the intro does not",
+      "cover — the section renders nothing while its descriptions are unwritten."
+    ],
     "id": "features",
     "type": "features",
-    "published": true,
-    "order": 5,
+    "published": false,
+    "order": 4,
     "config": {
       "eyebrow": "SYSTEMS",
       "heading": "WHAT IS BEING BUILT",
@@ -119,6 +125,29 @@
   },
 
   {
+    "_comment": [
+      "Disabled for V1. Every row except STAGE was PLACEHOLDER or NOT ANNOUNCED,",
+      "so the section spent ~600px telling a visitor nothing, and STAGE is already",
+      "in the hero's status line. Re-enable when there are real figures (build",
+      "number, platforms, a window) — unwritten rows are dropped automatically."
+    ],
+    "id": "status",
+    "type": "status",
+    "published": false,
+    "order": 5,
+    "config": {
+      "eyebrow": "DEVELOPMENT",
+      "heading": "CURRENT STATE",
+      "rows": [
+        { "label": "STAGE", "value": "IN DEVELOPMENT", "emphasis": true },
+        { "label": "BUILD", "value": "PLACEHOLDER" },
+        { "label": "PLATFORMS", "value": "PLACEHOLDER" },
+        { "label": "RELEASE", "value": "PLACEHOLDER" }
+      ]
+    }
+  },
+
+  {
     "id": "updates",
     "type": "updates",
     "published": true,
@@ -138,16 +167,24 @@
     "order": 7,
     "config": {
       "eyebrow": "ELSEWHERE",
-      "heading": "FOLLOW AND SUPPORT",
-      "standfirst": "Destinations open as they are announced. Nothing here is live yet.",
-      "linkIds": ["wishlist", "discord", "patreon", "updates"]
+      "heading": "FOLLOW THE BUILD",
+      "standfirst": "Destinations open as they are announced.",
+      "linkIds": ["updates", "wishlist", "discord", "patreon"]
     }
   },
 
   {
+    "_comment": [
+      "Disabled: the social channels now render inside the 'about' links section,",
+      "which is where a visitor looks for 'where do I follow this'. A separate",
+      "section that says 'no channels are live yet' directly under one listing",
+      "where to follow the project is two sections answering one question. The",
+      "component renders nothing while no channel has a URL, so this is belt and",
+      "braces."
+    ],
     "id": "social",
     "type": "social",
-    "published": true,
+    "published": false,
     "order": 8,
     "config": {
       "eyebrow": "CHANNELS",

@@ -27,7 +27,7 @@
   {
     "id": "updates",
     "label": "FOLLOW DEVELOPMENT",
-    "description": "Development updates and technical write-ups",
+    "description": "Devlog and technical write-ups",
     "href": "/updates",
     "external": false,
     "intent": "default",

@@ -85,7 +85,7 @@
   "status": {
     "key": "in-development",
     "label": "IN DEVELOPMENT",
-    "detail": "PLACEHOLDER — replace with the current stage the owner wants stated",
+    "detail": "PLACEHOLDER — a short qualifier beside the status, if wanted",
     "emphasis": true
   },
 
