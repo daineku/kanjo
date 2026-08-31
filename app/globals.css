@@ -280,7 +280,12 @@ svg {
   margin: 0;
 }
 
-/* body / aboutBody */
+/* body / aboutBody.
+   OPAQUE, because that is what the canon states: typography.json gives both
+   `body` and `aboutBody` color textPrimary at opacity "opaque", and reserves
+   `secondaryText` (0.5) for `smallLabel` and `navigationSubtitle` only. The
+   first build rendered every paragraph and article body at 50%, which was a
+   silent drift from the canon AND measurably worse for long-form reading. */
 .k-body {
   font-family: var(--k-font-technical);
   font-weight: 400;
@@ -367,14 +372,48 @@ svg {
   padding-inline: clamp(20px, 3vw, var(--k-screen-safe));
 }
 
+/**
+ * ONE SPINE.
+ *
+ * `.k-reading` used to centre a 930px block inside the 1440px shell, while wide
+ * sections sat flush at the shell padding. Measured, that put section headings
+ * on TWO different left edges 207px apart at 1440 and 1920 — hero at x=43,
+ * "ONE LOOP, AFTER DARK" at x=255, "SCREENSHOTS" back at x=43 — so the content
+ * visibly wandered left and right as the page scrolled. That reads as
+ * unfinished more than any single element does.
+ *
+ * Now every section starts at the shell's left edge and the MEASURE is capped
+ * by max-width on the block, not by centring it. One spine, one rhythm, and
+ * long-form copy still lands on a 65-75 character line.
+ */
 .k-reading {
   width: 100%;
   max-width: var(--k-content);
-  margin-inline: auto;
+  margin-inline: 0;
 }
 
 .k-section {
-  padding-block: clamp(56px, 7vw, 128px);
+  padding-block: clamp(48px, 5.5vw, 104px);
+}
+
+/**
+ * Section separation.
+ *
+ * Every surface on this site is near-black, so padding alone does not separate
+ * two sections — measured, nine sections ran together over 5,394px with no
+ * boundary anywhere. The canon's own separator is a divider rule
+ * (Tokens/borders.json), so that is what marks a section edge. It is drawn
+ * inside the shell rather than full-bleed, so it starts on the same spine as
+ * the heading above it.
+ */
+.k-section + .k-section > .k-shell::before,
+.k-section-divider > .k-shell::before {
+  content: '';
+  display: block;
+  height: var(--k-thin-width);
+  background: var(--k-divider);
+  margin-bottom: clamp(40px, 4.5vw, 88px);
+  margin-top: calc(-1 * clamp(48px, 5.5vw, 104px));
 }
 
 /* The canon's divider: Tokens/borders.json divider at the divider colour.
@@ -525,18 +564,64 @@ svg {
   padding: var(--k-space-md) var(--k-space-md) calc(var(--k-space-md) + 2px);
 }
 
-/* ── Header nav variant. Same construction at a header's band height. The
-   canon's card is 95.308px tall with a 37.1543px band; a header row keeps the
-   identity by using the band alone. ─────────────────────────────────────── */
+/* ── Header nav variant ─────────────────────────────────────────────────────
+   NOT the card at a smaller size, and that was the mistake. Setting the band
+   height equal to the card height made the band and the card the same
+   rectangle: measured 82x30 with a 30px band, i.e. a solid grey fill with no
+   band/body relationship left. The canon's identity is that RELATIONSHIP — a
+   lighter title bar over a darker body, with a rule down the spine
+   (Assets/Panels, and MENU - ITEM.png) — so a collapsed version of it is not a
+   quieter card, it is a generic web chip. All four read as buttons.
+
+   A header row cannot host a 95px card, so it keeps the part of the vocabulary
+   that survives at this size: the LABEL and the RULE. No fill, no band. The
+   rule carries every state, which is exactly what it does in the game. */
 .k-wedge--nav {
-  --k-wedge-band-height: 30px;
   width: auto;
   min-width: 0;
+  background: transparent;
+}
+
+/* The band and the spine are suppressed; a single bottom rule replaces them. */
+.k-wedge--nav::before {
+  content: none;
+}
+
+.k-wedge--nav::after {
+  inset: auto 0 0 0;
+  width: auto;
+  height: var(--k-divider-width);
+  background: var(--k-wedge-edge, transparent);
 }
 
 .k-wedge--nav .k-wedge-band {
-  padding-inline: var(--k-space-md);
+  min-height: var(--k-touch-target-min);
+  padding-inline: var(--k-space-sm);
   white-space: nowrap;
+  overflow: hidden;
+}
+
+/* The label is OPAQUE, which is what the canon states: navigationTitle is
+   textPrimary at opacity "opaque", and in the game EVERY nav card shows a white
+   title — selection is carried by the wedge and the rule, never by dimming the
+   text. An earlier version here dimmed unselected labels to 50%, which invented
+   a hierarchy the canon does not have and made the whole nav faint. */
+.k-wedge--nav .k-nav-title {
+  font-size: clamp(14px, 0.35vw + 12.5px, 17px);
+  letter-spacing: var(--k-nav-title-tracking);
+  color: var(--k-text-primary);
+}
+
+/* The rule is always present at the divider colour, so the nav reads as one
+   group, and it is the single thing that changes for state. */
+.k-wedge--nav::after {
+  background: var(--k-wedge-edge, var(--k-divider));
+}
+
+.k-wedge--nav[data-selected='true'],
+.k-wedge--nav:hover,
+.k-wedge--nav:focus-visible {
+  background: transparent;
 }
 
 /* ── Strip variant. The canon's card size as a FLOOR, not a fixed width.
@@ -743,7 +828,8 @@ svg {
 }
 
 .k-rt p {
-  color: var(--k-text-secondary);
+  /* Opaque — canon `aboutBody`. See .k-body above. */
+  color: var(--k-text-primary);
   max-width: 68ch;
 }
 
@@ -775,7 +861,7 @@ svg {
   padding-left: 0;
   list-style: none;
   max-width: 68ch;
-  color: var(--k-text-secondary);
+  color: var(--k-text-primary);
 }
 
 .k-rt-list li {
@@ -803,7 +889,7 @@ svg {
 }
 
 .k-rt-list li strong {
-  color: var(--k-text-primary);
+  color: var(--k-positive-bright);
   font-weight: 400;
 }
 
@@ -846,18 +932,20 @@ svg {
   margin-block: clamp(40px, 4vw, 64px) !important;
 }
 
+/* Iceland is a single-weight face, so emphasis cannot come from weight, and
+   now that body copy is opaque it cannot come from opacity either. It comes
+   from the canon's own accent-of-attention: the selection green, which is
+   already what this design uses to mean "this one". */
 .k-rt strong {
-  color: var(--k-text-primary);
+  color: var(--k-positive-bright);
   font-weight: 400;
-  /* Iceland is a single-weight face, so emphasis cannot come from weight. The
-     canon's own hierarchy is opacity, and the body text sits at 0.5 — so bold
-     is "full-strength white" against secondary. */
 }
 
 .k-rt em {
   font-style: normal;
   color: var(--k-text-primary);
   letter-spacing: var(--k-small-tracking);
+  opacity: var(--k-opacity-secondary);
 }
 
 .k-article-cover {
@@ -940,4 +1028,356 @@ svg {
     /* The strip's own scroll needs the section to stop growing with it. */
     padding-block: clamp(56px, 12vw, 96px);
   }
+}
+
+/* ============================================================================
+   MEDIA PLATE
+   ----------------------------------------------------------------------------
+   The site's most important surface, and the one the first build did not have.
+
+   WHAT WAS WRONG. An empty media slot was drawn as four 10px corner brackets
+   with nothing between them. At a profile-portrait size — the canon's own use,
+   ~200px — those four marks read as a frame. Stretched to a 930x523 video
+   plate they are 930px apart and read as four unrelated ticks in a void, so the
+   section looked broken rather than pending, and it gave no sense at all of how
+   big the real footage will be. The brief's test is whether a placeholder
+   accurately simulates the eventual media layout; it did not.
+
+   WHAT THIS IS. A real plate at the real aspect ratio: the canon's panel fill
+   so the footprint is legible, the divider as its edge, the corner brackets
+   kept at their canon scale in the corners, and a small label. When real media
+   arrives it drops into exactly this box and nothing moves.
+   ========================================================================== */
+
+.k-plate {
+  position: relative;
+  overflow: hidden;
+  background: var(--k-surface-panel);
+  border: var(--k-thin-width) solid var(--k-divider);
+  border-radius: var(--k-control-radius);
+}
+
+.k-plate--bare {
+  background: none;
+  border: 0;
+}
+
+/* Corner brackets, at the canon's own 9x9 / 2px geometry
+   (Assets/Vectors/profile_frame_corner_*.svg), inset off the plate edge so they
+   read as registration marks on a plate rather than as the plate itself. */
+.k-plate-corners::before,
+.k-plate-corners::after,
+.k-plate-corners > i::before,
+.k-plate-corners > i::after {
+  content: '';
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border: 0 solid var(--k-accent);
+  pointer-events: none;
+  z-index: 2;
+}
+.k-plate-corners::before {
+  top: var(--k-space-sm);
+  left: var(--k-space-sm);
+  border-top-width: 2px;
+  border-left-width: 2px;
+}
+.k-plate-corners::after {
+  top: var(--k-space-sm);
+  right: var(--k-space-sm);
+  border-top-width: 2px;
+  border-right-width: 2px;
+}
+.k-plate-corners > i::before {
+  bottom: var(--k-space-sm);
+  left: var(--k-space-sm);
+  border-bottom-width: 2px;
+  border-left-width: 2px;
+}
+.k-plate-corners > i::after {
+  bottom: var(--k-space-sm);
+  right: var(--k-space-sm);
+  border-bottom-width: 2px;
+  border-right-width: 2px;
+}
+
+/* The pending label sits on the plate's own baseline grid, bottom-left, the way
+   a slate does — not floating dead-centre, which reads as an error state. */
+.k-plate-label {
+  position: absolute;
+  left: var(--k-space-lg);
+  bottom: var(--k-space-lg);
+  right: var(--k-space-lg);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-xs);
+}
+
+.k-plate img,
+.k-plate video,
+.k-plate iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: 0;
+}
+
+/* ============================================================================
+   HERO — media, treatment, UI. The canon's own composition.
+   ----------------------------------------------------------------------------
+   Screens/MainMenu/layout.json states the background as
+   `reference: "figma_placeholder_black"`, `mandatoryProductionBackground: false`
+   and `defaultTreatment: { mode: "dim" }`; Responsive/background_layers.json
+   adds that "black visible in Figma screenshots is generally a presentation
+   placeholder, not mandatory production content" and that blackout applies
+   "only when a UX state explicitly declares it". Screens/Pause states the
+   composition outright: "paused gameplay frame + optional treatment + UI".
+
+   So the game's own default is MEDIA BEHIND A DIM WITH UI OVER IT. The first
+   build shipped the placeholder — a flat black field with 270px of nothing
+   above the title at 1920x1080 and 359px at 768x1024 — and a visitor could not
+   tell the site was about a game at all. This is the correction.
+   ========================================================================== */
+
+.k-hero {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  align-content: end;
+  border-bottom: var(--k-thin-width) solid var(--k-divider);
+}
+
+/**
+ * THE HERO'S HEIGHT DEPENDS ON WHETHER THERE IS MEDIA IN IT.
+ *
+ * With footage, a tall stage is the whole point — the media is the content, and
+ * the UI group sits over its lower third exactly as the canon composes it.
+ *
+ * Without footage that same stage is just a bigger empty field. Measured: the
+ * first build left 270px of nothing above the title at 1920x1080 and 359px at
+ * 768x1024; reserving a full media stage pushed those to 420px and 492px. So
+ * the empty state is COMPACT and sized by its own content, and the tall stage
+ * arrives with the media that justifies it. `data-media` is set by the hero
+ * component from the content, so this switches on its own.
+ */
+.k-hero[data-media='true'] {
+  /* Never taller than the viewport: a first screen that has to be scrolled to
+     be seen is not a first screen. */
+  min-height: min(clamp(560px, 82vh, 900px), 100vh - 64px);
+}
+
+.k-hero[data-media='false'] {
+  min-height: 0;
+}
+
+.k-hero[data-media='false'] .k-hero-ui {
+  padding-block: clamp(56px, 7vw, 112px);
+}
+
+/* Layer 0 — world media. */
+.k-hero-media {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.k-hero-media img,
+.k-hero-media video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Layer 1 — background treatment. Two stops rather than a flat wash: the
+   canon's requirement is "preserve navigation/card contrast" over variable
+   imagery, and a flat dim either loses the image or loses the type. Weighted to
+   the bottom, where the UI group sits. */
+.k-hero-treatment {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.k-hero-treatment[data-mode='dim'] {
+  background:
+    linear-gradient(
+      to bottom,
+      rgb(0 0 3 / 0.35) 0%,
+      rgb(0 0 3 / 0.2) 35%,
+      rgb(0 0 3 / 0.82) 100%
+    );
+}
+
+.k-hero-treatment[data-mode='strong_dim'] {
+  background:
+    linear-gradient(
+      to bottom,
+      rgb(0 0 3 / 0.62) 0%,
+      rgb(0 0 3 / 0.5) 35%,
+      rgb(0 0 3 / 0.92) 100%
+    );
+}
+
+.k-hero-treatment[data-mode='blackout'] {
+  background: var(--k-background);
+}
+
+/* Layer 2 — the UI group. */
+.k-hero-ui {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  padding-block: clamp(36px, 4vw, 72px);
+}
+
+/* The status line above the title: the canon's smallLabel with the divider
+   spine, which is the game's own way of tagging a group. */
+.k-hero-status {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--k-space-sm);
+  border-left: var(--k-divider-width) solid var(--k-positive);
+  padding-left: var(--k-space-md);
+  margin-bottom: var(--k-space-lg);
+}
+
+.k-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--k-space-md);
+  margin-top: clamp(24px, 2.6vw, 40px);
+  padding: 0;
+  list-style: none;
+}
+
+.k-hero-actions > li {
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+@media (max-width: 767px) {
+  .k-hero[data-media='true'] {
+    min-height: min(clamp(480px, 74vh, 720px), 100vh - 56px);
+  }
+  /* The actions WRAP on a phone rather than scrolling out of view. A clipped
+     primary action in a horizontal strip is correct in the game, where the
+     strip is a known input surface; on a web page it hid half a CTA behind an
+     edge with no affordance — measured at 390px, "FOLLOW DEVE" was cut off. */
+  .k-hero-actions > li {
+    flex: 1 1 100%;
+  }
+}
+
+/* The hero's empty media field. A faint panel wash rather than flat black, so
+   the reserved surface is visible without pretending to be footage.
+
+   NO REGISTRATION BRACKETS HERE. On a full-bleed layer they land at the
+   VIEWPORT corners — measured x=12 and x=1908 at 1920 — where four red ticks
+   read as a HUD overlay on the whole page rather than as "media goes here". The
+   brackets belong on a bounded media slot, which is what .k-plate is. */
+.k-hero-plate {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      to bottom,
+      rgb(36 36 37 / 0.14) 0%,
+      rgb(36 36 37 / 0.05) 60%,
+      rgb(0 0 3 / 0) 100%
+    );
+}
+
+/* A decorative autoplay loop is motion the visitor did not ask for, so
+   prefers-reduced-motion pauses it and leaves the poster frame. `display: none`
+   would drop the poster too and expose bare background. */
+@media (prefers-reduced-motion: reduce) {
+  .k-hero-video {
+    animation-play-state: paused;
+  }
+}
+
+/* ============================================================================
+   Small compositions used by the sections
+   ========================================================================== */
+
+/* A label/value row list — the canon's settings row: label left at smallLabel,
+   value right at actionLabel, divider between. */
+.k-rows {
+  margin: 0;
+  border-top: var(--k-thin-width) solid var(--k-divider);
+  max-width: var(--k-content);
+}
+
+.k-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--k-space-lg);
+  padding-block: var(--k-space-md);
+  border-bottom: var(--k-thin-width) solid var(--k-divider);
+}
+
+/* The canon's left rule on its own, without the band. A list entry is not a
+   menu item, so using the full card here would imply every one is activatable.
+   (MENU - ITEM.png: the rule is the spine of a panel; the band is its title.) */
+.k-spine {
+  border-left: var(--k-divider-width) solid var(--k-divider);
+  padding-left: var(--k-space-lg);
+}
+
+/* A text action — the canon's spine plus a label, for "ALL UPDATES" and the
+   article back link. Not a card, because it is one word of navigation. */
+.k-link-action {
+  display: inline-block;
+  color: var(--k-positive-bright);
+  text-decoration: none;
+  border-left: var(--k-divider-width) solid var(--k-positive);
+  padding-left: var(--k-space-md);
+  transition: color var(--k-motion-focus) var(--k-ease-out);
+}
+.k-link-action:hover {
+  color: var(--k-text-primary);
+}
+
+/* Social channels as an inline row rather than four more cards. Eleven wedge
+   cards on one page was the measured count before this pass, and cards stop
+   meaning "this is selectable" when everything is one. */
+.k-inline-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--k-space-lg) var(--k-space-xl);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.k-inline-link {
+  color: var(--k-text-secondary);
+  text-decoration: none;
+  border-bottom: var(--k-thin-width) solid var(--k-divider);
+  padding-bottom: var(--k-space-xs);
+  transition:
+    color var(--k-motion-focus) var(--k-ease-out),
+    border-color var(--k-motion-focus) var(--k-ease-out);
+}
+.k-inline-link:hover,
+.k-inline-link:focus-visible {
+  color: var(--k-text-primary);
+  border-color: var(--k-positive);
+}
+
+.k-back-link {
+  color: var(--k-text-secondary);
+  text-decoration: none;
+  transition: color var(--k-motion-focus) var(--k-ease-out);
+}
+.k-back-link:hover,
+.k-back-link:focus-visible {
+  color: var(--k-positive-bright);
 }
