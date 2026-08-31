@@ -1,5 +1,6 @@
 import Link from 'next/link'
 
+import { real } from '@/lib/content/placeholder'
 import type { SiteSettings } from '@/lib/content/types'
 
 /**
@@ -20,6 +21,7 @@ import type { SiteSettings } from '@/lib/content/types'
 export function SiteFooter({ settings }: { settings: SiteSettings }) {
   const year = new Date().getFullYear()
   const links = settings.footer.links
+  const note = real(settings.footer.note)
 
   return (
     <footer
@@ -39,15 +41,18 @@ export function SiteFooter({ settings }: { settings: SiteSettings }) {
         }}
       >
         <div>
+          {/* No © glyph. Iceland has U+00A9 but draws it as a hollow square,
+              which renders as tofu at 14px; "(C)" is uglier still. The year and
+              the holder are what the notice needs. */}
           <p className="k-small" style={{ color: 'var(--k-text-secondary)' }}>
-            © {year} {settings.footer.copyrightHolder} — {settings.title}
+            {year} {settings.footer.copyrightHolder} — {settings.title}
           </p>
-          {settings.footer.note && (
+          {note && (
             <p
               className="k-small"
               style={{ color: 'var(--k-text-tertiary)', marginTop: 'var(--k-space-sm)' }}
             >
-              {settings.footer.note}
+              {note}
             </p>
           )}
         </div>

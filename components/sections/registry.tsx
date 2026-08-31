@@ -87,6 +87,7 @@ export function renderSection(section: Section, content: LandingContent) {
           id={section.id}
           config={section.config}
           links={content.links}
+          settings={content.settings}
         />
       )
 

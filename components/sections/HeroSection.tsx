@@ -1,35 +1,34 @@
 import Image from 'next/image'
 
 import { WedgeCard } from '@/components/kanjo/WedgeCard'
+import { isPlaceholder } from '@/lib/content/placeholder'
 import type { HeroConfig, LinkBlock, SiteSettings } from '@/lib/content/types'
 
 /**
- * The hero.
+ * The hero: media, treatment, UI. The canon's own composition.
  *
- * THE BACKGROUND MODEL IS THE CANON'S, not a hero-image convention. The game
- * layers background media, then a treatment, then the UI
- * (Responsive/background_layers.json), with the explicit note that "black
- * visible in Figma screenshots is generally a presentation placeholder, not
- * mandatory production content" and that a blackout applies "only when a UX
- * state explicitly declares it". So `background.kind` selects a provider and
- * `background.treatment` is that middle layer — and with no media configured
- * the hero is the canon background colour, which is exactly what every
- * reference screenshot shows. No gradient mesh, no parallax.
+ * THE BACKGROUND IS NOT BLACK BY DESIGN. `Screens/MainMenu/layout.json` names
+ * its background `reference: "figma_placeholder_black"` with
+ * `mandatoryProductionBackground: false` and `defaultTreatment: {mode: "dim"}`;
+ * `Responsive/background_layers.json` states that "black visible in Figma
+ * screenshots is generally a presentation placeholder, not mandatory production
+ * content"; `Screens/Pause/layout.json` spells the composition out as "paused
+ * gameplay frame + optional treatment + UI".
  *
- * The actions are the game's own menu cards, at the canon card width, in a
- * strip. That is the composition the main menu uses, and it is why this reads
- * as entering a menu rather than as a marketing page.
+ * The first build reproduced the placeholder and treated it as the design. The
+ * measurable result: at 1920x1080 the hero was 778px tall with 270px of empty
+ * black above the title, at 768x1024 that was 359px, the first screen contained
+ * zero images, and a visitor had no way to tell the site was about a game.
+ *
+ * So the media layer is now a real, first-class layer. With no footage yet it
+ * renders a NEUTRAL field at the exact footprint real media will occupy — not a
+ * fabricated screenshot, and not a void. Adding a still or a loop later is a
+ * content change, not a layout change.
+ *
+ * Autoplay video, when configured, is muted + playsInline + poster-backed +
+ * `preload="none"`, and is suppressed under prefers-reduced-motion by the CSS,
+ * which leaves the poster showing.
  */
-
-const TREATMENT_SCRIM: Record<NonNullable<HeroConfig['background']>['treatment'], string> = {
-  transparent: 'transparent',
-  // The canon states scrim at 0.72 (Tokens/opacity.json). 'dim' is the lighter
-  // step below it; 'blackout' is opaque, and the canon's own rule is that it is
-  // used only where a state declares it.
-  dim: 'rgb(0 0 3 / 0.45)',
-  strong_dim: 'rgb(0 0 3 / 0.72)',
-  blackout: 'var(--k-background)',
-}
 
 export function HeroSection({
   config,
@@ -40,170 +39,163 @@ export function HeroSection({
   settings: SiteSettings
   links: LinkBlock[]
 }) {
-  const background = config.background ?? { kind: 'none' as const, treatment: 'transparent' as const }
-  const hasMedia = background.kind !== 'none'
+  const background = config.background ?? {
+    kind: 'none' as const,
+    treatment: 'dim' as const,
+  }
 
-  const eyebrow =
-    config.eyebrow === 'status' ? settings.status.label : config.eyebrow
-  const eyebrowDetail = config.eyebrow === 'status' ? settings.status.detail : undefined
-  const eyebrowEmphasis = config.eyebrow === 'status' ? settings.status.emphasis : false
+  const statusLabel = config.eyebrow === 'status' ? settings.status.label : config.eyebrow
+  const statusDetail = config.eyebrow === 'status' ? settings.status.detail : undefined
+  const status = isPlaceholder(statusLabel) ? undefined : statusLabel
+  const statusNote = isPlaceholder(statusDetail) ? undefined : statusDetail
+  const platformNote = isPlaceholder(config.platformNote) ? undefined : config.platformNote
+  const subtitle = isPlaceholder(config.subtitle) ? undefined : config.subtitle
+  const description = isPlaceholder(config.description) ? undefined : config.description
 
+  /**
+   * Live actions first.
+   *
+   * The first build used configured order, which led with a greyed "WISHLIST ON
+   * STEAM / NOT YET ANNOUNCED" — the most prominent action on the page was a
+   * dead one. Unavailable actions stay visible, because the canon keeps a locked
+   * row visible so a player learns what to aim for, but they no longer take the
+   * primary slot.
+   */
   const actions = config.actionIds
     .map((id) => links.find((link) => link.id === id))
     .filter((link): link is LinkBlock => Boolean(link))
+    .sort((a, b) => Number(b.available) - Number(a.available))
+
+  const hasMedia = background.kind !== 'none'
 
   return (
-    <section className="k-hero" aria-labelledby="hero-title">
-      {hasMedia && background.kind === 'image' && background.image && (
-        <Image
-          src={background.image.src}
-          alt={background.image.alt}
-          fill
-          priority
-          sizes="100vw"
-          style={{ objectFit: 'cover', zIndex: 0 }}
-        />
-      )}
+    <section className="k-hero" data-media={hasMedia} aria-labelledby="hero-title">
+      {/* ── Layer 0: world media ─────────────────────────────────────────── */}
+      <div className="k-hero-media" aria-hidden="true">
+        {background.kind === 'image' && background.image && (
+          <Image
+            src={background.image.src}
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            style={{ objectFit: 'cover' }}
+          />
+        )}
 
-      {hasMedia && background.kind === 'video' && background.videoSrc && (
-        // Muted, looping, inline and poster-backed. `preload="none"` keeps it
-        // off the critical path — the poster carries the first paint.
-        <video
-          src={background.videoSrc}
-          poster={background.poster?.src}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="none"
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            zIndex: 0,
-          }}
-        />
-      )}
+        {background.kind === 'video' && background.videoSrc && (
+          <video
+            className="k-hero-video"
+            src={background.videoSrc}
+            poster={background.poster?.src}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="none"
+            tabIndex={-1}
+          />
+        )}
 
-      {hasMedia && background.treatment !== 'transparent' && (
-        <span
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: TREATMENT_SCRIM[background.treatment],
-            zIndex: 1,
-          }}
-        />
-      )}
+        {/* No media yet. A neutral field at the hero's own footprint — nothing
+            is fabricated, and no registration brackets: on a full-bleed layer
+            they land at the viewport corners and read as a HUD overlay rather
+            than as a media slot. Brackets stay on bounded plates. */}
+        {!hasMedia && <span className="k-hero-plate" />}
+      </div>
 
+      {/* ── Layer 1: background treatment ────────────────────────────────── */}
       <div
-        className="k-shell"
-        style={{
-          position: 'relative',
-          zIndex: 2,
-          paddingBlock: 'clamp(48px, 6vw, 96px)',
-          width: '100%',
-        }}
-      >
-        <div style={{ maxWidth: 'var(--k-content)' }}>
-          {eyebrow && (
-            <p
-              className="k-small k-reveal"
-              style={{
-                color: eyebrowEmphasis ? 'var(--k-positive)' : 'var(--k-text-secondary)',
-                marginBottom: 'var(--k-space-lg)',
-                display: 'inline-block',
-                borderLeft: 'var(--k-divider-width) solid var(--k-positive)',
-                paddingLeft: 'var(--k-space-md)',
-              }}
-            >
-              {eyebrow}
-              {eyebrowDetail && (
-                <span style={{ color: 'var(--k-text-tertiary)' }}> — {eyebrowDetail}</span>
-              )}
-            </p>
-          )}
+        className="k-hero-treatment"
+        data-mode={hasMedia ? background.treatment : 'transparent'}
+        aria-hidden="true"
+      />
 
-          <h1
-            id="hero-title"
-            className="k-hero-title k-reveal"
-            style={{ ['--k-reveal-delay' as string]: '40ms' }}
-          >
-            {config.title}
-          </h1>
+      {/* ── Layer 2: the UI group ────────────────────────────────────────── */}
+      <div className="k-hero-ui">
+        <div className="k-shell">
+          <div style={{ maxWidth: 'var(--k-content)' }}>
+            {status && (
+              <p className="k-hero-status k-reveal">
+                <span className="k-small" style={{ color: 'var(--k-positive)' }}>
+                  {status}
+                </span>
+                {statusNote && (
+                  <span className="k-small" style={{ color: 'var(--k-text-tertiary)' }}>
+                    {statusNote}
+                  </span>
+                )}
+              </p>
+            )}
 
-          {config.subtitle && (
-            <p
-              className="k-nav-title k-reveal"
-              style={{
-                marginTop: 'var(--k-space-md)',
-                color: 'var(--k-text-secondary)',
-                ['--k-reveal-delay' as string]: '80ms',
-              }}
+            <h1
+              id="hero-title"
+              className="k-hero-title k-reveal"
+              style={{ ['--k-reveal-delay' as string]: '40ms' }}
             >
-              {config.subtitle}
-            </p>
-          )}
+              {config.title}
+            </h1>
 
-          {config.description && (
-            <p
-              className="k-body k-reveal"
-              style={{
-                marginTop: 'var(--k-space-lg)',
-                marginBottom: 0,
-                maxWidth: '58ch',
-                color: 'var(--k-text-secondary)',
-                ['--k-reveal-delay' as string]: '120ms',
-              }}
-            >
-              {config.description}
-            </p>
-          )}
+            {subtitle && (
+              <p
+                className="k-nav-title k-reveal"
+                style={{
+                  marginTop: 'var(--k-space-md)',
+                  color: 'var(--k-text-secondary)',
+                  ['--k-reveal-delay' as string]: '80ms',
+                }}
+              >
+                {subtitle}
+              </p>
+            )}
 
-          {actions.length > 0 && (
-            <ul
-              className="k-strip k-reveal"
-              style={{
-                listStyle: 'none',
-                margin: 0,
-                marginTop: 'clamp(28px, 3vw, 44px)',
-                padding: 0,
-                // The strip must be able to be narrower than its cards for its
-                // own overflow-x to engage; without this the cards push the
-                // whole page wide at phone widths.
-                maxWidth: '100%',
-                ['--k-reveal-delay' as string]: '160ms',
-              }}
-            >
-              {actions.map((action) => (
-                <li key={action.id}>
-                  <WedgeCard
-                    variant="card"
-                    title={action.label}
-                    subtitle={action.description}
-                    href={action.href || undefined}
-                    external={action.external}
-                    selected={action.available && action.intent === 'primary'}
-                    disabled={!action.available}
-                    disabledReason={action.unavailableReason}
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
+            {description && (
+              <p
+                className="k-body k-reveal"
+                style={{
+                  marginTop: 'var(--k-space-lg)',
+                  marginBottom: 0,
+                  maxWidth: '52ch',
+                  ['--k-reveal-delay' as string]: '120ms',
+                }}
+              >
+                {description}
+              </p>
+            )}
 
-          {config.platformNote && (
-            <p
-              className="k-small"
-              style={{ marginTop: 'var(--k-space-lg)', color: 'var(--k-text-tertiary)' }}
-            >
-              {config.platformNote}
-            </p>
-          )}
+            {actions.length > 0 && (
+              <ul
+                className="k-hero-actions k-reveal"
+                style={{ ['--k-reveal-delay' as string]: '160ms' }}
+              >
+                {actions.map((action) => (
+                  <li key={action.id}>
+                    <WedgeCard
+                      variant="card"
+                      title={action.label}
+                      subtitle={
+                        isPlaceholder(action.description) ? undefined : action.description
+                      }
+                      href={action.href || undefined}
+                      external={action.external}
+                      selected={action.available && action.intent === 'primary'}
+                      disabled={!action.available}
+                      disabledReason={action.unavailableReason}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {platformNote && (
+              <p
+                className="k-small"
+                style={{ marginTop: 'var(--k-space-lg)', color: 'var(--k-text-tertiary)' }}
+              >
+                {platformNote}
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </section>

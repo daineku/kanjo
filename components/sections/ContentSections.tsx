@@ -1,10 +1,10 @@
-import Image from 'next/image'
 import Link from 'next/link'
 
-import { Frame, PendingSlot } from '@/components/kanjo/Frame'
+import { MediaPlate } from '@/components/kanjo/MediaPlate'
 import { EmptyNotice, Section } from '@/components/kanjo/Section'
-import { WedgeCard } from '@/components/kanjo/WedgeCard'
 import { VideoEmbed } from '@/components/kanjo/VideoEmbed'
+import { WedgeCard } from '@/components/kanjo/WedgeCard'
+import { isPlaceholder, real, realRows } from '@/lib/content/placeholder'
 import type {
   ArticleSummary,
   FeaturesConfig,
@@ -13,6 +13,7 @@ import type {
   LinksConfig,
   MediaConfig,
   MediaItem,
+  SectionHeader,
   SiteSettings,
   SocialConfig,
   StatusConfig,
@@ -20,34 +21,53 @@ import type {
   Video,
   VideoConfig,
 } from '@/lib/content/types'
-import { renderRichText } from '@/lib/richText'
 import { formatDate } from '@/lib/format'
+import { renderRichText } from '@/lib/richText'
 
 /**
  * The landing page's content sections.
  *
- * Every one of them is a server component, takes its data as a prop, and
- * fetches nothing. That is the rule that keeps the Daineku media failures from
+ * Every one is a server component, takes its data as a prop, and fetches
+ * nothing. That is the rule that keeps the Daineku media failures from
  * recurring: a section that cannot fetch cannot refetch on hover, on re-render,
- * or once per masonry relayout.
+ * or once per relayout.
  *
- * Each also handles its own empty state rather than returning null. An enabled
- * section that silently vanishes makes an incomplete site look finished, which
- * is the opposite of useful while the content is still being written.
+ * Two rules added by the acceptance pass:
+ *
+ * 1. NO PLACEHOLDER AND NO DEVELOPER INSTRUCTION EVER RENDERS. Optional copy
+ *    goes through `real()` / `isPlaceholder()` and is omitted when unwritten.
+ *    Empty states say what a VISITOR needs to know ("no footage published yet"),
+ *    never what an editor needs to do ("add an entry to content/videos.json") —
+ *    that belongs in docs/CONTENT_REQUIRED.md.
+ *
+ * 2. EVERY MEDIA SURFACE IS A PLATE AT ITS REAL ASPECT RATIO, filled or not, so
+ *    a pending section already shows how large the real footage will be.
  */
+
+function cleanHeader(header: SectionHeader): SectionHeader {
+  return {
+    eyebrow: real(header.eyebrow),
+    heading: real(header.heading),
+    standfirst: real(header.standfirst),
+  }
+}
 
 // ── Intro ────────────────────────────────────────────────────────────────────
 
 export function IntroSection({ id, config }: { id: string; config: IntroConfig }) {
-  const body = renderRichText(config.body)
+  // Placeholder paragraphs are dropped from the body, so a partly-written
+  // section renders the part that is written instead of publishing a note to
+  // the owner. Splitting on the blank line keeps whole paragraphs intact.
+  const body = config.body
+    .split(/\n\s*\n/)
+    .filter((paragraph) => !isPlaceholder(paragraph))
+    .join('\n\n')
+
+  const rendered = renderRichText(body)
 
   return (
-    <Section id={id} header={config}>
-      {body ? (
-        <div className="k-body k-prose k-rt">{body}</div>
-      ) : (
-        <EmptyNotice>NO COPY WRITTEN FOR THIS SECTION YET</EmptyNotice>
-      )}
+    <Section id={id} header={cleanHeader(config)}>
+      {rendered ? <div className="k-body k-prose k-rt">{rendered}</div> : null}
     </Section>
   )
 }
@@ -63,7 +83,6 @@ export function VideoSection({
   config: VideoConfig
   videos: Video[]
 }) {
-  // An explicit id list wins; an empty list means "everything published".
   const selected =
     config.videoIds.length > 0
       ? config.videoIds
@@ -72,41 +91,38 @@ export function VideoSection({
       : videos
 
   return (
-    <Section id={id} header={config}>
+    // WIDE, not the reading column. This is the site's single most important
+    // media surface and the first build constrained it to 930px, which made the
+    // featured video narrower than the text beside it.
+    <Section id={id} header={cleanHeader(config)} width="wide">
       {selected.length === 0 ? (
-        <>
-          <PendingSlot
-            ratio="16 / 9"
-            label="NO FOOTAGE PUBLISHED"
-            detail="Add an entry to content/videos.json"
-          />
-          <EmptyNotice>
-            No video has been published. Nothing has been substituted for one.
-          </EmptyNotice>
-        </>
+        <MediaPlate
+          ratio="16 / 9"
+          label="NO FOOTAGE PUBLISHED YET"
+          detail="Gameplay and cinematic clips will appear here"
+        />
       ) : config.layout === 'featured' ? (
-        <div style={{ display: 'grid', gap: 'var(--k-space-lg)' }}>
-          {selected.slice(0, 1).map((video) => (
-            <figure key={video.id} style={{ margin: 0 }}>
-              <VideoEmbed video={video} />
-              <figcaption style={{ marginTop: 'var(--k-space-md)' }}>
-                <p className="k-item-title">{video.title}</p>
-                {video.description && (
-                  <p
-                    className="k-body"
-                    style={{
-                      marginTop: 'var(--k-space-sm)',
-                      marginBottom: 0,
-                      color: 'var(--k-text-secondary)',
-                    }}
-                  >
-                    {video.description}
-                  </p>
-                )}
-              </figcaption>
-            </figure>
-          ))}
-        </div>
+        selected.slice(0, 1).map((video) => (
+          <figure key={video.id} style={{ margin: 0 }}>
+            <VideoEmbed video={video} priority />
+            <figcaption style={{ marginTop: 'var(--k-space-md)' }}>
+              <p className="k-item-title">{video.title}</p>
+              {real(video.description) && (
+                <p
+                  className="k-body"
+                  style={{
+                    marginTop: 'var(--k-space-sm)',
+                    marginBottom: 0,
+                    color: 'var(--k-text-secondary)',
+                    maxWidth: '62ch',
+                  }}
+                >
+                  {video.description}
+                </p>
+              )}
+            </figcaption>
+          </figure>
+        ))
       ) : (
         <ul className="k-grid k-grid--wide">
           {selected.map((video) => (
@@ -144,56 +160,47 @@ export function MediaSection({
   const shown = config.limit ? selected.slice(0, config.limit) : selected
 
   return (
-    <Section id={id} header={config} width="wide">
+    <Section id={id} header={cleanHeader(config)} width="wide">
       {shown.length === 0 ? (
-        <>
-          {/* The canon's own pending-slot treatment, three across, so the
-              section has a shape and reads as deliberate rather than broken. */}
-          <ul className="k-grid k-grid--media">
-            {[0, 1, 2].map((slot) => (
-              <li key={slot}>
-                <PendingSlot ratio="16 / 9" label="SLOT EMPTY" />
-              </li>
-            ))}
-          </ul>
-          <div style={{ marginTop: 'var(--k-space-lg)' }}>
-            <EmptyNotice>
-              No screenshots have been captured for this site. Nothing has been fabricated in
-              their place — add entries to content/media.json.
-            </EmptyNotice>
-          </div>
-        </>
+        <ul className="k-grid k-grid--media">
+          {/* Three plates at 16:9 — the shape a real screenshot set will take,
+              so the layout is already correct when captures land. Only the first
+              carries the label; three copies of the same notice is noise. */}
+          {[0, 1, 2].map((slot) => (
+            <li key={slot}>
+              <MediaPlate
+                ratio="16 / 9"
+                label={slot === 0 ? 'NO SCREENSHOTS PUBLISHED YET' : undefined}
+                detail={slot === 0 ? 'Captures from the night loop will appear here' : undefined}
+              />
+            </li>
+          ))}
+        </ul>
       ) : (
         /**
          * A plain CSS grid.
          *
          * No masonry library, no JS relayout, no `imagesLoaded`, no auto-cycle,
-         * no hover-triggered fetch. Every one of those is recorded in Daineku's
-         * handoff as a source of duplicate image requests or layout flashes. The
-         * space each image occupies comes from its own declared intrinsic
-         * dimensions via `aspect-ratio`, so nothing shifts as images arrive.
+         * no hover-triggered fetch — each is recorded in Daineku's handoff as a
+         * source of duplicate requests or layout flashes. Space comes from each
+         * image's own declared intrinsic dimensions, so nothing shifts as
+         * images arrive.
          */
         <ul className="k-grid k-grid--media">
           {shown.map((item, index) => (
             <li key={item.id}>
               <figure style={{ margin: 0 }}>
-                <Frame ratio={`${item.image.width} / ${item.image.height}`}>
-                  <Image
-                    src={item.image.src}
-                    alt={item.image.alt}
-                    width={item.image.width}
-                    height={item.image.height}
-                    // Only the first row is eager. Everything else waits for
-                    // the viewport.
-                    loading={index < 3 ? 'eager' : 'lazy'}
-                    sizes="(max-width: 700px) 100vw, (max-width: 1100px) 50vw, 33vw"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                </Frame>
-                {(item.title || item.caption) && (
+                <MediaPlate
+                  ratio={`${item.image.width} / ${item.image.height}`}
+                  image={item.image}
+                  priority={index === 0}
+                  sizes="(max-width: 700px) 100vw, (max-width: 1100px) 50vw, 33vw"
+                  bare
+                />
+                {(real(item.title) || real(item.caption)) && (
                   <figcaption style={{ marginTop: 'var(--k-space-sm)' }}>
-                    {item.title && <p className="k-small">{item.title}</p>}
-                    {item.caption && (
+                    {real(item.title) && <p className="k-small">{item.title}</p>}
+                    {real(item.caption) && (
                       <p className="k-small" style={{ color: 'var(--k-text-tertiary)' }}>
                         {item.caption}
                       </p>
@@ -211,38 +218,24 @@ export function MediaSection({
 
 // ── Status ───────────────────────────────────────────────────────────────────
 
+/**
+ * The development-status strip.
+ *
+ * Rows whose value is a placeholder are dropped rather than printed, so this
+ * shrinks to what is actually known. The first build rendered four rows of
+ * which three said "PLACEHOLDER" or "NOT ANNOUNCED", spending 601px to tell a
+ * visitor nothing. If every row is unknown the whole section renders nothing.
+ */
 export function StatusSection({ id, config }: { id: string; config: StatusConfig }) {
-  if (config.rows.length === 0) {
-    return (
-      <Section id={id} header={config}>
-        <EmptyNotice>NO STATUS ROWS CONFIGURED</EmptyNotice>
-      </Section>
-    )
-  }
+  const rows = realRows(config.rows)
+  if (rows.length === 0) return null
 
   return (
-    <Section id={id} header={config}>
-      {/* A definition list, because that is what a label/value table is. The
-          row treatment is the canon's settings row: label left, value right,
-          a divider between. */}
-      <dl style={{ margin: 0 }}>
-        {config.rows.map((row, index) => (
-          <div
-            key={row.label}
-            style={{
-              display: 'flex',
-              alignItems: 'baseline',
-              justifyContent: 'space-between',
-              gap: 'var(--k-space-lg)',
-              paddingBlock: 'var(--k-space-md)',
-              borderTop:
-                index === 0 ? 'var(--k-thin-width) solid var(--k-divider)' : undefined,
-              borderBottom: 'var(--k-thin-width) solid var(--k-divider)',
-            }}
-          >
-            <dt className="k-small" style={{ color: 'var(--k-text-secondary)' }}>
-              {row.label}
-            </dt>
+    <Section id={id} header={cleanHeader(config)}>
+      <dl className="k-rows">
+        {rows.map((row) => (
+          <div key={row.label} className="k-row">
+            <dt className="k-small">{row.label}</dt>
             <dd
               className="k-action"
               style={{
@@ -263,36 +256,22 @@ export function StatusSection({ id, config }: { id: string; config: StatusConfig
 // ── Features ─────────────────────────────────────────────────────────────────
 
 export function FeaturesSection({ id, config }: { id: string; config: FeaturesConfig }) {
-  if (config.items.length === 0) {
-    return (
-      <Section id={id} header={config}>
-        <EmptyNotice>NO ITEMS CONFIGURED</EmptyNotice>
-      </Section>
-    )
-  }
+  // An item whose description is unwritten contributes a title and nothing
+  // else, which reads as a broken list — so it is dropped until it says
+  // something. No items, no section.
+  const items = config.items.filter((item) => !isPlaceholder(item.description))
+  if (items.length === 0) return null
 
   return (
-    <Section id={id} header={config}>
+    <Section id={id} header={cleanHeader(config)} width="wide">
       <ul className="k-grid k-grid--features">
-        {config.items.map((item) => (
+        {items.map((item) => (
           <li key={item.id}>
-            {/* The canon's left rule alone, without the band: a list entry is
-                not a menu item, and using the full card here would imply every
-                one of these is activatable. */}
-            <div
-              style={{
-                borderLeft: 'var(--k-divider-width) solid var(--k-divider)',
-                paddingLeft: 'var(--k-space-lg)',
-              }}
-            >
+            <div className="k-spine">
               <h3 className="k-item-title">{item.title}</h3>
               <p
                 className="k-body"
-                style={{
-                  marginTop: 'var(--k-space-sm)',
-                  marginBottom: 0,
-                  color: 'var(--k-text-secondary)',
-                }}
+                style={{ marginTop: 'var(--k-space-sm)', marginBottom: 0 }}
               >
                 {item.description}
               </p>
@@ -318,7 +297,7 @@ export function UpdatesSection({
   const shown = updates.slice(0, Math.max(0, config.limit))
 
   return (
-    <Section id={id} header={config}>
+    <Section id={id} header={cleanHeader(config)}>
       {shown.length === 0 ? (
         <EmptyNotice>NO UPDATES PUBLISHED YET</EmptyNotice>
       ) : (
@@ -332,17 +311,7 @@ export function UpdatesSection({
           </ul>
           {updates.length > shown.length && (
             <p style={{ marginTop: 'clamp(24px, 3vw, 40px)', marginBottom: 0 }}>
-              <Link
-                className="k-action"
-                href={config.indexHref}
-                prefetch={false}
-                style={{
-                  color: 'var(--k-positive-bright)',
-                  textDecoration: 'none',
-                  borderLeft: 'var(--k-divider-width) solid var(--k-positive)',
-                  paddingLeft: 'var(--k-space-md)',
-                }}
-              >
+              <Link className="k-action k-link-action" href={config.indexHref} prefetch={false}>
                 ALL UPDATES
               </Link>
             </p>
@@ -356,27 +325,23 @@ export function UpdatesSection({
 /**
  * One article in a list.
  *
- * Exported because the updates index renders the same row, and two nearly
- * identical article rows drifting apart is how a list stops matching its own
- * index page.
+ * Exported because the updates index renders the same row — two nearly
+ * identical article treatments drifting apart is how a list stops matching its
+ * own index page.
  */
 export function ArticleRow({ article }: { article: ArticleSummary }) {
   return (
     <WedgeCard title={article.title} href={`/updates/${article.slug}`}>
       <p className="k-small" style={{ marginTop: 'var(--k-space-sm)' }}>
         <time dateTime={article.publishedAt}>{formatDate(article.publishedAt)}</time>
-        {article.author && (
+        {real(article.author) && (
           <span style={{ color: 'var(--k-text-tertiary)' }}> — {article.author}</span>
         )}
       </p>
-      {article.excerpt && (
+      {real(article.excerpt) && (
         <p
           className="k-body"
-          style={{
-            marginTop: 'var(--k-space-md)',
-            marginBottom: 0,
-            color: 'var(--k-text-secondary)',
-          }}
+          style={{ marginTop: 'var(--k-space-md)', marginBottom: 0, maxWidth: '62ch' }}
         >
           {article.excerpt}
         </p>
@@ -391,26 +356,35 @@ export function LinksSection({
   id,
   config,
   links,
+  settings,
 }: {
   id: string
   config: LinksConfig
   links: LinkBlock[]
+  settings: SiteSettings
 }) {
   const selected = config.linkIds
     .map((linkId) => links.find((link) => link.id === linkId))
     .filter((link): link is LinkBlock => Boolean(link))
+    .sort((a, b) => Number(b.available) - Number(a.available))
+
+  // Social channels are merged in here rather than living in their own section.
+  // Measured, the separate SOCIAL section spent 365px to say "no channels are
+  // live yet" immediately below a section that already listed where to follow
+  // the project — two sections answering one question.
+  const socials = settings.social.filter((link) => link.url.trim() !== '')
+
+  if (selected.length === 0 && socials.length === 0) return null
 
   return (
-    <Section id={id} header={config} width="wide">
-      {selected.length === 0 ? (
-        <EmptyNotice>NO LINKS CONFIGURED</EmptyNotice>
-      ) : (
+    <Section id={id} header={cleanHeader(config)} width="wide">
+      {selected.length > 0 && (
         <ul className="k-grid k-grid--cards">
           {selected.map((link) => (
             <li key={link.id}>
               <WedgeCard
                 title={link.label}
-                subtitle={link.description}
+                subtitle={isPlaceholder(link.description) ? undefined : link.description}
                 href={link.href || undefined}
                 external={link.external}
                 selected={link.available && link.intent === 'primary'}
@@ -421,12 +395,39 @@ export function LinksSection({
           ))}
         </ul>
       )}
+
+      {socials.length > 0 && (
+        <ul
+          className="k-inline-links"
+          style={{ marginTop: selected.length > 0 ? 'clamp(28px, 3vw, 44px)' : 0 }}
+        >
+          {socials.map((link) => (
+            <li key={link.id}>
+              <a
+                className="k-small k-inline-link"
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {link.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
     </Section>
   )
 }
 
 // ── Social ───────────────────────────────────────────────────────────────────
 
+/**
+ * Kept for content compatibility, and renders nothing when no channel is live.
+ *
+ * The social links now surface inside `LinksSection`, which is where a visitor
+ * looks for "where do I follow this". A dedicated section that says "no channels
+ * are live yet" is an empty room on the tour.
+ */
 export function SocialSection({
   id,
   config,
@@ -436,32 +437,18 @@ export function SocialSection({
   config: SocialConfig
   settings: SiteSettings
 }) {
-  // The content source has already dropped unpublished entries; an entry with no
-  // URL is dropped here, because a social link that goes nowhere is worse than
-  // an absent one.
   const live = settings.social.filter((link) => link.url.trim() !== '')
+  if (live.length === 0) return null
 
   return (
-    <Section id={id} header={config} width="wide">
-      {live.length === 0 ? (
-        <EmptyNotice>
-          NO CHANNELS ARE LIVE YET — no account has been invented to fill this section
-        </EmptyNotice>
-      ) : (
-        <ul className="k-grid k-grid--tight">
-          {live.map((link) => (
-            <li key={link.id}>
-              <WedgeCard
-                variant="default"
-                title={link.label}
-                subtitle={link.handle}
-                href={link.url}
-                external
-              />
-            </li>
-          ))}
-        </ul>
-      )}
+    <Section id={id} header={cleanHeader(config)} width="wide">
+      <ul className="k-grid k-grid--tight">
+        {live.map((link) => (
+          <li key={link.id}>
+            <WedgeCard title={link.label} subtitle={real(link.handle)} href={link.url} external />
+          </li>
+        ))}
+      </ul>
     </Section>
   )
 }
