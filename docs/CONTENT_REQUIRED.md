@@ -1,5 +1,10 @@
 # Content required
 
+> **Media specs, formats and the night-image pitfalls live in
+> [MEDIA_WORKFLOW.md](MEDIA_WORKFLOW.md).** This file is the inventory of WHAT is
+> missing; that one is HOW to prepare it. `npm run test:media` prints the same
+> list from the actual content, so the two cannot drift apart.
+
 Everything the site still needs before it can be published, and nothing else.
 
 The site is built so that **an unwritten field is absent, not printed**
@@ -142,6 +147,7 @@ because that is what reserves the space before the image loads.
 | 8.1 | **Default social image (OG)** | `site.json` → `seo.defaultSocialImage` | **Missing.** Every link to the site currently previews with no image, which is the difference between a shared link being clicked and ignored. | 1200 × 630, ≤ 300 KB, PNG or JPEG | **YES** | **Yes** |
 | 8.2 | SEO description | `site.json` → `seo.description` | One stands and is accurate. Confirm it. | 140–160 chars | YES | **Yes** |
 | 8.3 | Favicon / app icon | `app/icon.png` (not present) | **Missing.** Browsers currently show a default. | 512 × 512 PNG | **YES** | No |
+| 8.3b | Apple touch icon | `app/apple-icon.png` (not present) | iOS home screen. Optional — `icon.png` covers everything else. | 180 × 180 PNG, no transparency | No | No |
 | 8.4 | Twitter/X handle | `site.json` → `seo.twitterHandle` | Populates `twitter:site`. Omitted while unset. | — | No | Yes |
 | 8.5 | Site subtitle | `site.json` → `subtitle` | Currently a placeholder and suppressed. | ≤ 60 chars | No | No |
 | 8.6 | Footer note | `site.json` → `footer.note` | Currently a placeholder and suppressed. | ≤ 80 chars | No | No |

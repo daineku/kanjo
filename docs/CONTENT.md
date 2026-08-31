@@ -51,6 +51,41 @@ does.
 
 **Open a CTA** — in `links.json`, set `href` and `"available": true`.
 
+## Adding media
+
+Media files live in `public/media/`, one folder per kind — see
+`public/media/README.md`. The whole flow is:
+
+1. copy the export into the right folder
+2. edit one entry (below)
+3. `npm run test:media` confirms the file is where the entry says it is
+
+**Preparation specs — resolution, format, quality, duration, and the
+night-scene pitfalls that matter for this game — are in
+[MEDIA_WORKFLOW.md](MEDIA_WORKFLOW.md).** Read that before exporting: default
+JPEG settings put visible banding and ringing into dark frames with bright
+lights, which is most of this game.
+
+### The hero
+
+`content/sections.json` → `hero.config.background`. The entry carries its own
+instructions, including the exact JSON for a still and for a loop. Framing is
+`objectPosition` / `mobileObjectPosition` — plain CSS `object-position`, e.g.
+`"center 35%"` — so a badly-cropped subject is usually fixed without
+re-exporting.
+
+Under `prefers-reduced-motion` a hero loop is neither rendered nor downloaded;
+the poster shows instead, which is why a poster is mandatory.
+
+### Screenshots
+
+`content/media.json` holds **six reservations**, all `published: false`. Copy the
+file in, write a real `alt`, set `published: true`. Keep all six at one aspect
+ratio.
+
+Clicking a screenshot opens it in a viewer — Escape or the close button exits,
+left/right arrows step through the set.
+
 ## Adding a video
 
 ```json

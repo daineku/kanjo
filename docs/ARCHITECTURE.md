@@ -138,10 +138,37 @@ do. The inventory of what is missing lives in
 
 ## Media
 
+**Adding real media is a content operation.** Copy a file into
+`public/media/<folder>/`, edit one entry in `content/`, done — no component is
+touched. `public/media/README.md` maps folders to the entries that reference
+them; `docs/MEDIA_WORKFLOW.md` carries the preparation specs.
+
 Every media surface is a `MediaPlate` at a **required** aspect ratio, and the
 ratio is identical whether the plate is filled or pending. That is what makes
 real footage a content change rather than a layout change, and it is why a
 pending section already shows how large the real asset will be.
+
+`npm run test:media` (part of `npm run check`) walks the content, reusing the
+site's own parser, and fails the build when a **published** entry points at a
+file that does not exist. Unpublished entries are reported as "awaiting" — that
+is how the six screenshot reservations are meant to be used. It is a script, not
+a runtime check, so nothing about rendering depends on the disk at request time.
+
+Two client components exist, and only two, both for a reason state cannot avoid:
+
+- `ScreenshotGrid` — the grid plus its viewer, because opening a screenshot needs
+  state. Measured at 442 px per thumbnail (23% of a 1920 capture), which is what
+  justified a viewer at all.
+- `HeroVideo` — the background loop. It is a `matchMedia` gate rather than a CSS
+  media query because hiding a `<video autoplay>` with CSS stops the motion but
+  **the browser still downloads the file** (measured: 1 request under
+  `prefers-reduced-motion`). The poster is a separate server-rendered layer, so
+  the reduced-motion hero is complete, issues no video request, and the first
+  paint never waits for hydration.
+
+Framing is two strings — `objectPosition` and `mobileObjectPosition` on the hero
+background — because the hero is the only surface that crops media to an
+arbitrary box. No crop-management system.
 
 The hero is the canon's own composition — world media, then
 `background_treatment`, then UI — because `Screens/MainMenu/layout.json` states

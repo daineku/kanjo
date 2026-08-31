@@ -1,20 +1,104 @@
 [
   {
-    "_comment": "Empty by design. No screenshots have been captured for the site, and inventing one would mean presenting a fabricated image as the game. The media section renders the canon's own pending-slot treatment (red corner brackets, UI_Canon/Assets/Vectors/profile_frame_corner_*.svg) until real captures land here.",
-    "_example": {
-      "id": "osaka-night-01",
-      "image": {
-        "src": "/media/screenshots/osaka-night-01.jpg",
-        "alt": "Describe what is actually in the frame",
-        "width": 1920,
-        "height": 1080
-      },
-      "title": "",
-      "caption": "",
-      "group": "osaka",
-      "featured": true,
-      "published": true,
-      "order": 0
-    }
+    "_README": [
+      "SCREENSHOTS. Six reservations, all published:false, so none of them render",
+      "and no fabricated image ships. To bring one live:",
+      "",
+      "  1. export the capture to public/media/screenshots/ using the name below",
+      "  2. write a real `alt` describing what is actually in the frame",
+      "  3. set \"published\": true",
+      "",
+      "That is the whole workflow. No component is edited, and `npm run test:media`",
+      "lists exactly which files are still missing.",
+      "",
+      "`width`/`height` are the REAL pixel dimensions and are mandatory — they are",
+      "what reserves the image's space before it loads, so a wrong value shifts the",
+      "layout. 1920x1080 is the recommended export; see docs/MEDIA_WORKFLOW.md for",
+      "format, quality and the night-scene pitfalls that matter for this game.",
+      "",
+      "KEEP THE SET AT ONE ASPECT RATIO. The grid reserves each cell from the",
+      "entry's own dimensions, so mixed ratios give a ragged grid — it will not",
+      "shift, but it will not read as a press set either.",
+      "",
+      "`order` controls position; `featured` is available for later use and is not",
+      "read by the current layout. The filenames below are suggestions, not",
+      "requirements — the path in `image.src` is the only thing that must match."
+    ],
+    "id": "screenshot-01",
+    "image": {
+      "src": "/media/screenshots/screenshot-01.jpg",
+      "alt": "",
+      "width": 1920,
+      "height": 1080
+    },
+    "caption": "",
+    "featured": true,
+    "published": false,
+    "order": 0
+  },
+  {
+    "id": "screenshot-02",
+    "image": {
+      "src": "/media/screenshots/screenshot-02.jpg",
+      "alt": "",
+      "width": 1920,
+      "height": 1080
+    },
+    "caption": "",
+    "featured": false,
+    "published": false,
+    "order": 1
+  },
+  {
+    "id": "screenshot-03",
+    "image": {
+      "src": "/media/screenshots/screenshot-03.jpg",
+      "alt": "",
+      "width": 1920,
+      "height": 1080
+    },
+    "caption": "",
+    "featured": false,
+    "published": false,
+    "order": 2
+  },
+  {
+    "id": "screenshot-04",
+    "image": {
+      "src": "/media/screenshots/screenshot-04.jpg",
+      "alt": "",
+      "width": 1920,
+      "height": 1080
+    },
+    "caption": "",
+    "featured": false,
+    "published": false,
+    "order": 3
+  },
+  {
+    "id": "screenshot-05",
+    "image": {
+      "src": "/media/screenshots/screenshot-05.jpg",
+      "alt": "",
+      "width": 1920,
+      "height": 1080
+    },
+    "caption": "",
+    "featured": false,
+    "published": false,
+    "order": 4
+  },
+  {
+    "id": "screenshot-06",
+    "image": {
+      "src": "/media/screenshots/screenshot-06.jpg",
+      "alt": "",
+      "width": 1920,
+      "height": 1080
+    },
+    "caption": "",
+    "featured": false,
+    "published": false,
+    "order": 5
   }
 ]

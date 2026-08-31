@@ -1,16 +1,65 @@
 [
   {
-    "_comment": "Empty by design. No footage has been published, and a fabricated video id would resolve to somebody else's content. Add an entry with provider youtube|vimeo|file, a bare ref (id, not a watch URL) and a poster with real intrinsic dimensions.",
-    "_example": {
-      "id": "first-look",
-      "provider": "youtube",
-      "ref": "REPLACE_WITH_VIDEO_ID",
-      "title": "FIRST LOOK",
-      "description": "",
-      "poster": { "src": "/media/posters/first-look.jpg", "alt": "", "width": 1920, "height": 1080 },
-      "featured": true,
-      "published": true,
-      "order": 0
-    }
+    "_README": [
+      "VIDEOS. Two reservations, both published:false, so neither renders and no",
+      "fabricated footage ships. Bring ONE live and it becomes the featured video",
+      "under the hero.",
+      "",
+      "A LOCAL CLIP (provider 'file') — preferred for gameplay and cinematics,",
+      "because it ships no third-party script and no cookies:",
+      "",
+      "  1. export to public/media/video/ (MP4 always; WebM as well if you can)",
+      "  2. export a poster frame to the same folder — MANDATORY",
+      "  3. put the MP4 in `ref` and the WebM in `sources`, WebM first in",
+      "     preference order",
+      "  4. set \"published\": true",
+      "",
+      "The page shows only the poster until the visitor presses PLAY; the video file",
+      "is not fetched before that. The native <video> element handles playback,",
+      "controls, fullscreen and Picture-in-Picture — no player library.",
+      "",
+      "AN EXTERNAL CLIP (provider 'youtube' or 'vimeo'):",
+      "",
+      "  `ref` is the BARE ID, not a watch URL — 'dQw4w9WgXcQ', not",
+      "  'https://youtube.com/watch?v=dQw4w9WgXcQ&list=...'. The embed URL is",
+      "  composed by the site, so a pasted URL cannot smuggle in a playlist, an",
+      "  autoplay parameter or a tracking string. A poster is still mandatory, and",
+      "  the provider's script only loads once somebody presses PLAY.",
+      "",
+      "See docs/MEDIA_WORKFLOW.md for resolution, duration, codec, bitrate and",
+      "whether to strip the audio track."
+    ],
+    "id": "featured-clip",
+    "provider": "file",
+    "ref": "/media/video/featured.mp4",
+    "sources": ["/media/video/featured.webm"],
+    "title": "",
+    "description": "",
+    "poster": {
+      "src": "/media/video/featured-poster.jpg",
+      "alt": "",
+      "width": 1920,
+      "height": 1080
+    },
+    "featured": true,
+    "published": false,
+    "order": 0
+  },
+  {
+    "_note": "An external alternative, for when a trailer lives on YouTube. `ref` is the bare id.",
+    "id": "external-clip",
+    "provider": "youtube",
+    "ref": "REPLACE_WITH_BARE_VIDEO_ID",
+    "title": "",
+    "description": "",
+    "poster": {
+      "src": "/media/video/external-poster.jpg",
+      "alt": "",
+      "width": 1920,
+      "height": 1080
+    },
+    "featured": false,
+    "published": false,
+    "order": 1
   }
 ]
