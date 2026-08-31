@@ -102,17 +102,45 @@ The game's navigation is a horizontally-scrolling strip
 (`Components/bottom_navigation_strip.json`: `anchorIntent: bottom-center`,
 `clip: true`, ~4 items visible at the reference width).
 
-So the header nav is that strip at a header's band height, and **the narrow
-layout is the same strip, scrolling** — no hamburger drawer, no toggle state, no
-focus trap. That is both the game's answer and a better one for a phone.
+**The narrow layout is the same strip, scrolling** — no hamburger drawer, no
+toggle state, no focus trap. That is both the game's answer and a better one for
+a phone.
+
+The header ITEM, though, is not the card at a smaller size — see deviation D2.
+It is the label and the rule, because a card whose band fills its whole height is
+a solid chip with no band/body relationship left, and reads as a generic web
+button. The rule carries all four states:
+
+| State | Rule colour |
+|---|---|
+| normal | `divider` #242425 |
+| selected (current page) | `positive` #34C759, plus `aria-current="page"` |
+| hover | `positiveBright` #7DFF68 |
+| keyboard focus | `positiveBright` #7DFF68, on top of selection |
+
+A fragment href (`/#media`) never takes the selected treatment. Resolving one to
+its path made GAME, MEDIA and ABOUT all "current" on the landing page — four
+green items where the game shows exactly one.
 
 ## The framed slot
 
 `Assets/Vectors/profile_frame_corner_*.svg` is a 9×9 L with a 2px accent stroke.
 The reference screenshots place all four around an image slot, filled or empty.
 It is the game's own way of saying "content goes here", which makes it the right
-treatment for media this site does not have yet — `PendingSlot` in
-`components/kanjo/Frame.tsx`.
+treatment for media this site does not have yet — `MediaPlate` in
+`components/kanjo/MediaPlate.tsx`.
+
+**The brackets keep their 9×9 geometry regardless of plate size, and they are
+inset off the edge.** Scaling them with the plate was the first version's
+mistake: at the canon's own ~200px portrait scale four marks read as a frame, but
+on a 930×523 video plate they sit 930px apart and read as four unrelated ticks in
+a void. A plate therefore also carries a panel fill and a divider edge, which is
+what actually communicates the footprint, plus a label placed bottom-left like a
+slate rather than floating dead-centre.
+
+They are **not** used on a full-bleed layer such as the hero: there the four
+marks land at the viewport corners and read as a HUD overlay on the whole page
+rather than as a media slot.
 
 ## Layout
 
@@ -130,6 +158,32 @@ also lands on a 65–75 character measure. `--k-content: 930px`.
 that collapses every transition and reveal to its end state.
 
 No parallax, no scroll hijacking, no reveal-on-every-element.
+
+## Deviations from the canon, and why
+
+Every entry is a place where this site does **not** do what the canon literally
+says. Each needs a web-specific reason; a deviation without one is drift.
+
+| # | Canon says | Site does | Web-specific reason |
+|---|---|---|---|
+| D1 | `MainMenu` anchors its nav strip **bottom-centre** | Header nav at the top | A web page's navigation must be reachable before the content, and a bottom-fixed bar over a scrolling document is a mobile-app pattern. The strip's overflow behaviour is kept. |
+| D2 | `navigation_button` is a **216.588 x 95.308 card** with a 37.1543 band | The header item is a **label plus a rule** — no band, no fill | A header row cannot host a 95px card, and a *collapsed* card is not a quieter card: with band height equal to card height it becomes a solid filled chip that reads as a generic web button (measured 82x30 with a 30px band). The label and the rule are the part of the vocabulary that survives at 44px. The full card is still used where a card belongs — hero actions, link blocks, article rows. |
+| D3 | `bottom_navigation_strip` **clips** and scrolls horizontally | Hero actions **wrap** below 768px | Correct in the game, where the strip is a known input surface with a focus model. On a web page it hid half a CTA behind a viewport edge with no affordance — measured at 390px, "FOLLOW DEVE" was cut off — and a visitor has no reason to suspect a horizontal scroll. The header nav still scrolls, because those items are short and all four fit. |
+| D4 | Groups are **centred** on the 1920 stage | One **left spine** for every section | A stage composes around a fixed centre; a document scrolls. Mixing centred and flush blocks put section headings on two left edges 207px apart, so the page visibly wandered as it scrolled. One spine is the document-flow equivalent of the canon's single composed axis. |
+| D5 | `borders.json` `divider.width` is **2.869** | Section separators use the **1px** `thin` width | Both are canon values. 2.869 is reserved for the spine — a card's left rule, the hero status mark — so a full-width separator uses `thin`, keeping one meaning per weight. |
+| D6 | Black background in every reference screenshot | Hero reserves a **media layer with a `dim` treatment** | **Not a deviation** — it is the canon read correctly. `layout.json` names the black `figma_placeholder_black`, sets `mandatoryProductionBackground: false`, and gives `defaultTreatment.mode: "dim"`. Reproducing the black *was* the deviation, and it is fixed. |
+| D7 | Emphasis is unavailable (Iceland is single-weight) | `**bold**` renders in `positiveBright` | With body copy correctly opaque, neither weight nor opacity is available for emphasis. Green is already this design's "this one" signal, so it carries emphasis rather than introducing a new value. |
+| D8 | `U+00A9` exists; `U+2026` / `U+2190` are conventional | Footer drops `(c)`; excerpts use three periods; back link uses a guillemet | Iceland has no `U+2026`/`U+2190` in its cmap and draws `U+00A9` as a hollow square. A missing glyph falls through to another typeface mid-string. Verified by reading the font, not assumed. |
+
+### Corrected in this pass — these were drift, not deviations
+
+- **Body opacity.** `typography.json` gives `body` and `aboutBody` colour
+  `textPrimary` at opacity `opaque`, reserving `secondaryText` (0.5) for
+  `smallLabel` and `navigationSubtitle`. Every paragraph and article body was
+  rendering at 50%. Now opaque.
+- **Nav label opacity.** Every nav card in the game shows a white title;
+  selection is carried by the wedge and the rule. Unselected labels had been
+  dimmed to 50%, inventing a hierarchy the canon does not have.
 
 ## Canonical extensions
 

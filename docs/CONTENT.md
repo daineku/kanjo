@@ -152,7 +152,8 @@ file. There is no admin form validating these, so the parser is the only gate.
 `code`                inline code
 [text](href)          link
 blank line            new paragraph
-single newline        line break inside the paragraph
+single newline        just a space (prose reflows; hard-wrap freely)
+two trailing spaces   a real line break
 ```
 
 **Not supported, and rendered as literal text on purpose:** raw HTML, tables,

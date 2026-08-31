@@ -39,8 +39,8 @@ app/
   not-found.tsx
 
 components/
-  kanjo/                  The design-system components. WedgeCard, Frame,
-                          PendingSlot, Section, EmptyNotice, VideoEmbed.
+  kanjo/                  The design-system components. WedgeCard, MediaPlate,
+                          Frame, Section, EmptyNotice, VideoEmbed.
   layout/                 SiteHeader, NavStrip, SiteFooter.
   sections/               Landing sections + the composition registry.
 
@@ -122,6 +122,33 @@ each one below cost real debugging there.
   playlist or an autoplay parameter.
 
 Verified: on the landing page at 1440px, every URL is requested at most once.
+
+## Placeholder discipline
+
+An unwritten field is **absent, not printed**. `lib/content/placeholder.ts`
+suppresses any value containing the word `PLACEHOLDER`, and sections drop rows or
+items whose copy is unwritten — so an incomplete site says less rather than
+publishing notes addressed to its own owner. The first build rendered
+"PLACEHOLDER" nine times on the homepage, twice above the fold, plus two
+"add an entry to content/…json" developer instructions.
+
+Empty states say what a **visitor** needs to know, never what an editor needs to
+do. The inventory of what is missing lives in
+[CONTENT_REQUIRED.md](CONTENT_REQUIRED.md).
+
+## Media
+
+Every media surface is a `MediaPlate` at a **required** aspect ratio, and the
+ratio is identical whether the plate is filled or pending. That is what makes
+real footage a content change rather than a layout change, and it is why a
+pending section already shows how large the real asset will be.
+
+The hero is the canon's own composition — world media, then
+`background_treatment`, then UI — because `Screens/MainMenu/layout.json` states
+`defaultTreatment.mode: "dim"` and labels its black `figma_placeholder_black`
+with `mandatoryProductionBackground: false`. Its height is content-dependent: a
+tall stage when there is media to fill it, compact when there is not, so an empty
+hero is not a bigger empty field.
 
 ## Rich text
 
