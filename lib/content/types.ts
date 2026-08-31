@@ -133,9 +133,20 @@ export type Video = Publishable & {
   /**
    * For 'youtube'/'vimeo' this is the bare id, not a URL — the embed URL is
    * composed by the UI so a pasted tracking-laden watch URL cannot get through.
-   * For 'file' it is the source URL.
+   * For 'file' it is the source path, e.g. `/media/video/first-look.mp4`.
    */
   ref: string
+  /**
+   * For 'file' only: additional sources in preference order, so a WebM can be
+   * offered ahead of the MP4 in `ref`. MIME types are derived from extensions.
+   *
+   *   "ref": "/media/video/clip.mp4",
+   *   "sources": ["/media/video/clip.webm"]
+   *
+   * The browser takes the first it supports; `ref` is always offered last, so a
+   * single-source entry needs nothing here.
+   */
+  sources?: string[]
   title: string
   description?: string
   /**
@@ -252,11 +263,50 @@ export type HeroConfig = {
    */
   background?: {
     kind: 'none' | 'image' | 'video'
+    /** The desktop still. For kind: 'image'. */
     image?: ImageRef
-    /** For kind: 'video'. A poster is mandatory. */
+    /**
+     * Optional narrow-viewport still, used below 768px.
+     *
+     * Worth supplying when the desktop frame does not survive a portrait crop —
+     * a 16:9 capture cropped to a phone's aspect keeps about a third of its
+     * width, so a car framed left can end up outside the crop entirely. Omit it
+     * and `mobileObjectPosition` alone usually solves the framing.
+     */
+    mobileImage?: ImageRef
+
+    /**
+     * Local video sources, in preference order — the browser picks the first it
+     * supports, so put WebM before MP4:
+     *
+     *   ["/media/hero/loop.webm", "/media/hero/loop.mp4"]
+     *
+     * The MIME type is derived from the extension, so no `type` field is
+     * needed. `videoSrc` is the single-source shorthand and still works.
+     */
+    videoSources?: string[]
     videoSrc?: string
+    /**
+     * MANDATORY for kind: 'video'. It is the first paint, the fallback when the
+     * loop cannot play, and what shows under prefers-reduced-motion — where the
+     * video element is not rendered at all.
+     */
     poster?: ImageRef
+
     treatment: 'transparent' | 'dim' | 'strong_dim' | 'blackout'
+
+    /**
+     * CSS `object-position` for the media inside the hero's crop, e.g.
+     * `'center 40%'` or `'70% center'`. Defaults to `'center'`.
+     *
+     * This matters more here than anywhere else on the site: the hero is the one
+     * surface that crops its media to an arbitrary box, and a gameplay capture
+     * has a subject — the car, the road's vanishing point — that a centre crop
+     * will not necessarily keep. Two strings, no crop-management system.
+     */
+    objectPosition?: string
+    /** Framing below 768px, where the crop is tallest. Falls back to the above. */
+    mobileObjectPosition?: string
   }
   /** Ids from links.json, in the order they should appear. */
   actionIds: string[]
