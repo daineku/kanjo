@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { useState } from 'react'
 
 import type { Video } from '@/lib/content/types'
+import { mimeFor } from '@/lib/media'
 
 import { Frame, PendingSlot } from './Frame'
 
@@ -42,10 +43,25 @@ function embedUrl(video: Video): string | null {
       if (!VIMEO_ID.test(video.ref)) return null
       return `https://player.vimeo.com/video/${video.ref}?autoplay=1&dnt=1`
     case 'file':
+      // Validated by localSources() instead: a local clip may offer several
+      // encodings, so there is no single URL to return.
       return video.ref
     default:
       return null
   }
+}
+
+/**
+ * Local sources in preference order, `sources` first and `ref` last.
+ *
+ * Listing a WebM ahead of the MP4 means a browser that supports it takes the
+ * smaller file, and everything else falls through to the MP4 in `ref`. A
+ * single-source entry needs no `sources` at all.
+ */
+function localSources(video: Video): string[] {
+  return [...(video.sources ?? []), video.ref]
+    .filter((source): source is string => Boolean(source?.trim()))
+    .filter((source, index, all) => all.indexOf(source) === index)
 }
 
 export function VideoEmbed({
@@ -83,14 +99,34 @@ export function VideoEmbed({
     if (video.provider === 'file') {
       return (
         <Frame ratio={ratio}>
+          {/*
+           * A local clip needs no player library — the native element already
+           * has controls, fullscreen, keyboard handling, captions support and
+           * Picture-in-Picture, all of which a JS player reimplements worse.
+           *
+           * `autoPlay` is honest here: the visitor pressed PLAY, so this is a
+           * gesture-initiated playback and the browser allows sound. It is NOT
+           * muted, deliberately — muting a clip somebody asked to watch would
+           * hide the engine note, which for this game is most of the point. If a
+           * browser refuses the autoplay anyway, the poster stays with visible
+           * controls, which is a clean degradation rather than a blank frame.
+           *
+           * `preload="metadata"` gets duration and the first frames without
+           * pulling the whole file; the element only mounts after a click, so
+           * nothing is fetched on page load at all.
+           */}
           <video
-            src={url}
             poster={video.poster.src}
             controls
             autoPlay
             playsInline
+            preload="metadata"
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
-          />
+          >
+            {localSources(video).map((source) => (
+              <source key={source} src={source} type={mimeFor(source)} />
+            ))}
+          </video>
         </Frame>
       )
     }

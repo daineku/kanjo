@@ -20,6 +20,19 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: '**.r2.dev' },
     ],
     dangerouslyAllowSVG: false,
+
+    /**
+     * AVIF first, WebP second. Next's default is WebP only.
+     *
+     * This is a night game: near-black skies, shallow gradients in dark paint,
+     * and small intense light sources. AVIF is materially better than WebP on
+     * exactly that content — it carries smooth low-contrast gradients without the
+     * banding WebP introduces at comparable sizes, and it rings less around a
+     * bright light on black. Browsers that do not support it fall through to
+     * WebP, then to the original, so this costs nothing but encode time on a
+     * cache miss. See docs/MEDIA_WORKFLOW.md, "Night images".
+     */
+    formats: ['image/avif', 'image/webp'],
   },
   poweredByHeader: false,
 }

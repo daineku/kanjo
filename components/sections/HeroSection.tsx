@@ -1,5 +1,7 @@
 import Image from 'next/image'
+import type { CSSProperties } from 'react'
 
+import { HeroVideo } from '@/components/kanjo/HeroVideo'
 import { WedgeCard } from '@/components/kanjo/WedgeCard'
 import { isPlaceholder } from '@/lib/content/placeholder'
 import type { HeroConfig, LinkBlock, SiteSettings } from '@/lib/content/types'
@@ -26,8 +28,10 @@ import type { HeroConfig, LinkBlock, SiteSettings } from '@/lib/content/types'
  * content change, not a layout change.
  *
  * Autoplay video, when configured, is muted + playsInline + poster-backed +
- * `preload="none"`, and is suppressed under prefers-reduced-motion by the CSS,
- * which leaves the poster showing.
+ * `preload="none"`, and is not rendered at all under prefers-reduced-motion —
+ * see HeroVideo, which explains why that needs a matchMedia gate rather than a
+ * CSS media query. The poster is a server-rendered layer of its own, so the
+ * reduced-motion hero is complete and issues no video request.
  */
 
 export function HeroSection({
@@ -66,35 +70,98 @@ export function HeroSection({
     .filter((link): link is LinkBlock => Boolean(link))
     .sort((a, b) => Number(b.available) - Number(a.available))
 
-  const hasMedia = background.kind !== 'none'
+  /**
+   * Video sources in preference order, `videoSources` first and the `videoSrc`
+   * shorthand last, de-duplicated. A WebM listed before the MP4 wins on any
+   * browser that supports it; everything else falls through to the MP4.
+   */
+  const videoSources = [...(background.videoSources ?? []), background.videoSrc]
+    .filter((source): source is string => Boolean(source?.trim()))
+    .filter((source, index, all) => all.indexOf(source) === index)
+
+  // 'video' with no source is a misconfiguration, not a state — treat it as no
+  // media so the hero renders its neutral field instead of an empty element.
+  const hasMedia =
+    (background.kind === 'image' && Boolean(background.image)) ||
+    (background.kind === 'video' && videoSources.length > 0)
 
   return (
     <section className="k-hero" data-media={hasMedia} aria-labelledby="hero-title">
       {/* ── Layer 0: world media ─────────────────────────────────────────── */}
-      <div className="k-hero-media" aria-hidden="true">
+      <div
+        className="k-hero-media"
+        aria-hidden="true"
+        // Framing, as two CSS variables the stylesheet applies at the right
+        // breakpoint. `object-position` is the whole of the crop control: the
+        // hero is the one surface that crops media to an arbitrary box, and a
+        // capture with the car framed low needs 'center 70%' rather than a
+        // centre crop that cuts it off.
+        style={
+          {
+            '--k-hero-object-position': background.objectPosition ?? 'center',
+            '--k-hero-object-position-mobile':
+              background.mobileObjectPosition ?? background.objectPosition ?? 'center',
+          } as CSSProperties
+        }
+      >
         {background.kind === 'image' && background.image && (
-          <Image
-            src={background.image.src}
-            alt=""
-            fill
-            priority
-            sizes="100vw"
-            style={{ objectFit: 'cover' }}
-          />
+          <>
+            <Image
+              className={background.mobileImage ? 'k-hero-img k-hero-img--desktop' : 'k-hero-img'}
+              src={background.image.src}
+              alt=""
+              fill
+              priority
+              sizes="100vw"
+            />
+            {background.mobileImage && (
+              <Image
+                className="k-hero-img k-hero-img--mobile"
+                src={background.mobileImage.src}
+                alt=""
+                fill
+                priority
+                sizes="100vw"
+              />
+            )}
+          </>
         )}
 
-        {background.kind === 'video' && background.videoSrc && (
-          <video
-            className="k-hero-video"
-            src={background.videoSrc}
-            poster={background.poster?.src}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="none"
-            tabIndex={-1}
-          />
+        {background.kind === 'video' && videoSources.length > 0 && (
+          <>
+            {/*
+             * THE POSTER IS ITS OWN LAYER, ALWAYS RENDERED.
+             *
+             * It is the first paint, the fallback when the loop cannot play, and
+             * — critically — what shows under prefers-reduced-motion, where the
+             * video element is never rendered. Relying on the `<video poster>`
+             * attribute alone would leave bare background in that case, and
+             * would also make the first paint wait for a client component.
+             *
+             * Both layers are absolutely positioned in the same box, so there is
+             * no layout shift when the video paints over the poster.
+             */}
+            {background.poster && (
+              <Image
+                className="k-hero-img"
+                src={background.poster.src}
+                alt=""
+                fill
+                priority
+                sizes="100vw"
+              />
+            )}
+
+            {/*
+             * The loop mounts only when motion is welcome — see HeroVideo for
+             * why that needs a matchMedia gate rather than a CSS media query.
+             * Short version: hiding it with CSS stops the motion but the browser
+             * still downloads the file, measured at 1 request under reduced
+             * motion. The poster above is the server-rendered first paint, so a
+             * reduced-motion visitor gets a complete hero and no video request.
+             */}
+            <HeroVideo sources={videoSources} poster={background.poster?.src} />
+          </>
         )}
 
         {/* No media yet. A neutral field at the hero's own footprint — nothing

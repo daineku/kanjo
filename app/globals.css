@@ -986,8 +986,12 @@ svg {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
 }
 
+/* THREE ACROSS at desktop, not four.
+   Six is the recommended V1 screenshot count, and a 320px track gave four
+   columns at 1440 — a 4+2 grid with two empty cells, and each image only 328px
+   wide (17% of a 1920 capture). A 420px track gives 3+3 and 442px each. */
 .k-grid--media {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
 }
 
 .k-grid--features {
@@ -1293,12 +1297,62 @@ svg {
     );
 }
 
-/* A decorative autoplay loop is motion the visitor did not ask for, so
-   prefers-reduced-motion pauses it and leaves the poster frame. `display: none`
-   would drop the poster too and expose bare background. */
-@media (prefers-reduced-motion: reduce) {
+/* ── Hero media: framing, the poster layer, and reduced motion ──────────────
+
+   FRAMING. The hero is the one surface that crops its media to an arbitrary
+   box, so it is the one that needs `object-position`. Two custom properties,
+   set inline by the component from content, applied here at the right
+   breakpoint. No crop-management system.
+   ------------------------------------------------------------------------- */
+
+.k-hero-img,
+.k-hero-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: var(--k-hero-object-position, center);
+}
+
+/* An optional narrow-viewport still. Only one of the pair is ever displayed, so
+   only one is ever fetched — `display: none` prevents the request. */
+.k-hero-img--mobile {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .k-hero-img,
   .k-hero-video {
-    animation-play-state: paused;
+    object-position: var(--k-hero-object-position-mobile, center);
+  }
+  .k-hero-img--desktop {
+    display: none;
+  }
+  .k-hero-img--mobile {
+    display: block;
+  }
+}
+
+/* The loop sits in its own layer over the poster, in the same box, so swapping
+   between them cannot shift layout. */
+.k-hero-video-layer {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+/* REDUCED MOTION is handled in components/kanjo/HeroVideo.tsx, not here.
+ *
+ * A CSS media query hiding the layer does stop the motion, but the browser
+ * still downloads the file — measured, 1 video request under
+ * prefers-reduced-motion, identical to no-preference. So the element is not
+ * rendered at all for those visitors, and the poster below it (server-rendered)
+ * is the whole hero. The rule below stays as belt and braces for the case where
+ * JavaScript has not run yet. */
+@media (prefers-reduced-motion: reduce) {
+  .k-hero-video-layer {
+    display: none;
   }
 }
 
@@ -1380,4 +1434,158 @@ svg {
 .k-back-link:hover,
 .k-back-link:focus-visible {
   color: var(--k-positive-bright);
+}
+
+/* ============================================================================
+   SCREENSHOT THUMBNAIL + VIEWER
+   ----------------------------------------------------------------------------
+   The viewer exists because of a measurement, not a convention: six 1920x1080
+   captures render at 442x249 in the real grid at 1440, which is 23% of native,
+   and a night scene's road lights and dark-paint fall-off do not survive that.
+   ========================================================================== */
+
+.k-shot {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+  /* The canon's own selection edge, so a thumbnail reads as activatable in this
+     design's vocabulary rather than as a generic clickable card. */
+  border-left: var(--k-divider-width) solid transparent;
+  transition: border-color var(--k-motion-focus) var(--k-ease-out);
+}
+
+.k-shot:hover,
+.k-shot:focus-visible {
+  border-left-color: var(--k-positive-bright);
+}
+
+.k-shot-plate {
+  display: block;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── The viewer ──────────────────────────────────────────────────────────── */
+
+.k-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--k-space-lg);
+  padding: clamp(12px, 2.5vw, var(--k-screen-safe));
+  /* The canon's scrim, Tokens/opacity.json. */
+  background: rgb(0 0 3 / 0.72);
+  backdrop-filter: blur(2px);
+  animation: k-viewer-in var(--k-motion-modal-in) var(--k-ease-out);
+}
+
+@keyframes k-viewer-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.k-viewer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--k-space-lg);
+  width: 100%;
+  max-width: var(--k-content-wide);
+}
+
+/* A stable box at the current image's ratio, so the frame does not resize as
+   one image replaces another. */
+.k-viewer-stage {
+  position: relative;
+  width: 100%;
+  max-width: min(100%, var(--k-content-wide));
+  /* Room for the bar, the nav row and the caption. */
+  max-height: calc(100vh - 200px);
+  margin-inline: auto;
+  /* NO border and NO background.
+     The box is sized by aspect-ratio but capped by max-height, so when height
+     is the binding constraint the box stays wider than the contained image —
+     measured, a 1368px box holding a 1206px image. A border would then frame the
+     BOX, drawing visible bars either side of the picture. With the box invisible
+     the letterboxing is invisible too, and the scrim already separates the image
+     from the page. */
+  overflow: hidden;
+}
+
+.k-viewer-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* CONTAIN, not cover: a screenshot must not be cropped in the one place the
+     visitor opened it to see all of. */
+  object-fit: contain;
+  transition: opacity var(--k-motion-modal-in) var(--k-ease-out);
+}
+
+.k-viewer-nav {
+  display: flex;
+  gap: var(--k-space-md);
+}
+
+.k-viewer-caption {
+  max-width: 62ch;
+  text-align: center;
+  color: var(--k-text-secondary);
+  margin: 0;
+}
+
+/* The canon's action treatment: no fill, a spine, uppercase display label. Sized
+   to the canon's 44px minimum touch target so the controls are usable by thumb. */
+.k-viewer-btn {
+  min-height: var(--k-touch-target-min);
+  min-width: var(--k-touch-target-min);
+  padding: var(--k-space-sm) var(--k-space-lg);
+  background: rgb(0 0 3 / 0.72);
+  color: var(--k-text-primary);
+  border: 0;
+  border-left: var(--k-divider-width) solid var(--k-divider);
+  border-radius: var(--k-control-radius);
+  cursor: pointer;
+  font-family: var(--k-font-display);
+  font-weight: 800;
+  font-size: clamp(13px, 0.3vw + 12px, var(--k-action-size));
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: border-color var(--k-motion-focus) var(--k-ease-out);
+}
+
+.k-viewer-btn:hover,
+.k-viewer-btn:focus-visible {
+  border-left-color: var(--k-positive-bright);
+}
+
+@media (max-width: 767px) {
+  .k-viewer-stage {
+    max-height: calc(100vh - 200px);
+  }
+  /* Full-width thumb targets rather than two small ones side by side. */
+  .k-viewer-nav {
+    width: 100%;
+  }
+  .k-viewer-nav .k-viewer-btn {
+    flex: 1 1 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .k-viewer {
+    animation: none;
+  }
+  .k-viewer-img {
+    transition: none;
+  }
 }
