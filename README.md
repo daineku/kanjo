@@ -28,7 +28,8 @@ local files in `content/`, so a fresh clone runs and renders the whole site.
 | `npm start` | Serve the production build |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | `eslint .` |
-| `npm test` | 64 tests, on Node's own runner |
+| `npm test` | 67 tests plus the media-path check, on Node's own runner |
+| `npm run test:media` | Every published content entry points at a file that exists |
 | `npm run check` | typecheck + lint + tests + build. **Run this before committing.** |
 
 ## Environment variables
@@ -62,6 +63,20 @@ keep it that way.
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Stack, directory map, the content boundary, the media rules |
 | [docs/BACKEND_DECISION.md](docs/BACKEND_DECISION.md) | Why the backend is separate from Daineku's, with the evidence |
 | [docs/CONTENT.md](docs/CONTENT.md) | How to edit content and write an article |
+| [docs/MEDIA_WORKFLOW.md](docs/MEDIA_WORKFLOW.md) | How to prepare media — resolutions, formats, and the night-image pitfalls |
+| [docs/CONTENT_REQUIRED.md](docs/CONTENT_REQUIRED.md) | What real content the site still needs |
+
+## Adding real media
+
+A **content operation**, not a code change:
+
+1. copy the export into `public/media/<hero|screenshots|video|articles|og>/`
+2. edit one entry in `content/` — each file carries its own instructions
+3. `npm run test:media` confirms the file is where the entry says it is
+
+`npm run test:media` also prints what is still missing, so it doubles as the
+asset checklist. Preparation specs — and the night-image pitfalls that matter for
+this game — are in [docs/MEDIA_WORKFLOW.md](docs/MEDIA_WORKFLOW.md).
 
 ## Adding a landing section
 
