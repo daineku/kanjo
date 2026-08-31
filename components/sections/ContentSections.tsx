@@ -1,6 +1,7 @@
 import Link from 'next/link'
 
 import { MediaPlate } from '@/components/kanjo/MediaPlate'
+import { ScreenshotGrid } from '@/components/kanjo/ScreenshotGrid'
 import { EmptyNotice, Section } from '@/components/kanjo/Section'
 import { VideoEmbed } from '@/components/kanjo/VideoEmbed'
 import { WedgeCard } from '@/components/kanjo/WedgeCard'
@@ -178,39 +179,19 @@ export function MediaSection({
         </ul>
       ) : (
         /**
-         * A plain CSS grid.
+         * A plain CSS grid, plus the viewer it opens.
          *
          * No masonry library, no JS relayout, no `imagesLoaded`, no auto-cycle,
          * no hover-triggered fetch — each is recorded in Daineku's handoff as a
          * source of duplicate requests or layout flashes. Space comes from each
          * image's own declared intrinsic dimensions, so nothing shifts as
          * images arrive.
+         *
+         * It is a client component because opening a screenshot needs state. It
+         * is still server-rendered into the initial HTML and ships no
+         * dependency — the viewer is this project's own code.
          */
-        <ul className="k-grid k-grid--media">
-          {shown.map((item, index) => (
-            <li key={item.id}>
-              <figure style={{ margin: 0 }}>
-                <MediaPlate
-                  ratio={`${item.image.width} / ${item.image.height}`}
-                  image={item.image}
-                  priority={index === 0}
-                  sizes="(max-width: 700px) 100vw, (max-width: 1100px) 50vw, 33vw"
-                  bare
-                />
-                {(real(item.title) || real(item.caption)) && (
-                  <figcaption style={{ marginTop: 'var(--k-space-sm)' }}>
-                    {real(item.title) && <p className="k-small">{item.title}</p>}
-                    {real(item.caption) && (
-                      <p className="k-small" style={{ color: 'var(--k-text-tertiary)' }}>
-                        {item.caption}
-                      </p>
-                    )}
-                  </figcaption>
-                )}
-              </figure>
-            </li>
-          ))}
-        </ul>
+        <ScreenshotGrid items={shown} />
       )}
     </Section>
   )
