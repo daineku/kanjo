@@ -1,0 +1,658 @@
+/* ============================================================================
+   THE KANJO — web design tokens
+   ----------------------------------------------------------------------------
+   Every value below is transcribed from the game's own canon at
+   TheKanjoProject/TheKanjo/UI_Canon/Tokens/*.json. Nothing here is invented.
+   Where the web genuinely needs a value the canon does not state, it is marked
+   CANONICAL EXTENSION — the same classification the canon itself uses for its
+   tunable defaults (Tokens/motion.json, Tokens/interaction.json).
+
+   Reference resolution for every canon pixel figure is 1920x1080
+   (Tokens/spacing.json "referenceResolution").
+   ========================================================================== */
+
+@import 'tailwindcss';
+
+/* ── Fonts ────────────────────────────────────────────────────────────────
+   The three design families named by UI_Canon/Tokens/typography.json, served
+   from the same SIL OFL 1.1 binaries the game bakes its font assets from.
+   Licences: /fonts/licenses/. Canon pins them to google/fonts commit
+   ec626514f79f831f1ab848a82114a0ce7e2d6372.
+   ------------------------------------------------------------------------ */
+@font-face {
+  font-family: 'Big Shoulders Display';
+  src: url('/fonts/BigShouldersDisplay-VF.ttf') format('truetype-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Iceland';
+  src: url('/fonts/Iceland-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Iceberg';
+  src: url('/fonts/Iceberg-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* ── Colour — UI_Canon/Tokens/colors.json, verbatim ──────────────────── */
+  --k-background: #000003;
+  --k-panel: #242425;
+  --k-panel-selected: #333333;
+  --k-accent: #e84a4a;
+  --k-positive: #34c759;
+  --k-positive-bright: #7dff68;
+  --k-text-primary: #ffffff;
+  --k-divider: #242425;
+  --k-warning: #e84a4a;
+
+  /* ── Opacity — UI_Canon/Tokens/opacity.json, verbatim ───────────────── */
+  --k-opacity-opaque: 1;
+  --k-opacity-secondary: 0.5;
+  --k-opacity-panel-fill: 0.1;
+  --k-opacity-disabled: 0.25;
+  --k-opacity-scrim: 0.72;
+
+  /* Composited text colours. The canon states textSecondary as #FFFFFF80 and
+     disabled as #FFFFFF40 — the same two opacities above, applied to white. */
+  --k-text-secondary: rgb(255 255 255 / 0.5);
+  --k-text-disabled: rgb(255 255 255 / 0.25);
+  /* CANONICAL EXTENSION: a third text step. The canon has two (opaque, 0.5) and
+     long-form web copy needs a rank between "label" and "body" that a running
+     page can use for de-emphasised metadata without reaching for disabled. */
+  --k-text-tertiary: rgb(255 255 255 / 0.34);
+
+  /* Panel fills, pre-composited at the canon's panelFill opacity so a surface
+     can be painted with one declaration. */
+  --k-surface-panel: rgb(36 36 37 / 0.1);
+  --k-surface-panel-selected: rgb(51 51 51 / 0.1);
+  /* The wedge band and left rule are drawn at 0.7 in every canon panel SVG
+     (UI_Canon/Assets/Panels/navigation_wedge*.svg, opacity="0.7"). */
+  --k-wedge-opacity: 0.7;
+
+  /* ── Spacing — UI_Canon/Tokens/spacing.json, verbatim reference px ───── */
+  --k-space-xs: 4px;
+  --k-space-sm: 8px;
+  --k-space-md: 14px;
+  --k-space-lg: 24px;
+  --k-space-xl: 32px;
+  --k-screen-safe: 48px;
+  --k-panel-padding: 25px;
+
+  /* Navigation strip geometry, canon reference px. */
+  --k-nav-card-width: 216.588px;
+  --k-nav-card-height: 95.308px;
+  --k-nav-card-gap: 21.515px;
+  --k-nav-strip-width: 930.897px;
+  --k-nav-strip-bottom: 99px;
+  /* navigation_wedge.svg height against a 95.308px card. */
+  --k-wedge-height: 37.1543px;
+
+  /* ── Borders — UI_Canon/Tokens/borders.json, verbatim ───────────────── */
+  --k-divider-width: 2.869px;
+  --k-thin-width: 1px;
+  --k-control-radius: 0px;
+  --k-field-radius: 3px;
+  --k-touch-target-min: 44px;
+
+  /* ── Motion — UI_Canon/Tokens/motion.json, verbatim ────────────────── */
+  --k-motion-focus: 90ms;
+  --k-motion-selection: 90ms;
+  --k-motion-modal-in: 120ms;
+  --k-motion-modal-out: 100ms;
+  --k-motion-scroll-snap: 140ms;
+  --k-motion-busy: 160ms;
+  --k-ease-out: cubic-bezier(0, 0, 0.58, 1);
+  --k-ease-in: cubic-bezier(0.42, 0, 1, 1);
+
+  /* ── Content widths ─────────────────────────────────────────────────────
+     Not invented. The canon's about_panel is 928px wide and its navigation
+     strip is 930.897px, both centred on a 1920px stage — so ~930px IS the
+     game's reading column, and it also lands on a 65-75ch measure, which is
+     what long-form web copy wants. The wide track is the widest canon element
+     plus two screen-safe margins, for media grids only. */
+  --k-content: 930px;
+  --k-content-wide: 1440px;
+
+  /* ── Typography — UI_Canon/Tokens/typography.json ────────────────────────
+     families: display = Big Shoulders Display ExtraBold 800
+               technical = Iceland Regular 400
+               alternate = Iceberg Regular 400
+     Every size/tracking/line-height below is a canon style. The fluid clamp()
+     lower bounds are the CANONICAL EXTENSION: the canon computes a single
+     uniform scale from the protected design area (Responsive/layout_rules.md),
+     which a document-flow page cannot do, and its own rule is that "content
+     viewports scroll before typography shrinks" — so the floors stay legible
+     rather than shrinking to fit. */
+  --k-font-display: 'Big Shoulders Display', 'Arial Narrow', system-ui, sans-serif;
+  --k-font-technical: 'Iceland', 'Consolas', ui-monospace, monospace;
+  --k-font-alternate: 'Iceberg', 'Iceland', system-ui, sans-serif;
+
+  /* navigationTitle: display 800, 24px, tracking 1.8, line-height 35.538 */
+  --k-nav-title-size: 24px;
+  --k-nav-title-tracking: 1.8px;
+  /* navigationSubtitle: technical 400, 16px, tracking 1.2, line-height 19 */
+  --k-nav-subtitle-size: 16px;
+  --k-nav-subtitle-tracking: 1.2px;
+  /* body / aboutBody: technical 400, 18px, line-height 22 / 24 */
+  --k-body-size: 18px;
+  --k-body-leading: 24px;
+  /* smallLabel / settingsValue: technical 400, 14px, line-height 17 */
+  --k-small-size: 14px;
+  --k-small-tracking: 1.2px;
+  /* moneyValue / levelValue: display 800, 36px, tracking 0, line-height 43 */
+  --k-value-size: 36px;
+  /* modalTitle / actionLabel / settingsLabel: display 800, 18px, lh 22 */
+  --k-action-size: 18px;
+  /* serviceItemTitle: display 800, 18px, tracking 1.35, line-height 26.654 */
+  --k-item-title-size: 18px;
+  --k-item-title-tracking: 1.35px;
+}
+
+@theme inline {
+  --color-k-background: var(--k-background);
+  --color-k-accent: var(--k-accent);
+  --color-k-positive: var(--k-positive);
+  --color-k-positive-bright: var(--k-positive-bright);
+  --color-k-divider: var(--k-divider);
+  --color-k-text: var(--k-text-primary);
+  --color-k-text-secondary: var(--k-text-secondary);
+  --color-k-text-tertiary: var(--k-text-tertiary);
+  --font-display: var(--k-font-display);
+  --font-technical: var(--k-font-technical);
+  --breakpoint-xs: 26.875rem; /* 430px — the widest phone width in the test matrix */
+}
+
+/* ============================================================================
+   Base
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--k-background);
+  /* No scroll-behavior: smooth at the root: it hijacks every in-page jump,
+     including the skip link, and the canon's motion budget is 90-160ms. */
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--k-background);
+  color: var(--k-text-primary);
+  font-family: var(--k-font-technical);
+  font-size: var(--k-body-size);
+  line-height: var(--k-body-leading);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* No horizontal scrolling, at any width. Enforced here rather than per
+     component so a single wide child cannot break the page. */
+  overflow-x: hidden;
+}
+
+::selection {
+  background: var(--k-positive);
+  color: var(--k-background);
+}
+
+img,
+video,
+svg {
+  max-width: 100%;
+  display: block;
+}
+
+/* Focus. Visible, keyboard-only, and drawn in the canon's own selection green
+   so it reads as the game's focus treatment rather than a browser default. */
+:focus-visible {
+  outline: var(--k-divider-width) solid var(--k-positive-bright);
+  outline-offset: 2px;
+}
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ── Scrollbar. Tokens/scrolling.json states verticalIndicatorWidth 2px. ── */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: var(--k-background);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--k-divider);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--k-positive);
+}
+
+/* ============================================================================
+   Typography roles — one class per canon style. Sizes are fluid between the
+   narrow-phone floor and the canon's 1920 reference value.
+   ========================================================================== */
+
+.k-display {
+  font-family: var(--k-font-display);
+  font-weight: 800;
+  font-style: normal;
+  text-transform: uppercase;
+  font-variant-ligatures: none;
+}
+
+.k-technical {
+  font-family: var(--k-font-technical);
+  font-weight: 400;
+}
+
+/* navigationTitle */
+.k-nav-title {
+  font-family: var(--k-font-display);
+  font-weight: 800;
+  font-size: clamp(17px, 1.05vw + 13px, var(--k-nav-title-size));
+  letter-spacing: var(--k-nav-title-tracking);
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: var(--k-text-primary);
+  margin: 0;
+}
+
+/* navigationSubtitle */
+.k-nav-subtitle {
+  font-family: var(--k-font-technical);
+  font-weight: 400;
+  font-size: clamp(12px, 0.5vw + 10px, var(--k-nav-subtitle-size));
+  letter-spacing: var(--k-nav-subtitle-tracking);
+  line-height: 1.25;
+  text-transform: uppercase;
+  color: var(--k-text-secondary);
+  margin: 0;
+}
+
+/* body / aboutBody */
+.k-body {
+  font-family: var(--k-font-technical);
+  font-weight: 400;
+  font-size: clamp(15px, 0.4vw + 13.5px, var(--k-body-size));
+  line-height: 1.55;
+  color: var(--k-text-primary);
+}
+
+/* smallLabel */
+.k-small {
+  font-family: var(--k-font-technical);
+  font-weight: 400;
+  font-size: clamp(12px, 0.2vw + 11px, var(--k-small-size));
+  letter-spacing: var(--k-small-tracking);
+  line-height: 1.3;
+  text-transform: uppercase;
+  color: var(--k-text-secondary);
+  margin: 0;
+}
+
+/* moneyValue / levelValue */
+.k-value {
+  font-family: var(--k-font-display);
+  font-weight: 800;
+  font-size: clamp(26px, 1.4vw + 19px, var(--k-value-size));
+  letter-spacing: 0;
+  line-height: 1.1;
+  margin: 0;
+}
+
+/* actionLabel / modalTitle / settingsLabel */
+.k-action {
+  font-family: var(--k-font-display);
+  font-weight: 800;
+  font-size: clamp(15px, 0.3vw + 13.5px, var(--k-action-size));
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+/* serviceItemTitle */
+.k-item-title {
+  font-family: var(--k-font-display);
+  font-weight: 800;
+  font-size: clamp(16px, 0.25vw + 15px, var(--k-item-title-size));
+  letter-spacing: var(--k-item-title-tracking);
+  line-height: 1.3;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* CANONICAL EXTENSION — the page title. The canon's largest style is 36px
+   (moneyValue), which is a HUD figure and not a page heading; a landing page
+   needs one rank above it. Same family, same weight, tracking held at 0 the
+   way every other display value above 24px does. */
+.k-hero-title {
+  font-family: var(--k-font-display);
+  font-weight: 800;
+  font-size: clamp(44px, 5.2vw + 16px, 116px);
+  letter-spacing: -0.01em;
+  line-height: 0.92;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* CANONICAL EXTENSION — a section heading, one rank under the hero. */
+.k-section-title {
+  font-family: var(--k-font-display);
+  font-weight: 800;
+  font-size: clamp(26px, 1.6vw + 20px, 44px);
+  letter-spacing: 0;
+  line-height: 1.05;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* ============================================================================
+   Layout
+   ========================================================================== */
+
+.k-shell {
+  width: 100%;
+  max-width: var(--k-content-wide);
+  margin-inline: auto;
+  padding-inline: clamp(20px, 3vw, var(--k-screen-safe));
+}
+
+.k-reading {
+  width: 100%;
+  max-width: var(--k-content);
+  margin-inline: auto;
+}
+
+.k-section {
+  padding-block: clamp(56px, 7vw, 128px);
+}
+
+/* The canon's divider: Tokens/borders.json divider at the divider colour.
+   The one separator treatment on the page. */
+.k-rule {
+  border: 0;
+  border-top: var(--k-thin-width) solid var(--k-divider);
+  margin: 0;
+}
+
+/* ============================================================================
+   Wedge card — the canon's navigation_button AND its service_item.
+   ----------------------------------------------------------------------------
+   Structure, from UI_Canon/Components/navigation_button.json and the runtime
+   KanjoUiWedgeCard.cs: a panel fill, a top band ("wedge") at the canon's
+   37.1543px of a 95.308px card, a left rule at the canon divider width, the
+   title INSIDE the band and the subtitle below it.
+
+   State colours are the runtime's ApplyVisual, which resolved a documented
+   three-way disagreement in the canon in favour of the six reference
+   screenshots:
+     normal      divider        #242425
+     selected    positive       #34C759
+     hover/focus positiveBright #7DFF68  (and the selected panel fill)
+     pressed     positiveBright
+     disabled    composited toward the background at 0.25
+   Accent red is warning / settings-label only. It is NOT the selection colour.
+   ========================================================================== */
+
+.k-wedge {
+  position: relative;
+  display: block;
+  width: 100%;
+  text-decoration: none;
+  color: inherit;
+  background: var(--k-surface-panel);
+  border-radius: var(--k-control-radius);
+  isolation: isolate;
+  transition:
+    background var(--k-motion-selection) var(--k-ease-out),
+    color var(--k-motion-focus) var(--k-ease-out);
+}
+
+/* The band and the rule. Two pseudo-elements rather than two nodes, because
+   they carry no content and must never become tab stops or be read out. */
+.k-wedge::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: var(--k-wedge-band-height, var(--k-wedge-height));
+  background: var(--k-wedge-edge, var(--k-divider));
+  opacity: var(--k-wedge-opacity);
+  transition: background var(--k-motion-selection) var(--k-ease-out);
+  z-index: 0;
+}
+
+.k-wedge::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--k-divider-width);
+  background: var(--k-wedge-edge, var(--k-divider));
+  opacity: var(--k-wedge-opacity);
+  transition: background var(--k-motion-selection) var(--k-ease-out);
+  z-index: 1;
+}
+
+.k-wedge > * {
+  position: relative;
+  z-index: 2;
+}
+
+.k-wedge[data-selected='true'] {
+  --k-wedge-edge: var(--k-positive);
+  background: var(--k-surface-panel-selected);
+}
+
+/* Hover and keyboard focus are ONE treatment, applied on top of selection and
+   not instead of it — KanjoUiWedgeCard.SetFocused. */
+.k-wedge:hover,
+.k-wedge:focus-visible {
+  --k-wedge-edge: var(--k-positive-bright);
+  background: var(--k-surface-panel-selected);
+}
+
+.k-wedge:active {
+  --k-wedge-edge: var(--k-positive-bright);
+}
+
+.k-wedge[aria-disabled='true'] {
+  opacity: var(--k-opacity-disabled);
+  pointer-events: none;
+}
+
+/* The band's own row. Its min-height IS the band, so the title sits inside it. */
+.k-wedge-band {
+  display: flex;
+  align-items: center;
+  gap: var(--k-space-sm);
+  min-height: var(--k-wedge-band-height, var(--k-wedge-height));
+  padding-inline: var(--k-space-md);
+}
+
+.k-wedge-body {
+  padding: var(--k-space-md) var(--k-space-md) calc(var(--k-space-md) + 2px);
+}
+
+/* ── Header nav variant. Same construction at a header's band height. The
+   canon's card is 95.308px tall with a 37.1543px band; a header row keeps the
+   identity by using the band alone. ─────────────────────────────────────── */
+.k-wedge--nav {
+  --k-wedge-band-height: 30px;
+  width: auto;
+  min-width: 0;
+}
+
+.k-wedge--nav .k-wedge-band {
+  padding-inline: var(--k-space-md);
+  white-space: nowrap;
+}
+
+/* ── Strip variant. A fixed-width card, at the canon's own card width. ──── */
+.k-wedge--card {
+  width: var(--k-nav-card-width);
+  min-height: var(--k-nav-card-height);
+}
+
+/* ============================================================================
+   Corner frame — the canon's empty media slot.
+   UI_Canon/Assets/Vectors/profile_frame_corner_*.svg: a 9x9 L, 2px stroke,
+   #E84A4A. Every reference screenshot draws a pending image this way.
+   ========================================================================== */
+
+.k-frame {
+  position: relative;
+  background: var(--k-background);
+}
+
+.k-frame::before,
+.k-frame::after,
+.k-frame > .k-frame-corners::before,
+.k-frame > .k-frame-corners::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-color: var(--k-accent);
+  border-style: solid;
+  border-width: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.k-frame::before {
+  top: 0;
+  left: 0;
+  border-top-width: 2px;
+  border-left-width: 2px;
+}
+.k-frame::after {
+  bottom: 0;
+  right: 0;
+  border-bottom-width: 2px;
+  border-right-width: 2px;
+}
+.k-frame > .k-frame-corners::before {
+  top: 0;
+  right: 0;
+  border-top-width: 2px;
+  border-right-width: 2px;
+}
+.k-frame > .k-frame-corners::after {
+  bottom: 0;
+  left: 0;
+  border-bottom-width: 2px;
+  border-left-width: 2px;
+}
+
+/* ============================================================================
+   Motion
+   ----------------------------------------------------------------------------
+   Tokens/motion.json declares reducedMotionSupported: true. Under
+   prefers-reduced-motion every transition and reveal collapses to its end
+   state; nothing is left mid-fade.
+   ========================================================================== */
+
+.k-reveal {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: k-reveal-in var(--k-motion-modal-in) var(--k-ease-out) forwards;
+  animation-delay: var(--k-reveal-delay, 0ms);
+}
+
+@keyframes k-reveal-in {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .k-reveal {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+}
+
+/* ============================================================================
+   Utilities
+   ========================================================================== */
+
+.k-skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: var(--k-space-sm) var(--k-space-md);
+  background: var(--k-positive);
+  color: var(--k-background);
+  font-family: var(--k-font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+.k-skip-link:focus {
+  left: var(--k-space-md);
+  top: var(--k-space-md);
+}
+
+.k-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* A horizontally scrolling strip. The canon's bottom_navigation_strip is a
+   clipped horizontal viewport with ~4 items visible at the reference width
+   (Components/bottom_navigation_strip.json, Tokens/scrolling.json). */
+.k-strip {
+  display: flex;
+  gap: var(--k-nav-card-gap);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.k-strip::-webkit-scrollbar {
+  display: none;
+}
+.k-strip > * {
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+}
+
+/* A link inside running prose. Underlined because colour alone must not be the
+   only signal, in the canon's selection green. */
+.k-prose a {
+  color: var(--k-positive-bright);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.k-prose a:hover {
+  color: var(--k-positive);
+}
