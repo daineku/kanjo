@@ -69,7 +69,10 @@ export default async function ArticlePage({ params }: Props) {
                 prefetch={false}
                 style={{ color: 'var(--k-text-secondary)', textDecoration: 'none' }}
               >
-                ← UPDATES
+                {/* Guillemet rather than an arrow: Iceland has no U+2190, and
+                    the canon's own idiom for a key or an action is bracketed
+                    ASCII ("WRITE TO DISK [ENTER]"), not arrow glyphs. */}
+                &laquo; UPDATES
               </Link>
             </p>
 

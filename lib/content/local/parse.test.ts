@@ -185,9 +185,16 @@ test('an excerpt strips inline markers and keeps link text', () => {
 
 test('a long excerpt is cut on a word boundary and ellipsised', () => {
   const excerpt = deriveExcerpt(`${'word '.repeat(80)}end.`, 50)
-  assert.ok(excerpt.length <= 51, `expected <= 51 chars, got ${excerpt.length}`)
-  assert.ok(excerpt.endsWith('…'))
+  assert.ok(excerpt.length <= 53, `expected <= 53 chars, got ${excerpt.length}`)
+  assert.ok(excerpt.endsWith('...'))
   assert.ok(!excerpt.includes('  '))
+})
+
+test('the ellipsis is three periods, not U+2026', () => {
+  // Iceland, the face every excerpt renders in, has no U+2026 in its cmap — a
+  // real ellipsis falls back to another typeface mid-sentence.
+  const excerpt = deriveExcerpt(`${'word '.repeat(80)}end.`, 50)
+  assert.ok(!excerpt.includes('…'), 'excerpt must not contain U+2026')
 })
 
 test('a body with no prose yields an empty excerpt rather than a heading', () => {

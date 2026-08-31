@@ -20,6 +20,7 @@ export function Section({
   children,
   width = 'reading',
   labelledBy,
+  headingLevel = 2,
 }: {
   id?: string
   header?: SectionHeader
@@ -28,9 +29,17 @@ export function Section({
   width?: 'reading' | 'wide'
   /** Overrides the generated heading id for aria-labelledby. */
   labelledBy?: string
+  /**
+   * 2 on the landing page, where the hero owns the h1. 1 when the section IS
+   * the page — the updates index and the 404 both need a real h1, and the first
+   * version of this component hardcoded h2, which left those two pages with no
+   * top-level heading at all.
+   */
+  headingLevel?: 1 | 2
 }) {
   const headingId = labelledBy ?? (id ? `${id}-heading` : undefined)
   const hasHeading = Boolean(header?.heading)
+  const Heading = headingLevel === 1 ? 'h1' : 'h2'
 
   return (
     <section
@@ -49,13 +58,13 @@ export function Section({
                 </p>
               )}
               {header.heading && (
-                <h2
+                <Heading
                   id={headingId}
                   className="k-section-title"
                   style={{ marginTop: header.eyebrow ? 'var(--k-space-md)' : 0 }}
                 >
                   {header.heading}
-                </h2>
+                </Heading>
               )}
               {header.standfirst && (
                 <p

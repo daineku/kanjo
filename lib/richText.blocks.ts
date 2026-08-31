@@ -43,6 +43,7 @@ const IMAGE_LINE = /^!\[(?<alt>[^\]]*)\]\((?<src>[^)\s]+)\)$/
 const HEADING_LINE = /^(?<hashes>#{2,3})\s+(?<text>.+)$/
 const UNORDERED_LINE = /^[-*]\s+(?<text>.+)$/
 const ORDERED_LINE = /^\d+[.)]\s+(?<text>.+)$/
+const RULE_LINE = /^(-{3,}|\*{3,}|_{3,})$/
 
 /** Splits source text into blocks. Exported so it can be tested directly. */
 export function parseBlocks(source: string): Block[] {
@@ -78,7 +79,7 @@ export function parseBlocks(source: string): Block[] {
       continue
     }
 
-    if (/^(-{3,}|\*{3,}|_{3,})$/.test(line)) {
+    if (RULE_LINE.test(line)) {
       blocks.push({ kind: 'rule' })
       index += 1
       continue
@@ -131,15 +132,53 @@ export function parseBlocks(source: string): Block[] {
     if (unordered?.groups || ordered?.groups) {
       const isOrdered = Boolean(ordered?.groups) && !unordered?.groups
       const items: string[] = []
+
       while (index < lines.length) {
         const current = (lines[index] ?? '').trim()
         const nextUnordered = UNORDERED_LINE.exec(current)
         const nextOrdered = ORDERED_LINE.exec(current)
         const matchesKind = isOrdered ? nextOrdered?.groups : nextUnordered?.groups
-        if (!matchesKind) break
-        items.push(matchesKind.text ?? '')
+
+        if (matchesKind) {
+          items.push(matchesKind.text ?? '')
+          index += 1
+          continue
+        }
+
+        /**
+         * LAZY CONTINUATION. A wrapped list item is ordinary Markdown and
+         * ordinary authoring:
+         *
+         *   - the near-black background, the panel fill at one tenth opacity,
+         *     and the green used for a selected item
+         *
+         * Without this, the second source line stopped matching the marker, the
+         * list ended, and the continuation became a separate un-indented
+         * paragraph — which is exactly how the first article rendered, with the
+         * tail of every wrapped bullet floating loose beneath it. Found by
+         * looking at the page, not by reading the parser.
+         *
+         * A continuation is any line that is not blank and does not begin some
+         * other block, so the existing block starters still win and a list
+         * cannot swallow the heading after it.
+         */
+        const startsAnotherBlock =
+          current === '' ||
+          current.startsWith('```') ||
+          current.startsWith('>') ||
+          HEADING_LINE.test(current) ||
+          UNORDERED_LINE.test(current) ||
+          ORDERED_LINE.test(current) ||
+          IMAGE_LINE.test(current) ||
+          RULE_LINE.test(current)
+
+        if (startsAnotherBlock || items.length === 0) break
+
+        const last = items.length - 1
+        items[last] = `${items[last]} ${current}`
         index += 1
       }
+
       blocks.push({ kind: 'list', ordered: isOrdered, items })
       continue
     }
@@ -157,7 +196,7 @@ export function parseBlocks(source: string): Block[] {
         UNORDERED_LINE.test(current) ||
         ORDERED_LINE.test(current) ||
         IMAGE_LINE.test(current) ||
-        /^(-{3,}|\*{3,}|_{3,})$/.test(current)
+        RULE_LINE.test(current)
       ) {
         break
       }

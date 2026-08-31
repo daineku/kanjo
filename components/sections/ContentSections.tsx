@@ -108,16 +108,7 @@ export function VideoSection({
           ))}
         </div>
       ) : (
-        <ul
-          style={{
-            listStyle: 'none',
-            margin: 0,
-            padding: 0,
-            display: 'grid',
-            gap: 'var(--k-space-lg)',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
-          }}
-        >
+        <ul className="k-grid k-grid--wide">
           {selected.map((video) => (
             <li key={video.id}>
               <VideoEmbed video={video} />
@@ -158,16 +149,7 @@ export function MediaSection({
         <>
           {/* The canon's own pending-slot treatment, three across, so the
               section has a shape and reads as deliberate rather than broken. */}
-          <ul
-            style={{
-              listStyle: 'none',
-              margin: 0,
-              padding: 0,
-              display: 'grid',
-              gap: 'var(--k-space-md)',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
-            }}
-          >
+          <ul className="k-grid k-grid--media">
             {[0, 1, 2].map((slot) => (
               <li key={slot}>
                 <PendingSlot ratio="16 / 9" label="SLOT EMPTY" />
@@ -191,16 +173,7 @@ export function MediaSection({
          * space each image occupies comes from its own declared intrinsic
          * dimensions via `aspect-ratio`, so nothing shifts as images arrive.
          */
-        <ul
-          style={{
-            listStyle: 'none',
-            margin: 0,
-            padding: 0,
-            display: 'grid',
-            gap: 'var(--k-space-md)',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
-          }}
-        >
+        <ul className="k-grid k-grid--media">
           {shown.map((item, index) => (
             <li key={item.id}>
               <figure style={{ margin: 0 }}>
@@ -300,16 +273,7 @@ export function FeaturesSection({ id, config }: { id: string; config: FeaturesCo
 
   return (
     <Section id={id} header={config}>
-      <ul
-        style={{
-          listStyle: 'none',
-          margin: 0,
-          padding: 0,
-          display: 'grid',
-          gap: 'var(--k-space-lg)',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',
-        }}
-      >
+      <ul className="k-grid k-grid--features">
         {config.items.map((item) => (
           <li key={item.id}>
             {/* The canon's left rule alone, without the band: a list entry is
@@ -359,7 +323,7 @@ export function UpdatesSection({
         <EmptyNotice>NO UPDATES PUBLISHED YET</EmptyNotice>
       ) : (
         <>
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 'var(--k-space-md)' }}>
+          <ul className="k-grid k-grid--rows">
             {shown.map((article) => (
               <li key={article.slug}>
                 <ArticleRow article={article} />
@@ -441,16 +405,7 @@ export function LinksSection({
       {selected.length === 0 ? (
         <EmptyNotice>NO LINKS CONFIGURED</EmptyNotice>
       ) : (
-        <ul
-          style={{
-            listStyle: 'none',
-            margin: 0,
-            padding: 0,
-            display: 'grid',
-            gap: 'var(--k-space-md)',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
-          }}
-        >
+        <ul className="k-grid k-grid--cards">
           {selected.map((link) => (
             <li key={link.id}>
               <WedgeCard
@@ -493,16 +448,7 @@ export function SocialSection({
           NO CHANNELS ARE LIVE YET — no account has been invented to fill this section
         </EmptyNotice>
       ) : (
-        <ul
-          style={{
-            listStyle: 'none',
-            margin: 0,
-            padding: 0,
-            display: 'grid',
-            gap: 'var(--k-space-md)',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
-          }}
-        >
+        <ul className="k-grid k-grid--tight">
           {live.map((link) => (
             <li key={link.id}>
               <WedgeCard

@@ -30,6 +30,7 @@ export default async function UpdatesIndexPage() {
   return (
     <Section
       id="updates"
+      headingLevel={1}
       header={{
         eyebrow: 'DEVLOG',
         heading: 'DEVELOPMENT UPDATES',
@@ -38,15 +39,7 @@ export default async function UpdatesIndexPage() {
       {articles.length === 0 ? (
         <EmptyNotice>NO UPDATES PUBLISHED YET</EmptyNotice>
       ) : (
-        <ul
-          style={{
-            listStyle: 'none',
-            margin: 0,
-            padding: 0,
-            display: 'grid',
-            gap: 'var(--k-space-md)',
-          }}
-        >
+        <ul className="k-grid k-grid--rows">
           {articles.map((article) => (
             <li key={article.slug}>
               <ArticleRow article={article} />

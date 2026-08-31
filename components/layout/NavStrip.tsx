@@ -61,18 +61,21 @@ export function NavStrip({ items }: { items: NavItem[] }) {
 /**
  * Whether a nav href is the current page.
  *
- * A fragment link into the landing page ('/#media') is active on the landing
- * page, because that is where it points. Daineku's header tests
- * `pathname === link.href`, which would leave every fragment item permanently
- * unselected — and the selected treatment is most of what makes this read as
- * the game's menu.
+ * A FRAGMENT LINK IS NEVER "CURRENT", and that is the whole subtlety here. The
+ * first version resolved '/#game' to the path '/' and marked it selected on the
+ * landing page — which selected GAME, MEDIA and ABOUT all at once, four green
+ * cards where the game shows exactly one. A fragment is a jump inside the page
+ * the visitor is already on, not a destination they have arrived at, so it takes
+ * no selection. Only a real page match does.
+ *
+ * (Daineku's header has the mirror-image bug: it tests
+ * `pathname === link.href`, so a fragment item is permanently unselected.)
  */
 export function isActive(href: string, pathname: string): boolean {
   if (/^https?:/i.test(href)) return false
+  if (href.includes('#')) return false
 
-  const [path = ''] = href.split('#')
-  const target = path === '' ? '/' : path.replace(/\/+$/, '') || '/'
-
+  const target = href.replace(/\/+$/, '') || '/'
   if (target === '/') return pathname === '/'
   return pathname === target || pathname.startsWith(`${target}/`)
 }

@@ -478,6 +478,49 @@ svg {
   padding-inline: var(--k-space-md);
 }
 
+/* A MENU TITLE IS ONE LINE. This is the game's own rule, and its reason is
+   measurable rather than stylistic: KanjoUiWedgeCard.cs records that with
+   wrapping on, "HIGH-OCTANE" became two lines, the title box grew from 35.5 to
+   69.0 reference px, and its second line rendered on top of the price below it.
+   Exactly that happened here the first time this card was built: "WISHLIST ON
+   STEAM" wrapped out of its band and over its own subtitle.
+
+   SCOPED TO THE MENU VARIANTS, deliberately. The game's rule protects a fixed
+   rect with content underneath it, which is what --nav and --card are. The
+   default variant carries an ARTICLE TITLE, where the band is a min-height with
+   nothing beneath it to collide with — and silently truncating a headline to
+   "The site, and where its design com…" would lose information a menu label
+   never carries. So a menu title ellipsises and an article title wraps. */
+.k-wedge--nav .k-wedge-band,
+.k-wedge--card .k-wedge-band {
+  overflow: hidden;
+}
+
+.k-wedge--nav .k-wedge-band > .k-nav-title,
+.k-wedge--card .k-wedge-band > .k-nav-title {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* A grid or flex item's default `min-width: auto` is its content's MIN-CONTENT
+   width, and a nowrap title has a large one — so without this, a long menu
+   label pushed its whole grid track wider than the viewport and produced 36px
+   of horizontal page scroll at 360px. Measured, not predicted: the ellipsis
+   above cannot engage until the item is allowed to be narrower than its text. */
+.k-strip > *,
+.k-grid > * {
+  min-width: 0;
+}
+
+/* A card fills its grid cell, so every card in a row is the same height. The
+   `li` stretches by default but the card inside it does not, which left a row
+   of link blocks visibly ragged whenever one subtitle wrapped to two lines. */
+.k-grid > li > .k-wedge {
+  height: 100%;
+}
+
 .k-wedge-body {
   padding: var(--k-space-md) var(--k-space-md) calc(var(--k-space-md) + 2px);
 }
@@ -496,10 +539,22 @@ svg {
   white-space: nowrap;
 }
 
-/* ── Strip variant. A fixed-width card, at the canon's own card width. ──── */
+/* ── Strip variant. The canon's card size as a FLOOR, not a fixed width.
+   216.588 x 95.308 is the reference geometry, and a card is allowed to grow
+   wider than it so a real label fits on the one line the rule above requires —
+   the game ellipsises instead because its strip has a fixed viewport, which a
+   document-flow page does not. The height floor and the band are unchanged. ── */
 .k-wedge--card {
-  width: var(--k-nav-card-width);
+  min-width: var(--k-nav-card-width);
+  width: auto;
+  max-width: 100%;
   min-height: var(--k-nav-card-height);
+  display: flex;
+  flex-direction: column;
+}
+
+.k-wedge--card .k-wedge-body {
+  flex: 1 1 auto;
 }
 
 /* ============================================================================
@@ -664,12 +719,30 @@ svg {
    reading column (~930px), which lands at a 65-75 character line.
    ========================================================================== */
 
+/* Vertical rhythm, as one owner.
+ *
+ * A paragraph gap must be clearly larger than a line gap, or consecutive
+ * paragraphs read as one block. Body line-height is 1.55 x 18px = ~28px, so a
+ * 24px margin was SMALLER than the space between two lines inside a paragraph —
+ * which is exactly how the first article draft read. 1.5 line-heights separates
+ * them without loosening the page.
+ *
+ * Both rules target `.k-rt > *` rather than one of them targeting `p`. The
+ * first attempt set the gap on `.k-rt > * + *` and reset margins on `.k-rt p`,
+ * and `.k-rt p` is the more specific selector (one class + one type beats one
+ * class + a universal), so it won regardless of source order and silently
+ * zeroed every paragraph gap. Same specificity here, later rule wins, which is
+ * what the cascade is for.
+ */
+.k-rt > * {
+  margin-block: 0;
+}
+
 .k-rt > * + * {
-  margin-top: var(--k-body-leading);
+  margin-top: calc(var(--k-body-leading) * 1.5);
 }
 
 .k-rt p {
-  margin-block: 0;
   color: var(--k-text-secondary);
   max-width: 68ch;
 }
@@ -686,12 +759,19 @@ svg {
 }
 
 .k-rt-h2 + p,
-.k-rt-h3 + p {
-  margin-top: var(--k-space-md);
+.k-rt-h3 + p,
+.k-rt-h2 + ul,
+.k-rt-h3 + ul,
+.k-rt-h2 + ol,
+.k-rt-h3 + ol {
+  margin-top: var(--k-space-lg) !important;
 }
 
 .k-rt-list {
-  margin-block: 0;
+  /* NO margin reset here. `.k-rt > *` already zeroes it, and a reset at this
+     selector has the same specificity as `.k-rt > * + *` while coming later —
+     which is how the gap between a paragraph and the list after it went
+     missing. Same trap as the paragraph rule above, one selector down. */
   padding-left: 0;
   list-style: none;
   max-width: 68ch;
@@ -704,7 +784,9 @@ svg {
 }
 
 .k-rt-list li + li {
-  margin-top: var(--k-space-sm);
+  /* Wide enough that a wrapped item still reads as one item rather than two.
+     At 8px, a two-line entry ran into the next one. */
+  margin-top: var(--k-space-md);
 }
 
 /* The marker is the canon's left rule at list scale, in the divider colour —
@@ -726,7 +808,6 @@ svg {
 }
 
 .k-rt-quote {
-  margin: 0;
   padding-left: clamp(16px, 2vw, 24px);
   border-left: var(--k-divider-width) solid var(--k-accent);
 }
@@ -736,7 +817,6 @@ svg {
 }
 
 .k-rt-code {
-  margin: 0;
   padding: var(--k-panel-padding);
   background: var(--k-surface-panel);
   border-left: var(--k-divider-width) solid var(--k-divider);
@@ -782,4 +862,82 @@ svg {
 
 .k-article-cover {
   margin-top: clamp(32px, 4vw, 56px);
+}
+
+/* ============================================================================
+   Card grids
+   ----------------------------------------------------------------------------
+   One class rather than a repeated inline `display: grid` per section, so the
+   min-width rule above has something to attach to and the gutters stay in step.
+   `minmax(min(100%, N), 1fr)` is what keeps a track from exceeding a narrow
+   viewport — a bare `minmax(N, 1fr)` cannot shrink below N and overflows.
+   ========================================================================== */
+
+.k-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--k-space-md);
+}
+
+.k-grid--rows {
+  grid-template-columns: 1fr;
+}
+
+.k-grid--wide {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: var(--k-space-lg);
+}
+
+.k-grid--cards {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+}
+
+.k-grid--tight {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+}
+
+.k-grid--media {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+}
+
+.k-grid--features {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: var(--k-space-lg);
+}
+
+/* ============================================================================
+   Hero
+   ----------------------------------------------------------------------------
+   Bottom-anchored over a tall black field, which is the composition every
+   reference screenshot shows: the menu sits low and the space above it is the
+   point, not an accident.
+
+   THE MOBILE HEIGHT IS REDUCED DELIBERATELY. A 16:9 composition's negative
+   space cannot be preserved proportionally on a 9:19.5 phone — measured at
+   390x844 the bottom-anchored hero left ~350px of empty field above the
+   eyebrow, so the visitor scrolled past nothing to reach the title. The canon
+   sanctions this: Responsive/aspect_ratio_rules.md says a viewport "narrower
+   than supported" takes a "product-approved alternate composition", and the
+   mobile-wide rule is to fit the safe height and reduce capacity rather than
+   scale the composition down. The identity is carried by the type, the wedge
+   cards and the strip, all of which survive.
+   ========================================================================== */
+
+.k-hero {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  min-height: clamp(520px, 72vh, 820px);
+  border-bottom: var(--k-thin-width) solid var(--k-divider);
+}
+
+@media (max-width: 767px) {
+  .k-hero {
+    min-height: 0;
+    /* The strip's own scroll needs the section to stop growing with it. */
+    padding-block: clamp(56px, 12vw, 96px);
+  }
 }

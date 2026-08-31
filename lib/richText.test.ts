@@ -178,3 +178,45 @@ test('a mixed document keeps every block in source order', () => {
 test('a heading immediately after a paragraph line ends the paragraph', () => {
   assert.deepEqual(kinds('text\n## Heading'), ['paragraph', 'heading'])
 })
+
+// ── Lazy continuation in lists ───────────────────────────────────────────────
+
+test('a wrapped list item joins onto one item', () => {
+  const block = parseBlocks('- the near-black background, the panel fill,\n  and the green')[0]
+  assert.equal(block?.kind, 'list')
+  assert.deepEqual(block?.kind === 'list' ? block.items : null, [
+    'the near-black background, the panel fill, and the green',
+  ])
+})
+
+test('a continuation attaches to the item it follows, not the first', () => {
+  const block = parseBlocks('- one\n- two\n  continued')[0]
+  assert.deepEqual(block?.kind === 'list' ? block.items : null, ['one', 'two continued'])
+})
+
+test('a continuation cannot swallow the block after the list', () => {
+  assert.deepEqual(kinds('- one\n  continued\n\n## Heading'), ['list', 'heading'])
+  // Without a blank line either — a heading is a block start, so it still wins.
+  assert.deepEqual(kinds('- one\n  continued\n## Heading'), ['list', 'heading'])
+  assert.deepEqual(kinds('- one\n  continued\n---'), ['list', 'rule'])
+  assert.deepEqual(kinds('- one\n  continued\n> quote'), ['list', 'quote'])
+  assert.deepEqual(kinds('- one\n  continued\n```\ncode\n```'), ['list', 'code'])
+})
+
+test('a blank line ends the list, so a following paragraph stays a paragraph', () => {
+  assert.deepEqual(kinds('- one\n\nA paragraph.'), ['list', 'paragraph'])
+})
+
+test('a continuation does not turn a following list marker into prose', () => {
+  const block = parseBlocks('- one\n  continued\n- two')[0]
+  assert.deepEqual(block?.kind === 'list' ? block.items : null, ['one continued', 'two'])
+})
+
+test('an ordered list continues lazily too', () => {
+  const block = parseBlocks('1. first item that\n   wraps\n2. second')[0]
+  assert.equal(block?.kind === 'list' ? block.ordered : null, true)
+  assert.deepEqual(block?.kind === 'list' ? block.items : null, [
+    'first item that wraps',
+    'second',
+  ])
+})

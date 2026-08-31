@@ -243,7 +243,11 @@ export function deriveExcerpt(body: string, limit = 200): string {
   if (flattened.length <= limit) return flattened
   const cut = flattened.slice(0, limit)
   const lastSpace = cut.lastIndexOf(' ')
-  return `${(lastSpace > limit * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`
+  // Three periods, not U+2026. Iceland — the canon's `technical` family and the
+  // face every excerpt renders in — has no ellipsis glyph, so a real one falls
+  // through to whatever the OS offers and renders in a different typeface
+  // mid-sentence. Verified against the font's cmap, not assumed.
+  return `${(lastSpace > limit * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd()}...`
 }
 
 /**

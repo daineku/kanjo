@@ -53,20 +53,7 @@ export function HeroSection({
     .filter((link): link is LinkBlock => Boolean(link))
 
   return (
-    <section
-      aria-labelledby="hero-title"
-      style={{
-        position: 'relative',
-        overflow: 'hidden',
-        // Tall enough to read as an entry screen, short enough that the next
-        // section is discoverable without a scroll cue. Not 100vh: on a phone
-        // in landscape that is a title with nothing under it.
-        minHeight: 'clamp(520px, 72vh, 820px)',
-        display: 'flex',
-        alignItems: 'flex-end',
-        borderBottom: 'var(--k-thin-width) solid var(--k-divider)',
-      }}
-    >
+    <section className="k-hero" aria-labelledby="hero-title">
       {hasMedia && background.kind === 'image' && background.image && (
         <Image
           src={background.image.src}
@@ -185,6 +172,10 @@ export function HeroSection({
                 margin: 0,
                 marginTop: 'clamp(28px, 3vw, 44px)',
                 padding: 0,
+                // The strip must be able to be narrower than its cards for its
+                // own overflow-x to engage; without this the cards push the
+                // whole page wide at phone widths.
+                maxWidth: '100%',
                 ['--k-reveal-delay' as string]: '160ms',
               }}
             >

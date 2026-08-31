@@ -11,6 +11,7 @@ import { Section } from '@/components/kanjo/Section'
 export default function NotFound() {
   return (
     <Section
+      headingLevel={1}
       header={{
         eyebrow: 'ERROR 404',
         heading: 'NOT FOUND',
