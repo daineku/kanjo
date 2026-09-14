@@ -1,9 +1,8 @@
 import { readFile, readdir } from 'node:fs/promises'
 import path from 'node:path'
 
-import { fetchPatreonFeed } from '@/lib/patreon'
-
 import { ContentConfigurationError, type ContentSource } from '../source'
+import { resolveExternalFeeds } from '../externals'
 import type {
   Article,
   ArticleSummary,
@@ -102,27 +101,30 @@ export class LocalContentSource implements ContentSource {
   }
 
   async getLandingContent(): Promise<LandingContent> {
-    const [settings, loader, sections, videos, media, links, updates, patreon] =
-      await Promise.all([
-        this.getSiteSettings(),
-        this.getLoaderConfig(),
-        readJson<Section[]>('sections.json'),
-        readJson<Video[]>('videos.json'),
-        readJson<MediaItem[]>('media.json'),
-        readJson<LinkBlock[]>('links.json'),
-        this.listArticles(),
-        // The Patreon feed is fetched HERE, on the server, alongside the files.
-        // It never throws: an unconfigured or failing feed is a status, so the
-        // page renders its fallback rather than the whole build failing because
-        // a third party is down. See lib/patreon.
-        fetchPatreonFeed(),
-      ])
+    const [settings, loader, rawSections, videos, media, links, updates] = await Promise.all([
+      this.getSiteSettings(),
+      this.getLoaderConfig(),
+      readJson<Section[]>('sections.json'),
+      readJson<Video[]>('videos.json'),
+      readJson<MediaItem[]>('media.json'),
+      readJson<LinkBlock[]>('links.json'),
+      this.listArticles(),
+    ])
+
+    const sections = publishedInOrder(rawSections)
+
+    // The external feeds are resolved AFTER the sections, because which channel
+    // to ask YouTube about is itself content. They are fetched in parallel with
+    // each other, never throw, and cannot fail the build — see
+    // lib/content/externals.ts.
+    const { patreon, youtube } = await resolveExternalFeeds(sections)
 
     return {
       settings,
       loader,
       patreon,
-      sections: publishedInOrder(sections),
+      youtube,
+      sections,
       videos: publishedInOrder(videos),
       media: publishedInOrder(media),
       // Links are addressed by id from a section's config, so they are NOT

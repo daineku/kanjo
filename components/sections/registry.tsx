@@ -2,6 +2,7 @@ import type { LandingContent, Section } from '@/lib/content/types'
 
 import { HeroSection } from './HeroSection'
 import { PatreonSection } from './PatreonSection'
+import { TikTokSection } from './TikTokSection'
 import { YouTubeSection } from './YouTubeSection'
 import {
   FeaturesSection,
@@ -48,7 +49,24 @@ export function renderSection(section: Section, content: LandingContent) {
       return <IntroSection key={section.id} id={section.id} config={section.config} />
 
     case 'youtube':
-      return <YouTubeSection key={section.id} id={section.id} config={section.config} />
+      return (
+        <YouTubeSection
+          key={section.id}
+          id={section.id}
+          config={section.config}
+          feed={content.youtube}
+        />
+      )
+
+    case 'tiktok':
+      return (
+        <TikTokSection
+          key={section.id}
+          id={section.id}
+          config={section.config}
+          loader={content.loader}
+        />
+      )
 
     case 'patreon':
       return (

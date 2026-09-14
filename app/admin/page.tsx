@@ -131,6 +131,19 @@ export default async function AdminPage({
         />
 
         <Field
+          label="Publisher name"
+          name="publisher.name"
+          defaultValue={draft.settings.publisher?.name}
+          hint="Appears in the footer AND as the publisher in JSON-LD. Both are read from this one field."
+        />
+        <Field
+          label="Publisher URL"
+          name="publisher.url"
+          defaultValue={draft.settings.publisher?.url}
+          hint="The publisher's OWN site. Never becomes the canonical URL for The Kanjo."
+        />
+
+        <Field
           label="Copyright holder"
           name="footer.copyrightHolder"
           defaultValue={draft.settings.footer.copyrightHolder}
@@ -351,15 +364,35 @@ function SectionPanel({
           <Field label="Eyebrow" name="eyebrow" defaultValue={section.config.eyebrow} />
           <Field label="Heading" name="heading" defaultValue={section.config.heading} />
           <Field
-            label="YouTube video"
+            label="YouTube channel"
+            name="channelUrl"
+            defaultValue={section.config.channelUrl}
+            wide
+            hint="e.g. https://www.youtube.com/@thekanjo. A /channel/UC… URL is a different identifier and is rejected."
+          />
+          <Select
+            label="Which video"
+            name="mode"
+            options={['latest', 'pinned'] as const}
+            defaultValue={section.config.mode}
+            hint="'latest' resolves the channel's newest public upload automatically. 'pinned' uses the video below."
+          />
+          <Field
+            label="Pinned video"
             name="video"
             defaultValue={section.config.video}
             wide
-            hint="A bare id or any YouTube URL — everything except the id is discarded on the server."
+            hint="A bare id or any YouTube URL. Required for 'pinned'; in 'latest' mode it is the fallback if the API is unreachable."
           />
-          <Field label="Video title" name="title" defaultValue={section.config.title} wide />
+          <Field
+            label="Caption override"
+            name="title"
+            defaultValue={section.config.title}
+            wide
+            hint="Leave empty in 'latest' mode to use the video's own title — that is what makes the block update itself."
+          />
           <TextArea
-            label="Video description"
+            label="Description override"
             name="description"
             defaultValue={section.config.description}
             rows={3}
@@ -370,12 +403,42 @@ function SectionPanel({
             defaultValue={section.config.aspectRatio}
             hint="CSS aspect-ratio, e.g. '16 / 9'. Reserves the box so nothing shifts."
           />
+          <Field label="CTA label" name="ctaLabel" defaultValue={section.config.ctaLabel} />
+          <Select
+            label="With no video to play"
+            name="fallback"
+            options={['cta', 'hide'] as const}
+            defaultValue={section.config.fallback}
+            hint="'cta' keeps the block and a link to the channel; 'hide' removes the section."
+          />
           <ImageField
             label="Poster override"
             name="poster"
             value={section.config.poster}
             folder="video"
-            hint="Optional. Without one the still is YouTube's own, fetched by this server rather than by the visitor's browser."
+            hint="Optional. Without one the still comes from the API, fetched by this server rather than by the visitor's browser."
+          />
+        </>
+      )}
+
+      {section.type === 'tiktok' && (
+        <>
+          <Field label="Eyebrow" name="eyebrow" defaultValue={section.config.eyebrow} />
+          <Field label="Heading" name="heading" defaultValue={section.config.heading} />
+          <Field
+            label="TikTok profile"
+            name="profileUrl"
+            defaultValue={section.config.profileUrl}
+            wide
+            hint="e.g. https://www.tiktok.com/@the_kanjo. Validated before it is stored — the handle is interpolated into the official embed, so an invalid one is refused here."
+          />
+          <Field label="CTA label" name="ctaLabel" defaultValue={section.config.ctaLabel} />
+          <Select
+            label="With no profile configured"
+            name="fallback"
+            options={['cta', 'hide'] as const}
+            defaultValue={section.config.fallback}
+            hint="TikTok being blocked or slow is handled inside the embed — it shows the CTA as its own initial content."
           />
         </>
       )}

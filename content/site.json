@@ -3,21 +3,18 @@
     "Site-wide settings. Every string here is CONTENT, not code — the site reads",
     "all of it through lib/content/source.ts and hardcodes none of it.",
     "",
-    "PLACEHOLDER POLICY: entries marked PLACEHOLDER below are structural stand-ins.",
-    "No release date, platform, price, store page, Discord invite or social handle",
-    "has been invented. A social link with an empty url is DROPPED by the cluster",
-    "rather than rendered as a dead item.",
+    "THE CHANNEL URLS BELOW ARE REAL AND SUPPLIED BY THE OWNER. TikTok, Patreon",
+    "and YouTube are live. STEAM IS NOT: it stays configured with an empty url",
+    "and is dropped by the cluster until a real store page exists. No URL has",
+    "been invented for it.",
     "",
-    "THE CHANNELS THE BRIEF NAMES ARE TIKTOK, PATREON AND STEAM, in that order.",
-    "All three are published:true and all three have an empty url, so none of them",
-    "renders yet. Supply a url and the entry appears. STEAM HAS NO PAGE YET AND",
-    "NO URL IS INVENTED FOR IT."
+    "PLACEHOLDER POLICY: entries marked PLACEHOLDER are structural stand-ins and",
+    "are NOT rendered (lib/content/placeholder.ts). No release date, platform or",
+    "price has been invented."
   ],
-
   "title": "THE KANJO",
   "subtitle": "PLACEHOLDER — one-line positioning, to be written by the owner",
   "primaryDomain": "https://thekanjo.com",
-
   "chrome": {
     "_comment": [
       "The homepage is a title screen: no bar across the top of it. The header",
@@ -28,28 +25,31 @@
     "headerOnHome": false,
     "socialCluster": true
   },
-
   "seo": {
     "title": "THE KANJO",
     "titleTemplate": "%s — THE KANJO",
     "description": "The Kanjo is a night highway racing game set on an elevated expressway loop, drawing on Japanese highway racing culture and the atmosphere of late 1990s and early 2000s Japan.",
     "game": {
       "name": "The Kanjo",
-      "genre": ["Racing"]
+      "genre": [
+        "Racing"
+      ]
     }
   },
-
   "nav": [
-    { "label": "UPDATES", "href": "/updates", "visible": true }
+    {
+      "label": "UPDATES",
+      "href": "/updates",
+      "visible": true
+    }
   ],
-
   "social": [
     {
       "_comment": "The persistent cluster, upper-left. order is the rail's order, top to bottom. An empty url means the entry is not rendered at all.",
       "id": "tiktok",
       "platform": "tiktok",
       "label": "TIKTOK",
-      "url": "",
+      "url": "https://www.tiktok.com/@the_kanjo",
       "openInNewTab": true,
       "published": true,
       "order": 0
@@ -58,28 +58,28 @@
       "id": "patreon",
       "platform": "patreon",
       "label": "PATREON",
-      "url": "",
+      "url": "https://www.patreon.com/cw/TheKanjo",
       "openInNewTab": true,
       "published": true,
       "order": 1
     },
     {
-      "_comment": "NO STEAM PAGE EXISTS YET. url stays empty until the owner supplies the real store URL; nothing here is invented and the entry simply does not render.",
+      "id": "youtube",
+      "platform": "youtube",
+      "label": "YOUTUBE",
+      "url": "https://www.youtube.com/@thekanjo",
+      "openInNewTab": true,
+      "published": true,
+      "order": 2
+    },
+    {
+      "_comment": "NO STEAM PAGE EXISTS YET AND NO URL IS INVENTED. The entry stays published:true so it is configured and ready; the cluster drops any channel whose url is empty, so it is hidden until the real store URL is supplied. Set url and it appears — no other change.",
       "id": "steam",
       "platform": "steam",
       "label": "STEAM",
       "url": "",
       "openInNewTab": true,
       "published": true,
-      "order": 2
-    },
-    {
-      "id": "youtube",
-      "platform": "youtube",
-      "label": "YOUTUBE",
-      "url": "",
-      "openInNewTab": true,
-      "published": false,
       "order": 3
     },
     {
@@ -101,20 +101,41 @@
       "order": 5
     }
   ],
-
   "status": {
     "key": "in-development",
     "label": "IN DEVELOPMENT",
     "detail": "PLACEHOLDER — a short qualifier beside the status, if wanted",
     "emphasis": true
   },
-
+  "publisher": {
+    "_comment": [
+      "The publisher of the game. A name and a URL, and deliberately nothing",
+      "else: this same identity becomes the `publisher` node in the page's",
+      "JSON-LD, and a legal entity name, address or registration number that",
+      "nobody supplied would be a false claim in a machine-readable format.",
+      "",
+      "Note that `url` is DAINEKU'S OWN SITE, not this one. The Kanjo's",
+      "canonical URL stays primaryDomain above; daineku.com never becomes",
+      "canonical for The Kanjo."
+    ],
+    "name": "Daineku",
+    "url": "https://daineku.com/"
+  },
   "footer": {
     "copyrightHolder": "Daineku",
     "note": "PLACEHOLDER — optional footer note",
     "links": [
-      { "label": "UPDATES", "href": "/updates", "visible": true },
-      { "label": "STUDIO", "href": "https://daineku.com", "external": true, "visible": true }
+      {
+        "label": "UPDATES",
+        "href": "/updates",
+        "visible": true
+      },
+      {
+        "label": "STUDIO",
+        "href": "https://daineku.com",
+        "external": true,
+        "visible": true
+      }
     ]
   }
 }

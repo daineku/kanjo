@@ -2109,6 +2109,87 @@ html:not([data-loader='pending']) .k-social-cluster li {
   color: var(--k-text-secondary);
 }
 
+/* ============================================================================
+   TIKTOK — the official Creator Profile Embed
+   ----------------------------------------------------------------------------
+   The one place on this site where a third party owns the box. The rules here
+   are about containing it, not styling it: TikTok's iframe sizes itself, and
+   fighting that is how an embed ends up clipped on a phone.
+   ========================================================================== */
+
+.k-tiktok {
+  /* A FLOOR, NOT A HEIGHT. Reserving roughly what the creator block occupies
+     means the footer does not leap up the page when the embed resolves — but a
+     fixed height would either clip the embed or leave a gap under it, because
+     its final height depends on how many videos TikTok decides to show. */
+  min-height: 560px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* The embed is wider than the reading column but must never be wider than the
+     screen. Its own iframe is responsive; this is the backstop. */
+  max-width: 100%;
+  overflow: hidden;
+
+  /* THE EMBED IS FRAMED, NOT RESTYLED.
+
+     TikTok's iframe renders on a white ground and its interior is cross-origin,
+     so none of it can be themed — measured, it is a 1354x560 white rectangle
+     dropped into the middle of a black title screen, which reads as a broken
+     image rather than as a panel. The canon's own panel treatment around it
+     (divider edge, left rule, panel padding) turns it into a deliberate inset.
+
+     This does NOT constrain the embed: no width, no height, no fixed desktop
+     size. It is a border and some padding, and the iframe inside stays exactly
+     as responsive as TikTok made it. */
+  border: var(--k-thin-width) solid var(--k-divider);
+  border-left: var(--k-divider-width) solid var(--k-divider);
+  background: var(--k-surface-panel);
+  padding: var(--k-space-md);
+}
+
+/* TikTok's script replaces the contents of this element. Until it does — and
+   for as long as it never does, on a blocked or slow connection — what shows is
+   the CTA inside it, so this is styled as a real piece of the page rather than
+   as a placeholder. */
+.k-tiktok .tiktok-embed {
+  margin: 0;
+  max-width: 100%;
+  min-width: 0;
+  /* The script sets its own dimensions on this node. Nothing here may fight
+     that, so there is no width, no height and no padding. */
+}
+
+.k-tiktok .tiktok-embed > section {
+  margin: 0;
+  padding: var(--k-space-lg) 0;
+}
+
+@media (max-width: 767px) {
+  .k-tiktok {
+    /* A phone shows a narrower, taller creator block. The floor comes down
+       because a 560px reservation on a 390px-wide screen is most of a viewport
+       of empty space while the script loads. */
+    min-height: 460px;
+  }
+}
+
+/* The publisher attribution in the footer. Underlined, because colour alone
+   must not be the only thing marking a link. */
+.k-publisher-link {
+  color: var(--k-text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--k-divider);
+  transition: color var(--k-motion-focus) var(--k-ease-out);
+}
+
+.k-publisher-link:hover,
+.k-publisher-link:focus-visible {
+  color: var(--k-positive-bright);
+  text-decoration-color: currentColor;
+}
+
 /* The YouTube block's caption. */
 .k-video-meta {
   display: grid;

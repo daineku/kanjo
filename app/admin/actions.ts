@@ -14,6 +14,8 @@ import type {
   SocialPlatform,
 } from '@/lib/content/types'
 import { LOADER_INTENSITIES, SOCIAL_PLATFORMS } from '@/lib/content/types'
+import { tikTokHandle } from '@/lib/tiktok/profile'
+import { youTubeHandle } from '@/lib/youtube/channel'
 
 /**
  * The admin's write actions.
@@ -176,6 +178,12 @@ export async function saveIdentity(form: FormData): Promise<void> {
         headerOnReadingPages: bool(form, 'chrome.headerOnReadingPages'),
         headerOnHome: bool(form, 'chrome.headerOnHome'),
         socialCluster: bool(form, 'chrome.socialCluster'),
+      },
+      // Both halves or neither. A publisher name with no URL is a claim with
+      // nothing behind it, and it would be emitted into JSON-LD as one.
+      publisher: {
+        name: str(form, 'publisher.name', settings.publisher?.name ?? ''),
+        url: str(form, 'publisher.url', settings.publisher?.url ?? ''),
       },
       footer: {
         ...settings.footer,
@@ -362,7 +370,19 @@ export async function saveSection(form: FormData): Promise<void> {
         }
         break
 
-      case 'youtube':
+      case 'youtube': {
+        // The channel is validated HERE rather than at render time, so an
+        // editor who pastes something that is not a channel URL finds out
+        // immediately instead of the block quietly falling back to its CTA
+        // forever. An empty value is allowed — that is how the block is
+        // switched to pinned-only.
+        const channelUrl = str(form, 'channelUrl')
+        if (channelUrl && !youTubeHandle(channelUrl)) {
+          throw new Error(
+            `"${channelUrl}" is not a YouTube handle or channel URL. Expected something like https://www.youtube.com/@thekanjo — a /channel/UC… URL is a different identifier and will not resolve.`,
+          )
+        }
+
         next = {
           ...base,
           type: 'youtube',
@@ -370,14 +390,47 @@ export async function saveSection(form: FormData): Promise<void> {
             ...current.config,
             eyebrow: optional(form, 'eyebrow'),
             heading: optional(form, 'heading'),
+            channelUrl,
+            mode: oneOf(form, 'mode', ['latest', 'pinned'] as const, current.config.mode),
             video: str(form, 'video'),
-            title: str(form, 'title'),
+            title: optional(form, 'title'),
             description: optional(form, 'description'),
             aspectRatio: str(form, 'aspectRatio', '16 / 9') || '16 / 9',
+            ctaLabel: str(form, 'ctaLabel', current.config.ctaLabel),
+            fallback: oneOf(form, 'fallback', ['cta', 'hide'] as const, current.config.fallback),
             poster: await imageField(form, 'poster', 'video', current.config.poster),
           },
         }
         break
+      }
+
+      case 'tiktok': {
+        // Same rule, and it matters more here: the handle is interpolated into
+        // the embed's `data-unique-id`, so an invalid one must never be stored.
+        const profileUrl = str(form, 'profileUrl')
+        if (profileUrl && !tikTokHandle(profileUrl)) {
+          throw new Error(
+            `"${profileUrl}" is not a TikTok handle or profile URL. Expected something like https://www.tiktok.com/@the_kanjo — a vm.tiktok.com short link is a redirect and cannot be validated.`,
+          )
+        }
+
+        next = {
+          ...base,
+          type: 'tiktok',
+          config: {
+            ...current.config,
+            eyebrow: optional(form, 'eyebrow'),
+            heading: optional(form, 'heading'),
+            profileUrl,
+            // One mode exists. Stated explicitly so adding 'display-api' later
+            // is a compile error here rather than a silently ignored field.
+            mode: 'creator-embed',
+            ctaLabel: str(form, 'ctaLabel', current.config.ctaLabel),
+            fallback: oneOf(form, 'fallback', ['cta', 'hide'] as const, current.config.fallback),
+          },
+        }
+        break
+      }
 
       case 'patreon':
         next = {

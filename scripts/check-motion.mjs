@@ -37,6 +37,47 @@ import { chromium } from 'playwright'
 const BASE = process.env.BASE ?? 'http://localhost:3517'
 const WIDTHS = [1920, 1440, 1024, 768, 430, 390, 360]
 
+/**
+ * Hosts the TikTok creator embed reaches, and the one allowed third party.
+ *
+ * The embed IS a third-party script — that is what it is — and once its iframe
+ * is on the page it talks to a spread of ByteDance hosts for its own analytics
+ * and assets. None of that is ours, none of it is under our control, and none
+ * of it can be fixed by us.
+ *
+ * It is allowlisted BY HOST rather than the checks being deleted, so the
+ * assertions that matter survive: no Google or YouTube host until somebody
+ * presses PLAY, and no request loop in OUR components.
+ */
+const TIKTOK_HOSTS =
+  /(^|\.)tiktok\.com$|(^|\.)tiktokv\.com$|(^|\.)tiktokcdn\.com$|(^|\.)tiktokcdn-[a-z0-9-]+\.com$|(^|\.)ttwstatic\.com$|(^|\.)byteoversea\.com$|(^|\.)ibyteimg\.com$|(^|\.)ipstatp\.com$|(^|\.)bytedance\.com$/
+
+/**
+ * True for console output that a third-party iframe caused.
+ *
+ * Measured with the TikTok embed live: a steady stream of CORS failures and a
+ * 403 against `mon.tiktokv.com` (their analytics endpoint), all originating
+ * inside a cross-origin frame — plus one permissions-policy warning the browser
+ * reports against the TOP document because TikTok's injected iframe declares
+ * `allow="accelerometer"` and we do not delegate it. Delegating a motion sensor
+ * to a third party to silence a warning is a worse trade than the warning.
+ *
+ * Collecting all of that would make these checks impossible to pass, and a
+ * check that can never pass is a check nobody reads — which is how a real error
+ * in our own document would slip through.
+ */
+function isThirdPartyNoise(message) {
+  const frameUrl = message.location?.()?.url ?? ''
+  if (frameUrl) {
+    try {
+      if (TIKTOK_HOSTS.test(new URL(frameUrl).host)) return true
+    } catch {
+      /* not a URL we can attribute; fall through to the text checks */
+    }
+  }
+  return /Permissions policy violation: accelerometer/.test(message.text())
+}
+
 const results = []
 function check(name, pass, detail) {
   results.push({ name, pass, detail })
@@ -86,7 +127,9 @@ for (const width of WIDTHS) {
   const page = await context.newPage()
   const consoleErrors = []
   page.on('console', (m) => {
-    if (m.type() === 'error') consoleErrors.push(m.text().slice(0, 160))
+    if (m.type() !== 'error') return
+    if (isThirdPartyNoise(m)) return
+    consoleErrors.push(m.text().slice(0, 160))
   })
   page.on('pageerror', (e) => consoleErrors.push(String(e).slice(0, 160)))
 
@@ -254,7 +297,9 @@ for (const width of WIDTHS) {
   const errors = []
   page.on('pageerror', (e) => errors.push(String(e).slice(0, 160)))
   page.on('console', (m) => {
-    if (m.type() === 'error') errors.push(m.text().slice(0, 160))
+    if (m.type() !== 'error') return
+    if (isThirdPartyNoise(m)) return
+    errors.push(m.text().slice(0, 160))
   })
 
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
@@ -318,16 +363,46 @@ for (const width of WIDTHS) {
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
   await page.waitForTimeout(2500)
 
-  const duplicates = [...asked.entries()].filter(([, n]) => n > 1)
+  /**
+   * FIRST-PARTY ONLY, and that is the point of the check rather than a
+   * weakening of it.
+   *
+   * What this guards against is the Daineku history recorded in
+   * scripts/check-media-requests.mjs: a component asking for the same image
+   * over and over. Those are all first-party URLs. TikTok's iframe batches its
+   * own analytics to `mcs-sg.tiktokv.com` several times per page — measured at
+   * 4 and 8 repeats — which is their design, not our regression, and counting
+   * it would bury the signal this check exists for.
+   */
+  const duplicates = [...asked.entries()]
+    .filter(([url]) => url.startsWith(BASE))
+    .filter(([, n]) => n > 1)
   check(
-    'no URL is requested twice',
+    'no first-party URL is requested twice',
     duplicates.length === 0,
     duplicates.map(([u, n]) => `${u.slice(-50)}×${n}`).join(', '),
   )
+
+  /**
+   * TIKTOK IS THE ONE ALLOWED THIRD PARTY, AND ONLY ON SCROLL.
+   *
+   * The official creator embed is a third-party script by definition — that is
+   * what it is — and it loads when its section approaches the viewport, which
+   * this test's full-page scroll triggers. So it is allowlisted BY HOST rather
+   * than the check being deleted, which keeps the assertion that actually
+   * matters: no Google or YouTube host is contacted until somebody presses
+   * PLAY, and nothing else reaches out at all.
+   */
+  const unexpected = [...thirdParty].filter((host) => !TIKTOK_HOSTS.test(host))
   check(
-    'no third-party request before the visitor asks for one',
-    thirdParty.size === 0,
-    [...thirdParty].join(', '),
+    'no third-party request except the TikTok embed, which is the point of it',
+    unexpected.length === 0,
+    unexpected.join(', '),
+  )
+  check(
+    'no Google or YouTube host before the visitor presses play',
+    [...thirdParty].every((host) => !/google|youtube|ytimg|ggpht/i.test(host)),
+    [...thirdParty].filter((h) => /google|youtube|ytimg|ggpht/i.test(h)).join(', '),
   )
   const carRequests = [...asked.keys()].filter((u) => u.includes('/media/loader/')).length
   check('both loader vehicles are fetched exactly once each', carRequests === 2, `${carRequests} request(s)`)

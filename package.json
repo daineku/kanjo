@@ -12,13 +12,18 @@
     "typecheck": "tsc --noEmit",
     "test:content": "node lib/content/local/parse.test.ts",
     "test:markdown": "node lib/richText.test.ts",
+    "test:patreon": "node lib/patreon/posts.test.ts",
+    "test:youtube": "node lib/youtube/channel.test.ts",
+    "test:tiktok": "node lib/tiktok/profile.test.ts",
     "test:media": "node scripts/validate-media.mjs",
-    "test": "npm run test:content && npm run test:markdown && npm run test:patreon && npm run test:media",
-    "check": "npm run typecheck && npm run lint && npm run test && npm run build",
-    "test:patreon": "node lib/patreon/posts.test.ts"
+    "test": "npm run test:content && npm run test:markdown && npm run test:patreon && npm run test:youtube && npm run test:tiktok && npm run test:media",
+    "check": "npm run typecheck && npm run lint && npm run test && npm run build"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.116.0",
+    "aws4fetch": "^1.0.20",
     "gsap": "^3.15.0",
     "next": "^15.5.24",
     "react": "19.1.1",

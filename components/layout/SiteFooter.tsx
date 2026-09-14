@@ -23,6 +23,13 @@ export function SiteFooter({ settings }: { settings: SiteSettings }) {
   const links = settings.footer.links
   const note = real(settings.footer.note)
 
+  // Both halves must be real. A publisher name with no URL is a claim with
+  // nothing behind it, and a URL with no name is not an attribution.
+  const publisherName = real(settings.publisher?.name)
+  const publisherUrl = settings.publisher?.url?.trim()
+  const publisher =
+    publisherName && publisherUrl ? { name: publisherName, url: publisherUrl } : undefined
+
   return (
     <footer
       style={{
@@ -47,6 +54,29 @@ export function SiteFooter({ settings }: { settings: SiteSettings }) {
           <p className="k-small" style={{ color: 'var(--k-text-secondary)' }}>
             {year} {settings.footer.copyrightHolder} — {settings.title}
           </p>
+
+          {/*
+            THE PUBLISHER, AS A LINK.
+
+            The same identity that becomes the `publisher` node in the page's
+            JSON-LD (lib/seo/structuredData.tsx), read from the same content
+            field — so what a visitor is told and what a crawler is told cannot
+            drift apart. It says who publishes the game and nothing more: no
+            legal entity, no address, no relationship nobody stated.
+          */}
+          {publisher && (
+            <p className="k-small" style={{ marginTop: 'var(--k-space-sm)', margin: 0 }}>
+              <span style={{ color: 'var(--k-text-tertiary)' }}>PUBLISHED BY </span>
+              <a
+                className="k-publisher-link"
+                href={publisher.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {publisher.name}
+              </a>
+            </p>
+          )}
           {note && (
             <p
               className="k-small"

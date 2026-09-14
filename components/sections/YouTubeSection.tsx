@@ -3,74 +3,122 @@ import { Reveal } from '@/components/motion/Reveal'
 import { EmptyNotice, Section } from '@/components/kanjo/Section'
 import { VideoEmbed } from '@/components/kanjo/VideoEmbed'
 import { real } from '@/lib/content/placeholder'
-import type { YouTubeConfig } from '@/lib/content/types'
+import type { ImageRef, YouTubeConfig, YouTubeFeed } from '@/lib/content/types'
 import { youTubeId, youTubeThumbnail } from '@/lib/media'
+import { youTubeChannelUrl, youTubeHandle } from '@/lib/youtube/channel'
 
 /**
- * The homepage's one video.
+ * The homepage's video: the channel's LATEST public upload.
+ *
+ * ── HOW THE VIDEO IS CHOSEN ─────────────────────────────────────────────────
+ *
+ * `mode: 'latest'` — the id comes from `content.youtube`, resolved server-side
+ * before this component runs (`@thekanjo` → channel → uploads playlist →
+ * newest public item; see lib/youtube). A new upload appears here within one
+ * revalidation window with NO content edit and NO deploy.
+ *
+ * `mode: 'pinned'` — the id comes from `config.video`, for when a specific
+ * video should stay put regardless of what has been uploaded since.
+ *
+ * `config.video` is ALSO the fallback for 'latest': if the API key is missing
+ * or Google is unreachable but a video was pinned earlier, that one still
+ * plays rather than the block collapsing to a button.
  *
  * ── NO PLAYER LIBRARY, AND NO IFRAME UNTIL IT IS ASKED FOR ──────────────────
  *
  * The block renders a poster and a button. YouTube's iframe — roughly a
  * megabyte of third-party JavaScript, and cookies set on mount whether or not
  * anybody watches — is not created until the visitor presses PLAY. The facade
- * itself is `VideoEmbed`, which the site already uses for local clips, so there
- * is ONE play affordance in this codebase rather than two that drift apart. A
- * third-party React player package would add a dependency to do worse than the
- * native iframe does for free.
- *
- * ── THE ID IS NORMALISED ON THE SERVER ──────────────────────────────────────
- *
- * `config.video` accepts a bare id or any YouTube URL; `youTubeId` reduces it to
- * the eleven characters and discards everything else, so a pasted watch URL
- * cannot carry a playlist, a start offset or a share token into the embed. The
- * embed URL itself is composed by VideoEmbed against youtube-nocookie.com.
+ * is `VideoEmbed`, the same one the site uses for local clips, so there is ONE
+ * play affordance in this codebase rather than two that drift apart.
  *
  * ── AND THE POSTER IS FETCHED BY US, NOT BY THE BROWSER ─────────────────────
  *
- * With no poster configured the still is YouTube's own thumbnail — but routed
- * through `next/image`, so OUR server fetches it and the visitor's browser
- * contacts no Google host at all until they press play. That is what lets this
- * block keep the page's default state free of third-party requests.
- *
- * ── MOTION ──────────────────────────────────────────────────────────────────
- *
- * One clip-path band reveal on entry, once, then the element is handed back to
- * the browser untouched. The player is never distorted while it plays. See
- * components/motion/ClipReveal.tsx.
+ * Whether it comes from the API response or from YouTube's thumbnail host, the
+ * still is routed through `next/image`, so OUR server fetches it and the
+ * visitor's browser contacts no Google host at all until they press play. That
+ * is what keeps the page's default state free of third-party requests.
  */
 
-export function YouTubeSection({ id, config }: { id: string; config: YouTubeConfig }) {
-  const videoId = youTubeId(config.video)
-  const description = real(config.description)
-  const ratio = config.aspectRatio?.trim() || '16 / 9'
-
+export function YouTubeSection({
+  id,
+  config,
+  feed,
+}: {
+  id: string
+  config: YouTubeConfig
+  feed: YouTubeFeed
+}) {
   const header = {
     eyebrow: real(config.eyebrow),
     heading: real(config.heading),
     standfirst: real(config.standfirst),
   }
 
+  const ratio = config.aspectRatio?.trim() || '16 / 9'
+  const handle = youTubeHandle(config.channelUrl)
+  const channelUrl = handle ? youTubeChannelUrl(handle) : null
+
+  /**
+   * The video to play, and where its metadata comes from.
+   *
+   * A pinned id always wins in 'pinned' mode. In 'latest' mode the feed wins
+   * when it resolved, and the pinned id is the safety net.
+   */
+  const pinnedId = config.video ? youTubeId(config.video) : null
+  const live = config.mode === 'latest' && feed.status === 'ok' ? feed.video : undefined
+  const videoId = config.mode === 'pinned' ? pinnedId : (live?.id ?? pinnedId)
+
+  // Configured copy overrides the API's, so an editor can always take control
+  // of the caption without pinning the video itself.
+  const title = real(config.title) ?? live?.title ?? ''
+  const description = real(config.description) ?? real(live?.description)
+
   if (!videoId) {
-    // An enabled block with nothing to play says so, rather than rendering an
-    // empty frame or silently vanishing — the same rule the rest of the site
-    // follows for an enabled section with no content.
+    // Nothing to play: no key, no uploads, a failed request, or simply not
+    // configured yet. `feed.detail` is deliberately not rendered — an API error
+    // message is a server-log line, not site copy.
+    if (config.fallback === 'hide') return null
+
     return (
       <Section id={id} header={header} width="wide">
-        <EmptyNotice>NO VIDEO CONFIGURED</EmptyNotice>
+        <Reveal stagger={0.08} distance={20}>
+          {channelUrl ? (
+            <p style={{ margin: 0 }}>
+              <a
+                className="k-link-action"
+                href={channelUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {config.ctaLabel}
+              </a>
+            </p>
+          ) : (
+            <EmptyNotice>NO YOUTUBE CHANNEL CONFIGURED</EmptyNotice>
+          )}
+        </Reveal>
       </Section>
     )
   }
 
-  const poster = config.poster ?? {
-    src: youTubeThumbnail(videoId),
-    alt: '',
-    // YouTube's `hqdefault` is 480x360. Stated so the box is reserved at the
-    // right size before anything loads; the frame's own aspect-ratio is what
-    // actually governs the layout, so nothing shifts either way.
-    width: 480,
-    height: 360,
-  }
+  /**
+   * The still.
+   *
+   * Preference order: an editor's override, then the thumbnail the API
+   * returned (which is already the best size YouTube offered for this upload),
+   * then the derived `hqdefault` URL — which exists for every video, unlike
+   * `maxresdefault`.
+   */
+  const poster: ImageRef = config.poster ??
+    live?.poster ?? {
+      src: youTubeThumbnail(videoId),
+      alt: '',
+      // hqdefault is always 480x360. The frame's own aspect-ratio governs the
+      // layout, so the box is reserved correctly either way.
+      width: 480,
+      height: 360,
+    }
 
   return (
     <Section id={id} header={header} width="wide">
@@ -82,7 +130,10 @@ export function YouTubeSection({ id, config }: { id: string; config: YouTubeConf
             id,
             provider: 'youtube',
             ref: videoId,
-            title: config.title,
+            // The accessible name of the play button. A title is not guaranteed
+            // — a pinned id with no configured caption has none — so fall back
+            // to something that still says what the button does.
+            title: title || 'Latest video',
             description,
             poster,
             featured: true,
@@ -92,12 +143,24 @@ export function YouTubeSection({ id, config }: { id: string; config: YouTubeConf
         />
       </ClipReveal>
 
-      {(config.title || description) && (
+      {(title || description || channelUrl) && (
         <Reveal stagger={0.06} distance={18} className="k-video-meta">
-          {config.title && <p className="k-item-title">{config.title}</p>}
+          {title && <p className="k-item-title">{title}</p>}
           {description && (
             <p className="k-body" style={{ color: 'var(--k-text-secondary)', margin: 0 }}>
               {description}
+            </p>
+          )}
+          {channelUrl && (
+            <p style={{ margin: 0 }}>
+              <a
+                className="k-link-action"
+                href={channelUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {config.ctaLabel}
+              </a>
             </p>
           )}
         </Reveal>

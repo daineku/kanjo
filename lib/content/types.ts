@@ -129,6 +129,25 @@ export type FooterSettings = {
 }
 
 /**
+ * Who publishes the game.
+ *
+ * A name and a URL, and DELIBERATELY NOTHING ELSE. Structured data is a
+ * machine-readable set of assertions, so a legal entity name, an address, a
+ * registration number or a company description that nobody supplied would be a
+ * false claim in a format built to be trusted — not a harmless placeholder.
+ * Only what the owner stated is modelled here.
+ *
+ * This is separate from `footer.copyrightHolder`, which is a display string.
+ * The publisher is an identity that appears both in the footer and as the
+ * `publisher` node in JSON-LD, and those must not be able to drift apart.
+ */
+export type PublisherSettings = {
+  name: string
+  /** The publisher's own site, e.g. 'https://daineku.com/'. */
+  url: string
+}
+
+/**
  * Site chrome.
  *
  * The homepage is a title screen, not a document, so it carries no header bar —
@@ -156,6 +175,7 @@ export type SiteSettings = {
   nav: NavItem[]
   social: SocialLink[]
   status: GameStatus
+  publisher: PublisherSettings
   footer: FooterSettings
   chrome: ChromeSettings
 }
@@ -254,6 +274,44 @@ export type PatreonFeedStatus =
 export type PatreonFeed = {
   status: PatreonFeedStatus
   posts: PatreonPost[]
+  /** Diagnostics for the server log. NEVER rendered. */
+  detail?: string
+}
+
+// ── YouTube ──────────────────────────────────────────────────────────────────
+
+/**
+ * The channel's most recent public upload, resolved at build/revalidation time.
+ *
+ * Note what is NOT here: no embed URL and no player configuration. The id is
+ * the whole of it, and the embed is composed by the facade against
+ * youtube-nocookie — so nothing the API returns can carry a playlist, an
+ * autoplay parameter or a tracking string into the page.
+ */
+export type YouTubeVideo = {
+  /** The bare 11-character id. */
+  id: string
+  title: string
+  description: string
+  /** ISO 8601. */
+  publishedAt: string
+  /** YouTube's own thumbnail, at whatever size it offered. */
+  poster?: ImageRef
+}
+
+export type YouTubeFeedStatus =
+  /** Key present, request succeeded, a public upload exists. */
+  | 'ok'
+  /** No API key, or the handle is unreadable. The expected state of a clone. */
+  | 'unconfigured'
+  /** A real channel with nothing public on it yet. */
+  | 'empty'
+  /** Key present, request failed. The section falls back. */
+  | 'error'
+
+export type YouTubeFeed = {
+  status: YouTubeFeedStatus
+  video?: YouTubeVideo
   /** Diagnostics for the server log. NEVER rendered. */
   detail?: string
 }
@@ -364,6 +422,7 @@ export const SECTION_TYPES = [
   'hero',
   'intro',
   'youtube',
+  'tiktok',
   'patreon',
   'video',
   'media',
@@ -492,17 +551,39 @@ export type LinksConfig = SectionHeader & {
  * The homepage's one video block.
  *
  * Separate from `video` (which renders configured `Video` entries) because it
- * has a different job: ONE canonical YouTube upload, framed as the centrepiece.
+ * has a different job: THE CHANNEL'S LATEST UPLOAD, framed as the centrepiece.
  * `video` stays for local gameplay clips that ship no third-party anything.
+ *
+ * ── `latest` IS THE POINT ───────────────────────────────────────────────────
+ *
+ * The first version of this config held one hardcoded video id, which meant
+ * every new upload needed a content edit and a deploy. It now holds a CHANNEL,
+ * and the newest public upload is resolved server-side through the YouTube Data
+ * API v3 (see lib/youtube). `pinned` remains for the case where a specific
+ * video should stay on the homepage regardless of what was uploaded since.
  */
+export type YouTubeMode = 'latest' | 'pinned'
+
 export type YouTubeConfig = SectionHeader & {
   /**
-   * A bare id OR any YouTube URL. Normalised on the SERVER by
-   * lib/media.ts#youTubeId, so a pasted watch URL carrying a playlist, a
-   * timestamp and a tracking string cannot reach the embed.
+   * The canonical channel URL, e.g. 'https://www.youtube.com/@thekanjo'. A
+   * bare handle also works. Reduced to a validated handle on the SERVER by
+   * lib/youtube/channel.ts#youTubeHandle before it reaches an API query.
    */
-  video: string
-  title: string
+  channelUrl: string
+  mode: YouTubeMode
+  /**
+   * Used when `mode` is 'pinned', and as the fallback when 'latest' cannot be
+   * resolved. A bare id OR any YouTube URL — everything except the eleven
+   * characters is discarded on the server, so a pasted watch URL carrying a
+   * playlist, a timestamp and a share token cannot reach the embed.
+   */
+  video?: string
+  /**
+   * Overrides the caption. Absent in 'latest' mode, the video's own title from
+   * the API is used, which is what makes the block update itself.
+   */
+  title?: string
   description?: string
   /**
    * Overrides the still. Absent, the poster is YouTube's own thumbnail, fetched
@@ -512,6 +593,55 @@ export type YouTubeConfig = SectionHeader & {
   poster?: ImageRef
   /** CSS aspect-ratio, e.g. '16 / 9'. Reserves the box, so nothing shifts. */
   aspectRatio: string
+  /** Shown when there is no video to play. Links to the channel. */
+  ctaLabel: string
+  /**
+   * What the block does with no API key, no public upload, or a failed
+   * request. 'cta' keeps the section, its copy and a WATCH ON YOUTUBE button;
+   * 'hide' renders nothing. Never a broken player.
+   */
+  fallback: 'cta' | 'hide'
+}
+
+/**
+ * The TikTok block.
+ *
+ * ── WHY THE OFFICIAL CREATOR EMBED, AND NOT THE DISPLAY API ─────────────────
+ *
+ * The Creator Profile Embed shows a selection of a public profile's recent
+ * videos with NO developer app, no Login Kit review and no `video.list`
+ * authorisation — for our own public channel, that is the whole requirement.
+ * The Display API would mean an app review cycle and a stored OAuth token, to
+ * display videos that are already public.
+ *
+ * `mode` exists so the upgrade path is a config change rather than a rewrite:
+ * if The Kanjo later wants its own card treatment instead of TikTok's block,
+ * 'display-api' is the value that would select it. It is not implemented, and
+ * the type does not pretend otherwise — see docs/TIKTOK.md.
+ */
+export type TikTokMode = 'creator-embed'
+
+export type TikTokConfig = SectionHeader & {
+  /**
+   * The canonical profile URL, e.g. 'https://www.tiktok.com/@the_kanjo'. A bare
+   * handle also works. Reduced to a validated handle on the SERVER by
+   * lib/tiktok/profile.ts#tikTokHandle before ANY markup is built from it —
+   * the embed is constructed from that handle, never accepted as HTML.
+   */
+  profileUrl: string
+  mode: TikTokMode
+  ctaLabel: string
+  /**
+   * What the block does when the profile is unreadable. 'cta' keeps the
+   * section and a FOLLOW ON TIKTOK button; 'hide' renders nothing.
+   *
+   * Note that this does NOT cover TikTok being blocked or slow in the
+   * visitor's browser — that is handled in the embed itself, which renders the
+   * CTA as its own fallback content and lets TikTok replace it only if the
+   * script actually loads. There is no state in which this block is an empty
+   * black rectangle.
+   */
+  fallback: 'cta' | 'hide'
 }
 
 /**
@@ -544,6 +674,7 @@ export type SectionConfigMap = {
   hero: HeroConfig
   intro: IntroConfig
   youtube: YouTubeConfig
+  tiktok: TikTokConfig
   patreon: PatreonConfig
   video: VideoConfig
   media: MediaConfig
@@ -585,4 +716,13 @@ export type LandingContent = {
    * everything else so the section component itself awaits nothing.
    */
   patreon: PatreonFeed
+  /**
+   * The channel's latest public upload, or a status saying why there isn't one.
+   *
+   * Like `patreon`, this is resolved BEFORE any component renders, and neither
+   * can fail: both adapters return a status instead of throwing, so one
+   * external provider being down cannot reject the promise that builds this
+   * bundle and take the whole homepage with it.
+   */
+  youtube: YouTubeFeed
 }
