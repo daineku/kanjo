@@ -197,11 +197,6 @@ const EMBED_JS = /tiktok\.com\/embed\.js/
 
   check(
     'TikTok embed.js is fetched once the section is reached',
-    embedRequests.length >= 1,
-    `${embedRequests.length} request(s)`,
-  )
-  check(
-    'TikTok embed.js is fetched EXACTLY once',
     embedRequests.length === 1,
     `${embedRequests.length} request(s)`,
   )
@@ -211,29 +206,71 @@ const EMBED_JS = /tiktok\.com\/embed\.js/
   )
   check('exactly one TikTok script tag in the DOM', scriptTags === 1, `${scriptTags}`)
 
-  // A client-side round trip must not inject a second copy.
+  /**
+   * SCROLLING MUST NEVER ASK AGAIN.
+   *
+   * This is the real "no initialisation loop" check. The IntersectionObserver
+   * is disconnected the moment it fires and the request is behind a one-way
+   * latch, so moving the section in and out of view any number of times must
+   * add exactly zero requests.
+   */
+  for (let i = 0; i < 4; i += 1) {
+    await page.evaluate(() => window.scrollTo(0, 0))
+    await page.waitForTimeout(150)
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+    await page.waitForTimeout(150)
+  }
+  await page.waitForTimeout(1000)
+  check(
+    'scrolling past the section repeatedly asks for nothing more',
+    embedRequests.length === 1,
+    `${embedRequests.length} request(s) after 4 passes`,
+  )
+
+  /**
+   * A CLIENT-SIDE ROUND TRIP RE-RUNS THE SCRIPT, AND THAT IS CORRECT.
+   *
+   * `embed.js` scans for `.tiktok-embed` elements once, when it executes. After
+   * navigating away and back, React has mounted a BRAND NEW blockquote that an
+   * already-executed script will never look at — so without a re-run the
+   * returning visitor would see the CTA where the embed used to be. There is no
+   * documented public re-init function; re-executing is the only mechanism
+   * TikTok offers.
+   *
+   * So what is asserted is the invariant that matters: ONE fetch per mount,
+   * never more, and never more than one script tag or one iframe in the
+   * document. A second identical-URL fetch is served from the browser cache.
+   */
   await page.click('footer a[href="/updates"]')
   await page.waitForURL('**/updates', { timeout: 10000 })
   await page.waitForTimeout(400)
   await page.goBack()
   await page.waitForTimeout(1500)
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
-  await page.waitForTimeout(2500)
+  await page.waitForTimeout(3000)
 
   check(
-    'client-side navigation does not re-inject embed.js',
-    embedRequests.length === 1,
-    `${embedRequests.length} request(s) after a round trip`,
+    'a round trip costs exactly one more fetch, not two or a loop',
+    embedRequests.length === 2,
+    `${embedRequests.length} request(s) after one round trip`,
   )
-  const afterNav = await page.evaluate(
-    () => document.querySelectorAll('script[src*="tiktok.com/embed"]').length,
-  )
-  check('still exactly one TikTok script tag after navigation', afterNav <= 1, `${afterNav}`)
 
-  const blockquotes = await page.evaluate(
-    () => document.querySelectorAll('.tiktok-embed').length,
+  const afterNav = await page.evaluate(() => ({
+    scripts: document.querySelectorAll('script[src*="tiktok.com/embed"]').length,
+    blockquotes: document.querySelectorAll('.tiktok-embed').length,
+    iframes: document.querySelectorAll('.k-tiktok iframe').length,
+  }))
+  check(
+    'script tags never stack — the previous one is removed first',
+    afterNav.scripts === 1,
+    `${afterNav.scripts} tag(s)`,
   )
-  check('exactly one TikTok embed element', blockquotes === 1, `${blockquotes}`)
+  check('exactly one TikTok embed element', afterNav.blockquotes === 1, `${afterNav.blockquotes}`)
+  check(
+    'the embed still renders after navigating back',
+    afterNav.iframes === 1,
+    `${afterNav.iframes} iframe(s)`,
+  )
   await context.close()
 }
 

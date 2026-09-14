@@ -1,9 +1,52 @@
 'use client'
 
-import Script from 'next/script'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 
 import { whenStageReady } from '@/lib/motion/stage'
+
+const EMBED_SRC = 'https://www.tiktok.com/embed.js'
+
+/**
+ * Injects TikTok's embed script, and guarantees there is never more than one.
+ *
+ * ── WHY THIS IS NOT `next/script` ───────────────────────────────────────────
+ *
+ * It was, and the behaviour was measured: `next/script` REMOVES its script
+ * element when the component unmounts and re-adds it on remount. A client-side
+ * navigation to /updates and back therefore produced two `embed.js` requests
+ * and, more importantly, took the decision out of our hands.
+ *
+ * ── AND WHY RE-RUNNING IT ON A REMOUNT IS CORRECT, NOT A BUG ────────────────
+ *
+ * `embed.js` scans for `.tiktok-embed` elements once, when it executes. After a
+ * client-side navigation React has mounted a BRAND NEW blockquote, and a script
+ * that already ran will never look at it — so a visitor returning to the
+ * homepage would see the CTA where the embed used to be. Re-executing is the
+ * only mechanism TikTok offers for a re-scan; there is no documented public
+ * re-init function.
+ *
+ * So the invariants this function actually holds are the ones that matter:
+ *
+ *   - AT MOST ONE script tag exists in the document at any moment. The previous
+ *     one is removed before the new one is appended, so tags never stack.
+ *   - ONE fetch per mount that needs processing. Not per scroll, not per
+ *     render, not on hover, and never on a timer.
+ *   - The second fetch is the same URL, so the browser serves it from cache.
+ *
+ * What it deliberately does NOT do is re-inject while the section is still
+ * mounted — that would be the initialisation loop the brief rules out, and the
+ * caller's one-way latch is what prevents it.
+ */
+function injectEmbedScript(): void {
+  for (const previous of document.querySelectorAll('script[data-tiktok-embed]')) {
+    previous.remove()
+  }
+  const script = document.createElement('script')
+  script.src = EMBED_SRC
+  script.async = true
+  script.dataset.tiktokEmbed = 'true'
+  document.head.appendChild(script)
+}
 
 /**
  * TikTok's official Creator Profile Embed.
@@ -47,9 +90,10 @@ import { whenStageReady } from '@/lib/motion/stage'
  *   2. THE SECTION IS NEAR THE VIEWPORT. One IntersectionObserver, disconnected
  *      the moment it fires. No polling, no scroll listener, no hover trigger.
  *
- * It is loaded EXACTLY ONCE. `next/script` dedupes by `id`, and `loadScript` is
- * a one-way latch, so neither a re-render nor a client-side navigation back to
- * this page can inject a second copy or re-run initialisation.
+ * It is injected AT MOST ONCE PER MOUNT, by `injectEmbedScript` above, which
+ * also guarantees only one script tag exists at a time. `loaded` is a one-way
+ * latch, so no amount of scrolling, re-rendering or resizing can ask for it
+ * twice while the section stays mounted.
  */
 
 export function TikTokEmbed({
@@ -66,8 +110,13 @@ export function TikTokEmbed({
   /** False when the loader is off: there is then nothing to wait for. */
   waitForLoader: boolean
 }) {
-  const [loadScript, setLoadScript] = useState(false)
   const root = useRef<HTMLDivElement>(null)
+  /**
+   * The one-way latch. A ref rather than state because nothing on screen
+   * depends on it — asking for the script is a side effect, and making it a
+   * state update would re-render the section for no visual reason.
+   */
+  const requested = useRef(false)
 
   useEffect(() => {
     const element = root.current
@@ -75,6 +124,12 @@ export function TikTokEmbed({
 
     let observer: IntersectionObserver | null = null
     let cancelled = false
+
+    const request = () => {
+      if (requested.current) return
+      requested.current = true
+      injectEmbedScript()
+    }
 
     // GATE 1. `whenStageReady` always resolves — immediately when there is no
     // loader, and on its own backstop if the loader never reports — so the
@@ -86,7 +141,7 @@ export function TikTokEmbed({
       // rather than leaving the block permanently inert. The CTA is already
       // visible, so the embed is the only thing that could be missing.
       if (typeof IntersectionObserver !== 'function') {
-        setLoadScript(true)
+        request()
         return
       }
 
@@ -98,7 +153,7 @@ export function TikTokEmbed({
           // attached to a section this tall would keep firing for the rest of
           // the page's life for no reason.
           observer?.disconnect()
-          setLoadScript(true)
+          request()
         },
         // Half a screen of lead time. Enough that the embed is usually ready by
         // the time the section is read, and not so much that it counts as
@@ -143,17 +198,6 @@ export function TikTokEmbed({
           </a>
         </section>
       </blockquote>
-
-      {loadScript && (
-        <Script
-          id="tiktok-embed-script"
-          src="https://www.tiktok.com/embed.js"
-          // The script is only rendered once the section is near the viewport,
-          // so the strategy only governs what happens after that. `lazyOnload`
-          // keeps it behind everything else the browser is doing.
-          strategy="lazyOnload"
-        />
-      )}
     </div>
   )
 }

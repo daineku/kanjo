@@ -1938,6 +1938,19 @@ html:not([data-loader='pending']) .k-social-cluster li {
   min-height: 32px;
   padding: var(--k-space-xs) var(--k-space-md);
   border-left: var(--k-divider-width) solid var(--k-divider);
+  /* EACH ITEM CARRIES ITS OWN GROUND, at the canon's scrim opacity
+     (Tokens/opacity.json scrim = 0.72).
+
+     The rail is `position: fixed`, so it floats over whatever is scrolled
+     under it — and one of the things scrolled under it is TikTok's creator
+     embed, which is a large WHITE card we do not control the inside of.
+     Measured at 390px: white label on a white card, completely unreadable.
+
+     On the black title screen this is near-invisible, which is the point: it
+     costs the hero nothing and only asserts itself where there is something
+     bright behind it. A backdrop-filter would look better still and would cost
+     a continuously-composited layer for the life of the page. */
+  background: rgb(0 0 3 / 0.72);
   color: var(--k-text-secondary);
   text-decoration: none;
   font-family: var(--k-font-display);
