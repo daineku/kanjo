@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 
 import type { Article, ImageRef, SiteSettings } from '@/lib/content/types'
+import { shouldNoIndex } from '@/lib/runtime/mode'
 
 /**
  * Metadata construction.
@@ -84,8 +85,11 @@ export function buildRootMetadata(settings: SiteSettings): Metadata {
       // A preview deployment should not be indexed alongside production. Gated
       // on an explicit env var rather than on NODE_ENV, so a staging build is a
       // deliberate choice.
-      index: process.env.NEXT_PUBLIC_NOINDEX !== 'true',
-      follow: process.env.NEXT_PUBLIC_NOINDEX !== 'true',
+      // Any non-production deployment, automatically — see lib/runtime/mode.ts.
+      // Relying on someone setting NEXT_PUBLIC_NOINDEX per preview is how a
+      // preview ends up indexed.
+      index: !shouldNoIndex(),
+      follow: !shouldNoIndex(),
     },
   }
 }

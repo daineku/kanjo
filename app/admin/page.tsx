@@ -1,18 +1,16 @@
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { redirect } from 'next/navigation'
 
-import {
-  isAdminEnabled,
-  resolveContentStore,
-  type ContentDraft,
-} from '@/lib/content/store'
+import { currentAdmin, isAdminAuthConfigured } from '@/lib/admin/auth'
+import { deploymentMode } from '@/lib/runtime/mode'
+import { resolveContentStore, type ContentDraft } from '@/lib/content/store'
 import {
   LOADER_INTENSITIES,
   SOCIAL_PLATFORMS,
   type Section,
 } from '@/lib/content/types'
 
-import { saveIdentity, saveLoader, saveSection, saveSocial } from './actions'
+import { saveIdentity, saveLoader, saveSection, saveSocial, signOut } from './actions'
 import { Field, ImageField, Panel, Select, TextArea, Toggle } from './fields'
 
 /**
@@ -26,20 +24,24 @@ import { Field, ImageField, Panel, Select, TextArea, Toggle } from './fields'
  * the brief's instruction — a small admin for one site, not a CMS — and it is
  * also why the whole thing is under 300 lines and ships no JavaScript.
  *
- * ── IT IS NOT REACHABLE IN PRODUCTION ───────────────────────────────────────
+ * ── WHO CAN REACH IT ────────────────────────────────────────────────────────
  *
- * `notFound()` unless NODE_ENV is development AND ADMIN_ENABLED is true. It has
- * NO AUTHENTICATION, because the backend it will eventually talk to does not
- * exist yet and inventing a password here would be worse than having none: it
- * would make the route look protected. The Server Actions re-check the same
- * gate, because hiding a form does not remove the endpoint behind it.
+ * Two ways in and nothing else: local development with ADMIN_ENABLED=true (the
+ * file-backed admin, no accounts), or an allowlisted Supabase session. See
+ * lib/admin/auth.ts.
+ *
+ * There is NO secret path and no URL token — `/admin` is a normal, guessable
+ * URL that simply refuses everyone. Hiding a route is not a control, and the
+ * Daineku URL-token pattern is explicitly not copied here. Every mutation
+ * re-checks authorisation server-side, because a Server Action is an HTTP
+ * endpoint: hiding a form removes the button, not the route behind it.
  *
  * ── WHAT PERSISTS IT ────────────────────────────────────────────────────────
  *
- * `ContentStore`, not the filesystem. The local implementation writes
- * `content/*.json`; the forms and actions are written against the interface, so
- * pointing the admin at a hosted backend is one new implementation of five
- * methods and no change here. See lib/content/store.ts.
+ * `ContentStore`, not the filesystem. Locally that writes `content/*.json`; in
+ * production it writes one row in Supabase and media to R2. The forms and the
+ * actions are written against the interface, so which backend is behind them
+ * changes nothing here. See lib/content/store.ts.
  */
 
 export const metadata: Metadata = {
@@ -54,23 +56,64 @@ export default async function AdminPage({
 }: {
   searchParams: Promise<{ saved?: string; error?: string }>
 }) {
-  if (!isAdminEnabled()) notFound()
+  /**
+   * THE GATE. Two paths in, and nothing else.
+   *
+   *   - local development with ADMIN_ENABLED=true: the file-backed admin, no
+   *     accounts, and impossible to reach on a deployment because
+   *     `deploymentMode()` reads VERCEL_ENV.
+   *   - an allowlisted Supabase session: production.
+   *
+   * Anyone else is sent to sign in. Note that this is a REDIRECT rather than a
+   * 404: hiding the route's existence buys nothing when every mutation is
+   * checked server-side anyway, and a 404 on a page an admin is legitimately
+   * trying to reach is a worse failure than a sign-in form. There is no secret
+   * path and no URL token.
+   */
+  const admin = await currentAdmin()
+  if (!admin) {
+    if (!isAdminAuthConfigured() && deploymentMode() === 'development') {
+      // Neither admin is configured. Say which switch is missing rather than
+      // bouncing to a sign-in form that cannot work.
+      return (
+        <div className="a-shell">
+          <header className="a-head">
+            <h1>THE KANJO — CONTENT</h1>
+            <p className="a-error">
+              The admin is not enabled. Run with ADMIN_ENABLED=true for the local
+              file-backed admin, or configure Supabase Auth for the authenticated one.
+              See docs/ADMIN.md.
+            </p>
+          </header>
+        </div>
+      )
+    }
+    redirect('/admin/login')
+  }
 
   const store = await resolveContentStore()
   const draft = await store.loadDraft()
   const params = await searchParams
   const readOnly = !store.writable
+  const mode = deploymentMode()
 
   return (
     <div className="a-shell">
       <header className="a-head">
         <h1>THE KANJO — CONTENT</h1>
         <p className="a-note">
-          Development tool. Writes {store.kind}. Changes apply to the running site immediately.
+          {mode.toUpperCase()} — writing {store.kind}
+          {admin.email ? ` as ${admin.email}` : ' (local development, no account)'}. Changes
+          apply to the running site immediately.
         </p>
         {readOnly && <p className="a-error">READ ONLY — {store.readOnlyReason}</p>}
         {params.saved && <p className="a-ok">{params.saved}</p>}
         {params.error && <p className="a-error">{params.error}</p>}
+        {admin.kind === 'supabase' && (
+          <form action={signOut}>
+            <button type="submit">SIGN OUT</button>
+          </form>
+        )}
       </header>
 
       <Panel

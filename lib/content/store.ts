@@ -1,5 +1,8 @@
 import 'server-only'
 
+import { isLocalAdminEnabled } from '@/lib/admin/auth'
+import { adminWriteBlockedReason, adminWritesAllowed } from '@/lib/runtime/mode'
+
 import type { LoaderConfig, Section, SiteSettings } from './types'
 
 /**
@@ -90,25 +93,45 @@ export class ContentStoreError extends Error {
 }
 
 /**
- * Whether the admin is available at all.
+ * Whether the FILE-BACKED development admin is available.
  *
- * TWO CONDITIONS, AND BOTH MUST HOLD. Development, and an explicit opt-in. The
- * explicit flag exists so that "it is only a development route" is not the only
- * thing standing between an unauthenticated content editor and the internet —
- * this admin has NO AUTHENTICATION, because it is not yet talking to a backend
- * that could have any, and a route like that must be impossible to enable by
- * accident. The route itself calls `notFound()` when this is false, so the
- * admin does not exist rather than being forbidden.
+ * Two conditions, both required: a development deployment, and an explicit
+ * opt-in. This particular admin has no accounts at all, so it must be
+ * impossible to enable by accident — and the production half is not
+ * overridable, because `deploymentMode()` reads `VERCEL_ENV`, which Vercel sets
+ * itself rather than accepting from a build setting.
+ *
+ * Production uses Supabase Auth instead. See lib/admin/auth.ts; the two paths
+ * meet at `requireAdminWrite()`, which every mutation calls.
  */
 export function isAdminEnabled(): boolean {
-  if (process.env.NODE_ENV === 'production') return false
-  return process.env.ADMIN_ENABLED === 'true'
+  return isLocalAdminEnabled()
 }
 
 let cached: ContentStore | null = null
 
+/**
+ * Selects the content store, following `CONTENT_SOURCE`.
+ *
+ * It deliberately tracks the SOURCE rather than having a variable of its own:
+ * an admin writing to local files while the site reads from Supabase would be
+ * an editor whose saves appear to succeed and change nothing. One setting, one
+ * backend, both directions.
+ */
 export async function resolveContentStore(): Promise<ContentStore> {
   if (cached) return cached
+
+  const requested = (process.env.CONTENT_SOURCE ?? 'local').trim().toLowerCase()
+
+  if (requested === 'supabase' || requested === 'remote') {
+    const { RemoteContentStore } = await import('./remote/store')
+    cached = new RemoteContentStore({
+      writable: adminWritesAllowed(),
+      readOnlyReason: adminWriteBlockedReason(),
+    })
+    return cached
+  }
+
   const { LocalContentStore } = await import('./local/store')
   cached = new LocalContentStore()
   return cached

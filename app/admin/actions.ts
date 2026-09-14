@@ -3,7 +3,15 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
-import { isAdminEnabled, resolveContentStore } from '@/lib/content/store'
+import { headers } from 'next/headers'
+
+import {
+  authClient,
+  isAdminAuthConfigured,
+  isAllowlistedEmail,
+  requireAdminWrite,
+} from '@/lib/admin/auth'
+import { resolveContentStore } from '@/lib/content/store'
 import type {
   ImageRef,
   LoaderConfig,
@@ -37,10 +45,36 @@ import { youTubeHandle } from '@/lib/youtube/channel'
  * would otherwise render a page that fails at build.
  */
 
-function requireAdmin(): void {
-  if (!isAdminEnabled()) {
-    throw new Error('The admin is not enabled. Set ADMIN_ENABLED=true in .env.local.')
-  }
+/**
+ * The gate every mutation passes through.
+ *
+ * `requireAdminWrite()` answers BOTH questions — is this person an allowlisted
+ * admin, and may this deployment be written to at all — and throws with a
+ * reason if either fails. See lib/admin/auth.ts.
+ *
+ * It is `await`ed at the top of every action below rather than being checked
+ * once on the page that renders the forms, because a Server Action is an HTTP
+ * endpoint: hiding a form removes the button, not the route behind it.
+ */
+async function requireAdmin(): Promise<void> {
+  await requireAdminWrite()
+}
+
+/**
+ * The origin this request arrived on.
+ *
+ * Read from the request rather than from `NEXT_PUBLIC_SITE_URL` because the
+ * magic link has to come back to the SAME deployment that sent it — a preview
+ * build whose links redirected to production would sign the editor into the
+ * wrong site. Falls back to the configured origin for the case where no
+ * forwarding headers are present.
+ */
+async function currentOrigin(): Promise<string> {
+  const list = await headers()
+  const host = list.get('x-forwarded-host') ?? list.get('host')
+  const protocol = list.get('x-forwarded-proto') ?? 'https'
+  if (host) return `${protocol}://${host}`
+  return (process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000').replace(/\/+$/, '')
 }
 
 // ── FormData readers ─────────────────────────────────────────────────────────
@@ -142,12 +176,71 @@ function failed(error: unknown): never {
   redirect(`/admin?error=${encodeURIComponent(message)}`)
 }
 
+// ── Sign in / sign out ───────────────────────────────────────────────────────
+
+/**
+ * Emails a one-time sign-in link.
+ *
+ * ── IT ALWAYS SAYS THE SAME THING ───────────────────────────────────────────
+ *
+ * An address on the allowlist and an address that is not produce the identical
+ * redirect. Reporting the difference would turn this endpoint into an oracle
+ * for which addresses administer the site, which is worth more to an attacker
+ * than it is to the one person who already knows their own email.
+ *
+ * So the allowlist is checked HERE only to decide whether to spend an email —
+ * and the real enforcement is on the session, in `requireAdminWrite()`. A link
+ * sent to a non-admin would establish a session that can do nothing, and the
+ * callback signs it straight out.
+ */
+export async function sendMagicLink(form: FormData): Promise<void> {
+  const email = str(form, 'email').toLowerCase()
+
+  if (!isAdminAuthConfigured()) {
+    redirect(
+      `/admin/login?error=${encodeURIComponent('Admin sign-in is not configured on this deployment.')}`,
+    )
+  }
+
+  if (email && isAllowlistedEmail(email)) {
+    try {
+      const supabase = await authClient()
+      const origin = await currentOrigin()
+      await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          // Must match a Redirect URL registered in the Supabase dashboard.
+          emailRedirectTo: `${origin}/admin/auth/callback`,
+          // No self-service account creation. An address that is allowlisted but
+          // has never signed in still needs a user record, so this is left to
+          // Supabase's default of creating one on first use ONLY for addresses
+          // that already passed the allowlist above.
+        },
+      })
+    } catch (cause) {
+      // Logged, not surfaced: the message can distinguish a known address from
+      // an unknown one, which is the thing this function is careful not to do.
+      console.warn(`[admin] magic link failed — ${(cause as Error).message}`)
+    }
+  }
+
+  redirect('/admin/login?sent=1')
+}
+
+export async function signOut(): Promise<void> {
+  if (isAdminAuthConfigured()) {
+    const supabase = await authClient()
+    await supabase.auth.signOut()
+  }
+  redirect('/admin/login')
+}
+
 // ── Site identity, SEO, chrome, footer ───────────────────────────────────────
 
 export async function saveIdentity(form: FormData): Promise<void> {
   let message: string
   try {
-    requireAdmin()
+    await requireAdmin()
     const store = await resolveContentStore()
     const { settings } = await store.loadDraft()
 
@@ -205,7 +298,7 @@ export async function saveIdentity(form: FormData): Promise<void> {
 export async function saveLoader(form: FormData): Promise<void> {
   let message: string
   try {
-    requireAdmin()
+    await requireAdmin()
     const store = await resolveContentStore()
     const { loader } = await store.loadDraft()
 
@@ -255,7 +348,7 @@ export async function saveLoader(form: FormData): Promise<void> {
 export async function saveSocial(form: FormData): Promise<void> {
   let message: string
   try {
-    requireAdmin()
+    await requireAdmin()
     const store = await resolveContentStore()
     const { settings } = await store.loadDraft()
 
@@ -302,7 +395,7 @@ export async function saveSocial(form: FormData): Promise<void> {
 export async function saveSection(form: FormData): Promise<void> {
   let message: string
   try {
-    requireAdmin()
+    await requireAdmin()
     const store = await resolveContentStore()
     const { sections } = await store.loadDraft()
 

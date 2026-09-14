@@ -86,14 +86,16 @@ export async function resolveContentSource(): Promise<ContentSource> {
     return cached
   }
 
-  if (requested === 'remote') {
+  // 'supabase' is the name to use; 'remote' is kept because it is what the
+  // seam was originally called and an existing .env.local may still say it.
+  if (requested === 'supabase' || requested === 'remote') {
     const { createRemoteContentSource } = await import('./remote')
     cached = await createRemoteContentSource()
     return cached
   }
 
   throw new ContentConfigurationError(
-    `Unknown CONTENT_SOURCE "${requested}". Valid values are "local" (default) and "remote". ` +
-      `See docs/ARCHITECTURE.md.`,
+    `Unknown CONTENT_SOURCE "${requested}". Valid values are "local" (default) and "supabase". ` +
+      `See docs/PRODUCTION_SETUP.md.`,
   )
 }
