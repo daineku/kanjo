@@ -3,8 +3,9 @@ import type { CSSProperties } from 'react'
 
 import { HeroVideo } from '@/components/kanjo/HeroVideo'
 import { WedgeCard } from '@/components/kanjo/WedgeCard'
+import { TitleReveal } from '@/components/motion/TitleReveal'
 import { isPlaceholder } from '@/lib/content/placeholder'
-import type { HeroConfig, LinkBlock, SiteSettings } from '@/lib/content/types'
+import type { HeroConfig, LinkBlock, LoaderConfig, SiteSettings } from '@/lib/content/types'
 
 /**
  * The hero: media, treatment, UI. The canon's own composition.
@@ -38,10 +39,17 @@ export function HeroSection({
   config,
   settings,
   links,
+  loader,
 }: {
   config: HeroConfig
   settings: SiteSettings
   links: LinkBlock[]
+  /**
+   * The hero owns THE KANJO's arrival, and the loader only supplies the cue —
+   * see components/motion/TitleReveal.tsx for why the title is not inside the
+   * loader. This is how the hero knows whether there is a cue to wait for.
+   */
+  loader: LoaderConfig
 }) {
   const background = config.background ?? {
     kind: 'none' as const,
@@ -195,13 +203,16 @@ export function HeroSection({
               </p>
             )}
 
-            <h1
+            {/* The identity moment. A string, split into words in JavaScript —
+                never parsed as HTML, unlike the reference implementation this
+                effect is adapted from. */}
+            <TitleReveal
               id="hero-title"
-              className="k-hero-title k-reveal"
-              style={{ ['--k-reveal-delay' as string]: '40ms' }}
-            >
-              {config.title}
-            </h1>
+              className="k-hero-title"
+              text={config.title}
+              waitForLoader={loader.enabled}
+              enabled={loader.titleRevealEnabled}
+            />
 
             {subtitle && (
               <p

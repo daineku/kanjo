@@ -1,0 +1,202 @@
+/* ============================================================================
+   Admin styles.
+   ----------------------------------------------------------------------------
+   Imported by app/admin/layout.tsx rather than added to app/globals.css, so
+   none of it is downloaded by a visitor to the actual site. It is a tool: dense,
+   legible, and using the site's own tokens so an editor is looking at the same
+   palette and the same faces as the thing they are editing.
+   ========================================================================== */
+
+/* The site's entrance is not the tool's entrance. The overlay is hidden and the
+   scroll lock released; SkipLoader releases the `inert` attribute that goes
+   with it. See app/admin/SkipLoader.tsx. */
+.k-loader {
+  display: none;
+}
+html[data-loader='pending'],
+html[data-loader='pending'] body {
+  overflow: visible;
+}
+
+.a-shell {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: var(--k-space-xl) var(--k-space-lg) 96px;
+  display: grid;
+  gap: var(--k-space-xl);
+}
+
+.a-head h1 {
+  font-family: var(--k-font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: var(--k-nav-title-tracking);
+  font-size: 28px;
+  margin: 0 0 var(--k-space-sm);
+}
+
+.a-note {
+  color: var(--k-text-tertiary);
+  font-size: var(--k-small-size);
+  margin: 0 0 var(--k-space-md);
+}
+
+.a-ok,
+.a-error {
+  font-family: var(--k-font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: var(--k-small-size);
+  letter-spacing: var(--k-small-tracking);
+  padding: var(--k-space-sm) var(--k-space-md);
+  margin: 0 0 var(--k-space-md);
+}
+.a-ok {
+  border-left: var(--k-divider-width) solid var(--k-positive);
+  color: var(--k-positive-bright);
+}
+.a-error {
+  border-left: var(--k-divider-width) solid var(--k-accent);
+  color: var(--k-accent);
+  /* An error is often a sentence from a validator, so it must wrap rather than
+     being clipped to one uppercase line. */
+  text-transform: none;
+  font-family: var(--k-font-technical);
+  font-weight: 400;
+}
+
+.a-panel {
+  border: var(--k-thin-width) solid var(--k-divider);
+  border-left: var(--k-divider-width) solid var(--k-divider);
+  padding: var(--k-panel-padding);
+  background: var(--k-surface-panel);
+}
+
+.a-panel h2 {
+  font-family: var(--k-font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: var(--k-item-title-tracking);
+  font-size: 18px;
+  margin: 0 0 var(--k-space-sm);
+}
+
+.a-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--k-space-md);
+  align-items: start;
+}
+
+.a-field {
+  display: grid;
+  gap: var(--k-space-xs);
+  min-width: 0;
+}
+.a-field--wide {
+  grid-column: 1 / -1;
+}
+.a-field--toggle {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: var(--k-space-sm);
+}
+.a-field--toggle .a-hint {
+  grid-column: 1 / -1;
+}
+
+.a-label {
+  font-family: var(--k-font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: var(--k-small-tracking);
+  color: var(--k-text-secondary);
+}
+
+.a-hint {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--k-text-tertiary);
+}
+
+.a-shell input[type='text'],
+.a-shell input[type='url'],
+.a-shell input[type='number'],
+.a-shell textarea,
+.a-shell select {
+  font-family: var(--k-font-technical);
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--k-text-primary);
+  background: var(--k-background);
+  border: var(--k-thin-width) solid var(--k-divider);
+  border-radius: var(--k-field-radius);
+  padding: var(--k-space-sm);
+  width: 100%;
+  min-width: 0;
+}
+
+.a-shell textarea {
+  resize: vertical;
+}
+
+.a-shell input[type='file'] {
+  font-family: var(--k-font-technical);
+  font-size: 13px;
+  color: var(--k-text-secondary);
+}
+
+.a-shell button {
+  font-family: var(--k-font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: var(--k-action-size);
+  letter-spacing: var(--k-small-tracking);
+  color: var(--k-background);
+  background: var(--k-positive);
+  border: 0;
+  border-radius: var(--k-control-radius);
+  padding: var(--k-space-sm) var(--k-space-xl);
+  min-height: var(--k-touch-target-min);
+  cursor: pointer;
+}
+.a-shell button:disabled {
+  opacity: var(--k-opacity-disabled);
+  cursor: not-allowed;
+}
+
+.a-actions {
+  margin-top: var(--k-space-lg);
+  padding-top: var(--k-space-md);
+  border-top: var(--k-thin-width) solid var(--k-divider);
+}
+
+.a-image,
+.a-row {
+  border: var(--k-thin-width) solid var(--k-divider);
+  padding: var(--k-space-md);
+  margin: 0;
+}
+
+.a-preview {
+  display: flex;
+  align-items: center;
+  gap: var(--k-space-md);
+  margin-bottom: var(--k-space-md);
+  flex-wrap: wrap;
+}
+
+.a-preview img {
+  max-width: 180px;
+  max-height: 90px;
+  width: auto;
+  background: repeating-conic-gradient(#1a1a1c 0% 25%, #101012 0% 50%) 50% / 12px 12px;
+}
+
+.a-preview code {
+  font-family: var(--k-font-technical);
+  font-size: 12px;
+  color: var(--k-text-tertiary);
+  word-break: break-all;
+}

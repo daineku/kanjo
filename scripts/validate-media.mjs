@@ -104,7 +104,37 @@ for (const video of videosRaw) {
   }
 }
 
+// The loader's vehicles. REQUIRED when the loader is enabled, and they are the
+// most load-bearing images on the site: a missing car is not a gap in a gallery,
+// it is an empty overlay covering the whole page while the choreography moves
+// nothing across it.
+const loader = await readJson('loader.json')
+note('content/loader.json → carA', 'src', loader.carA?.src, loader.enabled === true)
+note('content/loader.json → carB', 'src', loader.carB?.src, loader.enabled === true)
+note('content/loader.json → road', 'src', loader.road?.src, loader.enabled === true)
+
+// The persistent channel cluster's optional marks.
+for (const channel of settings.social ?? []) {
+  note(
+    `content/site.json → social.${channel.id}`,
+    'icon.src',
+    channel.icon?.src,
+    channel.published === true && (channel.url ?? '').trim() !== '',
+  )
+}
+
 for (const section of sectionsRaw) {
+  // The YouTube block's poster override, when one is configured. Without one
+  // the still comes from YouTube and is not this script's business.
+  if (section?.type === 'youtube') {
+    note(
+      `content/sections.json → ${section.id}`,
+      'poster.src',
+      section.config?.poster?.src,
+      section.published === true,
+    )
+    continue
+  }
   if (section?.type !== 'hero') continue
   const bg = section.config?.background
   if (!bg) continue

@@ -1,22 +1,22 @@
 [
   {
     "_comment": [
-      "Landing page composition. Each entry is one block: turn it off with",
-      "published:false, move it with order, change its copy in config. Adding a new",
-      "block type is a new entry here plus a component in the registry at",
-      "components/sections/registry.tsx — the page itself never changes.",
+      "V1 LANDING PAGE — deliberately short.",
       "",
-      "ORDER IS MEDIA-FIRST. The visitor meets the hero, then FOOTAGE, then",
-      "SCREENSHOTS, and only then reads about the game. That is the order a game",
-      "presentation uses; leading with prose is the marketing-funnel order the",
-      "brief rules out. Development status rides in the hero's status line rather",
-      "than as its own section.",
+      "The order is the experience: THE KANJO, what it is, watch it, read the",
+      "development log. Four blocks and a footer, over a loader. A visitor should",
+      "be able to take the whole site in without deciding to.",
+      "",
+      "EVERY BLOCK THE LONGER PAGE CARRIED STILL EXISTS. Features, development",
+      "status, the screenshot gallery, the local-video block and the links panel",
+      "are all still in the registry and still configurable — they are switched",
+      "off below. Turning one back on is `published: true` and an `order`; it is",
+      "not a code change. Nothing was deleted, and nothing extra is on the page.",
       "",
       "COPY STATUS: anything containing the word PLACEHOLDER is NOT RENDERED — see",
-      "lib/content/placeholder.ts. So a section with unwritten copy shows less",
-      "rather than showing an instruction to the site's owner. The inventory of",
-      "what is still needed is docs/CONTENT_REQUIRED.md. No release date,",
-      "platform, price, store page or player claim is asserted anywhere."
+      "lib/content/placeholder.ts. A section with unwritten copy shows less rather",
+      "than showing an instruction to the site's owner. The inventory of what is",
+      "still needed is docs/CONTENT_REQUIRED.md."
     ],
     "id": "hero",
     "type": "hero",
@@ -50,39 +50,104 @@
           "               \"width\": 2560, \"height\": 1440 },",
           "  \"treatment\": \"dim\"",
           "",
-          "FRAMING. The hero is the only surface that crops media to an arbitrary",
-          "box, so it is the only one that needs framing control. objectPosition is",
-          "a plain CSS object-position: 'center 35%' pulls the crop upward,",
-          "'center 70%' downward, '70% center' rightward. mobileObjectPosition",
-          "applies below 768px, where the crop is tallest and a subject framed to",
-          "one side is most likely to be lost. Both default to 'center'.",
-          "",
-          "mobileImage is optional and only worth supplying when the desktop frame",
-          "cannot survive a portrait crop at all — usually the mobile framing string",
-          "is enough on its own.",
-          "",
-          "treatment: 'dim' (canon default) | 'strong_dim' | 'transparent' |",
-          "'blackout'. Use strong_dim if a bright capture makes the title hard to",
-          "read; the canon's rule is to preserve UI contrast over variable imagery.",
-          "",
-          "See docs/MEDIA_WORKFLOW.md for resolution, safe composition area,",
-          "duration, codec, file size and whether to strip audio."
+          "FRAMING. objectPosition is a plain CSS object-position: 'center 35%'",
+          "pulls the crop upward, 'center 70%' downward. mobileObjectPosition",
+          "applies below 768px, where the crop is tallest. Both default to",
+          "'center'. See docs/MEDIA_WORKFLOW.md."
         ],
         "kind": "none",
         "treatment": "dim",
         "objectPosition": "center",
         "mobileObjectPosition": "center"
       },
-      "actionIds": ["updates", "wishlist"],
+      "actionIds": [],
       "platformNote": "PLACEHOLDER — platforms not announced"
     }
   },
-
   {
-    "id": "video",
-    "type": "video",
+    "_comment": [
+      "THE PROJECT DESCRIPTION. Not a marketing section: one heading and two",
+      "short paragraphs. If it grows past three paragraphs it has stopped being",
+      "this block and started being an About page."
+    ],
+    "id": "game",
+    "type": "intro",
     "published": true,
     "order": 1,
+    "config": {
+      "eyebrow": "THE GAME",
+      "heading": "ONE LOOP, AFTER DARK",
+      "body": "The Kanjo is a racing game built around a single elevated expressway loop at night — a fictionalised Japanese night circuit, loosely inspired rather than reproduced.\n\nHandling aims at believable vehicle behaviour rather than simulation for its own sake, and the interface stays deliberately minimal: the road, the traffic, and the car."
+    }
+  },
+  {
+    "_comment": [
+      "THE VIDEO. `video` accepts a bare id or any YouTube URL — a pasted watch",
+      "URL with a playlist and a tracking token is reduced to the eleven-character",
+      "id on the server, and the embed is composed from that.",
+      "",
+      "NOTHING IS HARDCODED AND NOTHING IS INVENTED: the block is published:false",
+      "until the owner supplies a real upload, so no fabricated video id ships.",
+      "Set `video` and flip `published` to true.",
+      "",
+      "poster is OPTIONAL. Without one the still is YouTube's own thumbnail,",
+      "fetched by OUR server through next/image — so the visitor's browser makes",
+      "no request to any Google host until they press PLAY."
+    ],
+    "id": "watch",
+    "type": "youtube",
+    "published": false,
+    "order": 2,
+    "config": {
+      "eyebrow": "FOOTAGE",
+      "heading": "IN MOTION",
+      "video": "",
+      "title": "",
+      "aspectRatio": "16 / 9",
+      "description": ""
+    }
+  },
+  {
+    "_comment": [
+      "PATREON / DEVELOPMENT LOG.",
+      "",
+      "The feed comes from the official Patreon API v2 (campaigns.posts), fetched",
+      "SERVER-SIDE. There is no credential in this file and there must never be",
+      "one: the token lives in PATREON_ACCESS_TOKEN in the server environment.",
+      "See docs/PATREON.md.",
+      "",
+      "WITH NO CREDENTIALS CONFIGURED — the normal state of a fresh clone — this",
+      "renders its copy and the CTA, which is what `fallback: 'cta'` means. Set it",
+      "to 'hide' to drop the block entirely instead.",
+      "",
+      "showLockedPosts lists members-only posts as title + date + MEMBERS + a link.",
+      "Their bodies are NEVER rendered whatever this is set to — the excerpt is",
+      "derived from post content only when Patreon marks the post public.",
+      "",
+      "campaignUrl is empty until the owner supplies the real creator page. The",
+      "section says so rather than linking somewhere invented."
+    ],
+    "id": "devlog",
+    "type": "patreon",
+    "published": true,
+    "order": 3,
+    "config": {
+      "eyebrow": "PATREON",
+      "heading": "DEVELOPMENT LOG",
+      "campaignUrl": "",
+      "limit": 3,
+      "ctaLabel": "VIEW ON PATREON",
+      "fallback": "cta",
+      "fallbackDescription": "Development updates, work-in-progress footage and technical write-ups are posted as the build progresses.",
+      "showLockedPosts": true
+    }
+  },
+  {
+    "_comment": "OFF for V1. The local-clip block, for gameplay captures hosted on this site rather than on YouTube. Still fully supported — see content/videos.json.",
+    "id": "video",
+    "type": "video",
+    "published": false,
+    "order": 10,
     "config": {
       "eyebrow": "FOOTAGE",
       "heading": "IN MOTION",
@@ -90,12 +155,12 @@
       "layout": "featured"
     }
   },
-
   {
+    "_comment": "OFF for V1. A screenshot gallery is a content-marketing block, and the short page does not have room for one. The viewer and the grid still work; publish this when there are screenshots worth a screen of their own.",
     "id": "media",
     "type": "media",
-    "published": true,
-    "order": 2,
+    "published": false,
+    "order": 11,
     "config": {
       "eyebrow": "MEDIA",
       "heading": "SCREENSHOTS",
@@ -103,30 +168,12 @@
       "limit": 6
     }
   },
-
   {
-    "id": "game",
-    "type": "intro",
-    "published": true,
-    "order": 3,
-    "config": {
-      "eyebrow": "THE GAME",
-      "heading": "ONE LOOP, AFTER DARK",
-      "body": "The Kanjo is a racing game built around a single elevated expressway loop at night — a fictionalised Japanese night circuit, loosely inspired rather than reproduced.\n\nHandling aims at believable vehicle behaviour rather than simulation for its own sake, and the interface stays deliberately minimal: the road, the traffic, and the car.\n\nPLACEHOLDER — the owner should replace or extend this section with the positioning they actually want to lead with."
-    }
-  },
-
-  {
-    "_comment": [
-      "Disabled for V1. Its four items were all PLACEHOLDER descriptions, and the",
-      "two that could be written duplicate what the intro above already says.",
-      "Re-enable once there are features worth naming that the intro does not",
-      "cover — the section renders nothing while its descriptions are unwritten."
-    ],
+    "_comment": "OFF for V1. Its items were all PLACEHOLDER descriptions, and the ones that could be written duplicate the project description.",
     "id": "features",
     "type": "features",
     "published": false,
-    "order": 4,
+    "order": 12,
     "config": {
       "eyebrow": "SYSTEMS",
       "heading": "WHAT IS BEING BUILT",
@@ -145,44 +192,46 @@
           "id": "handling",
           "title": "HANDLING",
           "description": "PLACEHOLDER — believable vehicle behaviour without simulation ceremony."
-        },
-        {
-          "id": "progression",
-          "title": "PROGRESSION",
-          "description": "PLACEHOLDER — describe only what the owner wants to commit to."
         }
       ]
     }
   },
-
   {
-    "_comment": [
-      "Disabled for V1. Every row except STAGE was PLACEHOLDER or NOT ANNOUNCED,",
-      "so the section spent ~600px telling a visitor nothing, and STAGE is already",
-      "in the hero's status line. Re-enable when there are real figures (build",
-      "number, platforms, a window) — unwritten rows are dropped automatically."
-    ],
+    "_comment": "OFF for V1. Every row except STAGE was unannounced, and STAGE is already in the hero's status line.",
     "id": "status",
     "type": "status",
     "published": false,
-    "order": 5,
+    "order": 13,
     "config": {
       "eyebrow": "DEVELOPMENT",
       "heading": "CURRENT STATE",
       "rows": [
-        { "label": "STAGE", "value": "IN DEVELOPMENT", "emphasis": true },
-        { "label": "BUILD", "value": "PLACEHOLDER" },
-        { "label": "PLATFORMS", "value": "PLACEHOLDER" },
-        { "label": "RELEASE", "value": "PLACEHOLDER" }
+        {
+          "label": "STAGE",
+          "value": "IN DEVELOPMENT",
+          "emphasis": true
+        },
+        {
+          "label": "BUILD",
+          "value": "PLACEHOLDER"
+        },
+        {
+          "label": "PLATFORMS",
+          "value": "PLACEHOLDER"
+        },
+        {
+          "label": "RELEASE",
+          "value": "PLACEHOLDER"
+        }
       ]
     }
   },
-
   {
+    "_comment": "OFF for V1. The site's own devlog index at /updates is still published and still reachable from the footer; the homepage's development log is the Patreon block.",
     "id": "updates",
     "type": "updates",
-    "published": true,
-    "order": 6,
+    "published": false,
+    "order": 14,
     "config": {
       "eyebrow": "DEVLOG",
       "heading": "DEVELOPMENT UPDATES",
@@ -190,33 +239,30 @@
       "indexHref": "/updates"
     }
   },
-
   {
+    "_comment": "OFF for V1. Following the project is the persistent cluster at the upper-left edge now, not a panel at the bottom of the page.",
     "id": "about",
     "type": "links",
-    "published": true,
-    "order": 7,
+    "published": false,
+    "order": 15,
     "config": {
       "eyebrow": "ELSEWHERE",
       "heading": "FOLLOW THE BUILD",
       "standfirst": "Destinations open as they are announced.",
-      "linkIds": ["updates", "wishlist", "discord", "patreon"]
+      "linkIds": [
+        "updates",
+        "wishlist",
+        "discord",
+        "patreon"
+      ]
     }
   },
-
   {
-    "_comment": [
-      "Disabled: the social channels now render inside the 'about' links section,",
-      "which is where a visitor looks for 'where do I follow this'. A separate",
-      "section that says 'no channels are live yet' directly under one listing",
-      "where to follow the project is two sections answering one question. The",
-      "component renders nothing while no channel has a URL, so this is belt and",
-      "braces."
-    ],
+    "_comment": "OFF for V1. Superseded by the persistent social cluster.",
     "id": "social",
     "type": "social",
     "published": false,
-    "order": 8,
+    "order": 16,
     "config": {
       "eyebrow": "CHANNELS",
       "heading": "SOCIAL"

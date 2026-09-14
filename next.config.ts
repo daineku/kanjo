@@ -18,6 +18,15 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: 'https', hostname: '**.supabase.co' },
       { protocol: 'https', hostname: '**.r2.dev' },
+      /**
+       * YouTube's thumbnail host, and the reason it is here is privacy rather
+       * than convenience: the homepage's video facade needs a still, and
+       * routing it through the optimizer means OUR server fetches it. The
+       * visitor's browser contacts no Google host until they press PLAY, which
+       * is the whole point of not shipping the iframe up front. Narrow on
+       * purpose — the path is pinned to the thumbnail directory.
+       */
+      { protocol: 'https', hostname: 'i.ytimg.com', pathname: '/vi/**' },
     ],
     dangerouslyAllowSVG: false,
 

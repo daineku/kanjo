@@ -1,12 +1,15 @@
 import { readFile, readdir } from 'node:fs/promises'
 import path from 'node:path'
 
+import { fetchPatreonFeed } from '@/lib/patreon'
+
 import { ContentConfigurationError, type ContentSource } from '../source'
 import type {
   Article,
   ArticleSummary,
   LandingContent,
   LinkBlock,
+  LoaderConfig,
   MediaItem,
   Section,
   SiteSettings,
@@ -94,18 +97,31 @@ export class LocalContentSource implements ContentSource {
     }
   }
 
+  async getLoaderConfig(): Promise<LoaderConfig> {
+    return readJson<LoaderConfig>('loader.json')
+  }
+
   async getLandingContent(): Promise<LandingContent> {
-    const [settings, sections, videos, media, links, updates] = await Promise.all([
-      this.getSiteSettings(),
-      readJson<Section[]>('sections.json'),
-      readJson<Video[]>('videos.json'),
-      readJson<MediaItem[]>('media.json'),
-      readJson<LinkBlock[]>('links.json'),
-      this.listArticles(),
-    ])
+    const [settings, loader, sections, videos, media, links, updates, patreon] =
+      await Promise.all([
+        this.getSiteSettings(),
+        this.getLoaderConfig(),
+        readJson<Section[]>('sections.json'),
+        readJson<Video[]>('videos.json'),
+        readJson<MediaItem[]>('media.json'),
+        readJson<LinkBlock[]>('links.json'),
+        this.listArticles(),
+        // The Patreon feed is fetched HERE, on the server, alongside the files.
+        // It never throws: an unconfigured or failing feed is a status, so the
+        // page renders its fallback rather than the whole build failing because
+        // a third party is down. See lib/patreon.
+        fetchPatreonFeed(),
+      ])
 
     return {
       settings,
+      loader,
+      patreon,
       sections: publishedInOrder(sections),
       videos: publishedInOrder(videos),
       media: publishedInOrder(media),

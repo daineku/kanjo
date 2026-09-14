@@ -18,6 +18,62 @@ page, invite URL, social handle or screenshot exists in this repository.
 Legend — **V1** = needed before the site goes public. **SEO** = affects search
 results or link previews.
 
+> ## The V1 homepage changed shape
+>
+> The homepage is now a **title screen**: loader → THE KANJO → one paragraph →
+> one video → the Patreon development log → footer, with a persistent channel
+> rail at the upper-left edge. The screenshot gallery, the features grid, the
+> status table and the local-video block are still built and still configurable,
+> but they are **switched off** in `content/sections.json`.
+>
+> So sections **§3 (screenshots)** and **§5 (follow destinations)** below are no
+> longer V1 blockers — they are what you need if you turn those blocks back on.
+> The new V1 list is **§0** immediately below, and §2 is superseded by §0.2.
+
+---
+
+## 0. The new V1 list
+
+| # | Item | Where | Why it is V1 | V1 |
+|---|---|---|---|---|
+| 0.1 | **Loader vehicle art — car A and car B** | admin → LOADER, or `content/loader.json` | What ships today is a pair of **deliberately temporary, unbranded silhouettes**. They are the first thing every visitor sees. Nothing branded has been fabricated and nothing should be until you supply it. | **YES** |
+| 0.2 | **YouTube video** | admin → YOUTUBE, or `sections.json` → `watch` | The block is **`published: false`** because no upload exists. No video id has been invented. Supply the id or URL and publish it. | **YES** |
+| 0.3 | **TikTok URL** | admin → CHANNELS, or `site.json` → `social.tiktok.url` | The rail drops any channel with an empty URL, so today it renders nothing. | **YES** |
+| 0.4 | **Patreon creator page URL** | admin → CHANNELS *and* admin → PATREON → Creator page URL | Two places: the rail entry, and the section's CTA. | **YES** |
+| 0.5 | Patreon API access token | `.env.local` → `PATREON_ACCESS_TOKEN` | Turns the block from copy-plus-a-button into the live post feed. Scope `campaigns.posts`. See [PATREON.md](PATREON.md). | Recommended |
+| 0.6 | **Steam page URL** | admin → CHANNELS, or `site.json` → `social.steam.url` | **No URL has been invented for this.** The entry exists, empty, and does not render. Fill it when the store page exists. | When it exists |
+| 0.7 | Hero background media | §1.1 below | Unchanged, and still the asset that most changes what the site *is*. | **YES** |
+
+### §0.1 Loader vehicle art — spec
+
+Two images, side profile, **facing right**.
+
+- **Car A** is the near lane: lower on screen, drawn larger (up to 230px wide at
+  1920, 200px on a phone).
+- **Car B** is the far lane: higher, smaller (up to 182px), and it is the one
+  that closes and overtakes first.
+- SVG is ideal — it is rendered as a plain `<img>`, scales to every width in the
+  matrix, and costs one small request. PNG/WebP with transparency also work.
+- They must be **distinguishable from each other at ~110px wide**, which is
+  their size on a 360px phone. Silhouette and roofline do that work; colour and
+  badges do not survive the scale or the darkness.
+- Intrinsic dimensions are read from the file on upload, so there is nothing to
+  type.
+
+The road, lane markers and light accents are drawn in CSS and need no art. An
+optional painted road plate can be supplied if you want one.
+
+### §0.2 YouTube video — spec
+
+The field takes a **bare id or any YouTube URL**; everything except the
+eleven-character id is discarded on the server, so a pasted watch URL carrying a
+playlist and a share token is safe.
+
+A poster is **optional** — without one the still is YouTube's own thumbnail,
+fetched by this server rather than by the visitor's browser, so the page still
+makes no third-party request until somebody presses play. Supply one only if
+YouTube's auto-thumbnail is a bad frame.
+
 ---
 
 ## 1. Hero
@@ -165,14 +221,19 @@ because that is what reserves the space before the image loads.
 
 ## The shortest path to publishable
 
-In order, because each unblocks more than the next:
+Rewritten for the title-screen homepage. In order, because each unblocks more
+than the next:
 
-1. **8.1 OG image** and **8.3 favicon** — cheapest, and they affect every share.
-2. **1.1 hero media** — the one asset that changes what the site *is*.
-3. **3.1 six screenshots** with alt text — makes the media section real.
-4. **2.1 featured video** — the strongest single piece of content if it exists.
-5. **7.1 two more articles** — makes the devlog read as active.
-6. **6.1 one live social channel** — gives "follow" somewhere to go.
+1. **0.3 TikTok URL** and **0.4 Patreon URL** — two strings. They turn the
+   upper-left rail from nothing into the site's only navigation, and the Patreon
+   block from copy into copy with a way in.
+2. **0.1 loader vehicle art** — the first thing anybody sees, and the only
+   remaining placeholder that a visitor can actually perceive as one.
+3. **0.2 YouTube video** — the homepage's centrepiece block does not render at
+   all until this exists.
+4. **0.7 / 1.1 hero media** — the one asset that changes what the site *is*.
+5. **8.1 OG image** and **8.3 favicon** — cheap, and they affect every share.
+6. **0.5 Patreon token** — turns the development log live.
 
-Items 1–4 are what the brief's five-to-fifteen-second test depends on. Nothing
-else on this list changes whether a new visitor understands what The Kanjo is.
+Items 1–4 are what the five-to-fifteen-second test depends on. Everything below
+§3 is only needed if you switch those blocks back on.

@@ -13,13 +13,17 @@
     "test:content": "node lib/content/local/parse.test.ts",
     "test:markdown": "node lib/richText.test.ts",
     "test:media": "node scripts/validate-media.mjs",
-    "test": "npm run test:content && npm run test:markdown && npm run test:media",
-    "check": "npm run typecheck && npm run lint && npm run test && npm run build"
+    "test": "npm run test:content && npm run test:markdown && npm run test:patreon && npm run test:media",
+    "check": "npm run typecheck && npm run lint && npm run test && npm run build",
+    "test:patreon": "node lib/patreon/posts.test.ts"
   },
   "dependencies": {
+    "@gsap/react": "^2.1.2",
+    "gsap": "^3.15.0",
     "next": "^15.5.24",
     "react": "19.1.1",
-    "react-dom": "19.1.1"
+    "react-dom": "19.1.1",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.6",

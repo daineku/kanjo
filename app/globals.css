@@ -1589,3 +1589,534 @@ svg {
     transition: none;
   }
 }
+
+/* ============================================================================
+   THE LOADER — a night highway, seen as a stylised 2D composition
+   ----------------------------------------------------------------------------
+   EVERYTHING THAT MOVES MOVES WITH transform OR opacity. There is no animated
+   width, height, top or left anywhere in this block, and no continuous filter
+   or box-shadow either: a compositor can run all of the below without waking
+   the main thread, which on a mid-range phone is the difference between an
+   entrance and a stutter.
+
+   The geometry is driven by one custom property, --k-road-h, so the desktop and
+   the phone compositions are the same drawing at two scales rather than two
+   layouts that can drift apart.
+
+   The motion itself is components/loader/KanjoLoader.tsx. This file only draws.
+   ========================================================================== */
+
+/* Scroll is locked while the loader is up. The attribute is set by the SERVER
+   (app/layout.tsx) so the lock exists at first paint, and cleared by the loader
+   when the highway masks away. app/layout.tsx carries a <noscript> override, so
+   a visitor without JavaScript is never locked behind a loader that cannot lift. */
+html[data-loader='pending'],
+html[data-loader='pending'] body {
+  overflow: hidden;
+}
+
+.k-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--k-background);
+  overflow: hidden;
+  /* The overlay itself only ever animates opacity, and only once, at the end. */
+  will-change: opacity;
+  /* The road band's height, and the unit every other measurement here is in. */
+  --k-road-h: clamp(190px, 34vh, 340px);
+}
+
+@media (max-width: 767px) {
+  .k-loader {
+    /* NOT a scaled-down desktop highway. A phone gets a proportionally TALLER
+       band, because the cars have to stay readable at a third of the width and
+       a 34vh band on a 9:19.5 screen leaves them as specks. */
+    --k-road-h: clamp(210px, 30vh, 300px);
+  }
+}
+
+.k-loader-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* An optional painted plate, when one is configured. */
+.k-loader-plate {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.5;
+}
+
+/* ── The road ──────────────────────────────────────────────────────────────
+   A dark band with a lit centre, so the surface reads as lit by the cars on it
+   rather than as a flat rectangle. transform-origin is centred because the exit
+   closes the band vertically onto its own horizon. */
+.k-loader-road {
+  position: relative;
+  width: 100%;
+  height: var(--k-road-h);
+  transform-origin: center center;
+  background: linear-gradient(
+    to bottom,
+    rgb(0 0 3) 0%,
+    rgb(20 20 23) 24%,
+    rgb(26 26 30) 50%,
+    rgb(18 18 21) 76%,
+    rgb(0 0 3) 100%
+  );
+}
+
+/* The carriageway edges. The far barrier catches a little more light. */
+.k-loader-edge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: var(--k-thin-width);
+}
+.k-loader-edge--top {
+  top: 0;
+  background: rgb(255 255 255 / 0.14);
+}
+.k-loader-edge--bottom {
+  bottom: 0;
+  background: rgb(255 255 255 / 0.09);
+}
+
+/* The separator between the two carriageways. */
+.k-loader-divider {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: var(--k-thin-width);
+  background: rgb(255 255 255 / 0.06);
+}
+
+/* ── Lane markers ──────────────────────────────────────────────────────────
+   Each lane's dashes live on a strip one dash-period WIDER than the lane. The
+   loop translates it by exactly one period, which puts an identical dash where
+   the previous one was — so the repeat is seamless at any viewport width, with
+   no dependency on the strip being a round fraction of the screen.
+
+   --k-dash IS READ BY THE JAVASCRIPT: KanjoLoader reads the computed value and
+   translates by exactly that many pixels. Change it here and the motion
+   follows; there is no second copy of the number to keep in step. */
+.k-loader-lane {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  overflow: hidden;
+}
+/* THE MARKERS SIT AT EACH CAR'S WHEEL LINE, not at its centre.
+
+   Measured at 1440x900 with the first version: the near lane's dashes ran at
+   y=514 and car A's centre was at y=511, so the lane line was drawn straight
+   THROUGH the car, which reads as a shape floating on a stripe rather than as a
+   car on a road. A car sits ON the surface, so the surface belongs under its
+   wheels. Each value below is the corresponding car's contact line: the lane
+   offsets in .k-loader-car--a/--b are ±0.2 of the band, and half a car's height
+   is about another 0.13. */
+.k-loader-lane--far {
+  top: 43%;
+}
+.k-loader-lane--near {
+  top: 84%;
+}
+
+.k-loader-dashes {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: calc(100% + var(--k-dash));
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgb(255 255 255 / 0.55) 0 calc(var(--k-dash) * 0.4),
+    rgb(255 255 255 / 0) calc(var(--k-dash) * 0.4) var(--k-dash)
+  );
+}
+
+/* The far lane's dashes are shorter and closer together. That, plus the slower
+   scroll the timeline gives it, IS the parallax — there is no second scroll
+   system, no pointer input and no perspective transform in this loader. */
+.k-loader-dashes--far {
+  --k-dash: 96px;
+  opacity: 0.6;
+}
+.k-loader-dashes--near {
+  --k-dash: 150px;
+}
+
+@media (max-width: 767px) {
+  .k-loader-dashes--far {
+    --k-dash: 64px;
+  }
+  .k-loader-dashes--near {
+    --k-dash: 96px;
+  }
+}
+
+/* ── Speed accents ─────────────────────────────────────────────────────────
+   Two thin streaks of reflected light. White, not neon: this is a night
+   highway, and the canon's palette has exactly one accent colour, which means
+   something. They start at opacity 0 and are only animated at medium/high
+   intensity — a phone drops them entirely. */
+.k-loader-accent {
+  position: absolute;
+  left: 0;
+  height: var(--k-thin-width);
+  width: clamp(120px, 24vw, 340px);
+  opacity: 0;
+  background: linear-gradient(
+    90deg,
+    rgb(255 255 255 / 0) 0%,
+    rgb(255 255 255 / 0.4) 50%,
+    rgb(255 255 255 / 0) 100%
+  );
+}
+.k-loader-accent--1 {
+  top: calc(50% - var(--k-road-h) * 0.38);
+}
+.k-loader-accent--2 {
+  top: calc(50% + var(--k-road-h) * 0.4);
+}
+
+/* ── The cars ──────────────────────────────────────────────────────────────
+   Positioned against the STAGE, not the road, so a lane's vertical placement is
+   one calc against --k-road-h. GSAP applies xPercent/yPercent: -50 to centre
+   them on those coordinates, which leaves `x` free for the choreography. */
+.k-loader-car {
+  position: absolute;
+  left: 50%;
+  height: auto;
+  /* The transform is entirely GSAP's. Declaring one here would be overwritten
+     on the first frame and is only a source of confusion. */
+  will-change: transform;
+}
+
+.k-loader-car--a {
+  /* The near lane: lower, larger. */
+  top: calc(50% + var(--k-road-h) * 0.2);
+  width: clamp(128px, 14vw, 230px);
+  z-index: 2;
+}
+
+.k-loader-car--b {
+  /* The far lane: higher, smaller — the depth cue that makes two identical road
+     positions read as two different distances. */
+  top: calc(50% - var(--k-road-h) * 0.2);
+  width: clamp(100px, 11vw, 182px);
+  z-index: 1;
+  opacity: 0.88;
+}
+
+@media (max-width: 767px) {
+  /* READABILITY OVER FIDELITY on a phone: the cars take a larger share of the
+     width than the desktop proportion would give them, and the lanes move
+     further apart, so the overtake is still legible at 360px. */
+  .k-loader-car--a {
+    width: clamp(132px, 38vw, 200px);
+    top: calc(50% + var(--k-road-h) * 0.23);
+  }
+  .k-loader-car--b {
+    width: clamp(108px, 31vw, 168px);
+    top: calc(50% - var(--k-road-h) * 0.23);
+  }
+}
+
+/* REDUCED MOTION. The loader still exists — it is a still frame of the same
+   highway, held briefly and faded — but nothing in it may move. The component
+   also never builds the repeating timelines in that case; this is the belt to
+   that braces, and it covers the accents, which are drawn but never animated. */
+@media (prefers-reduced-motion: reduce) {
+  .k-loader-car,
+  .k-loader-dashes,
+  .k-loader-accent {
+    animation: none;
+    transition: none;
+  }
+  .k-loader-accent {
+    opacity: 0;
+  }
+  .k-loader-car {
+    will-change: auto;
+  }
+}
+
+/* ============================================================================
+   THE TITLE REVEAL
+   ----------------------------------------------------------------------------
+   A masked vertical reveal. The mask is the ONLY thing this stylesheet
+   contributes: the words are not hidden here. Their start state is applied by
+   GSAP in a layout effect, and only when motion is welcome — so reduced motion,
+   a failed hydration and a crawler all get a finished title rather than an
+   empty box. See components/motion/TitleReveal.tsx.
+   ========================================================================== */
+
+.k-word {
+  display: inline-block;
+  overflow: hidden;
+  /* Big Shoulders' uppercase has no descenders, but the rotateX in the reveal
+     swings the glyph below its baseline for part of the tween. Without this the
+     bottom edge of the letterform is clipped mid-animation. */
+  padding-bottom: 0.08em;
+  margin-bottom: -0.08em;
+  vertical-align: bottom;
+}
+
+.k-word-in {
+  display: inline-block;
+  will-change: transform, opacity;
+}
+
+/* ============================================================================
+   THE SOCIAL CLUSTER — persistent, upper-left
+   ----------------------------------------------------------------------------
+   The canon's menu language rather than a social widget: a divider-width spine
+   and an uppercase label, selecting to green on hover AND on keyboard focus.
+   Not a row of three other companies' logos in the corner of a title screen.
+   ========================================================================== */
+
+.k-social-cluster {
+  position: fixed;
+  z-index: 60;
+  top: max(var(--k-space-lg), env(safe-area-inset-top));
+  left: max(var(--k-space-lg), env(safe-area-inset-left));
+  /* It sits over the hero but must never swallow a click meant for the page;
+     only the links themselves take pointer events. */
+  pointer-events: none;
+}
+
+.k-social-cluster ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--k-space-xs);
+}
+
+.k-social-cluster li {
+  pointer-events: auto;
+}
+
+/* The entrance. Pure CSS, keyed on the loader's own attribute, so it costs no
+   JavaScript and no hydration. While the loader is pending the rule does not
+   apply at all — which means the items are NOT animating behind the overlay and
+   are NOT hidden either. With no loader configured it matches from the first
+   frame, and if the loader never finishes the items are simply already there. */
+html:not([data-loader='pending']) .k-social-cluster li {
+  animation: k-social-in 300ms var(--k-ease-out) backwards;
+  animation-delay: calc(var(--k-social-index, 0) * 70ms + 90ms);
+}
+
+@keyframes k-social-in {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+}
+
+.k-social-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--k-space-sm);
+  /* 32px on a precise pointer. The canon's 44px floor is a TOUCH target
+     (Tokens/borders.json touchTargetMin), and applying it to a mouse pointer
+     costs the title screen 36px of its first fold for no accessibility gain —
+     WCAG's pointer minimum is 24px. The coarse-pointer rule below puts the full
+     44px back where it is actually needed. */
+  min-height: 32px;
+  padding: var(--k-space-xs) var(--k-space-md);
+  border-left: var(--k-divider-width) solid var(--k-divider);
+  color: var(--k-text-secondary);
+  text-decoration: none;
+  font-family: var(--k-font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: var(--k-small-size);
+  letter-spacing: var(--k-small-tracking);
+  line-height: 1;
+  /* The canon's selection duration. Nothing here animates on its own. */
+  transition:
+    color var(--k-motion-selection) var(--k-ease-out),
+    border-color var(--k-motion-selection) var(--k-ease-out);
+}
+
+/* Hover and keyboard focus are ONE treatment — the canon's selection green — so
+   a keyboard visitor and a touch visitor get the same affordance, and no
+   information whatsoever is hidden behind a pointer. */
+.k-social-link:hover,
+.k-social-link:focus-visible {
+  color: var(--k-text-primary);
+  border-left-color: var(--k-positive);
+}
+
+.k-social-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+@media (max-width: 767px) {
+  /* A HORIZONTAL rail on a phone. A vertical one down the left edge runs into
+     the hero's own left-aligned type, and three stacked 44px targets in the
+     corner is a lot of a 390px screen to give up. The safe-area insets keep it
+     clear of a notch and of a landscape browser's rounded corner. */
+  .k-social-cluster {
+    top: max(var(--k-space-md), env(safe-area-inset-top));
+    left: max(var(--k-space-md), env(safe-area-inset-left));
+    right: max(var(--k-space-md), env(safe-area-inset-right));
+  }
+  .k-social-cluster ul {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--k-space-xs);
+  }
+  .k-social-link {
+    /* The horizontal padding is trimmed so three channels fit on one line at
+       360px. The height goes back up in the coarse-pointer rule below. */
+    padding: var(--k-space-xs) var(--k-space-sm);
+  }
+}
+
+/* THE FULL TOUCH TARGET, WHERE IT IS ACTUALLY A TOUCH TARGET. Keyed on the
+   pointer rather than on the viewport, so a touch laptop and a phone in
+   landscape both get it and a narrow desktop window does not. */
+@media (pointer: coarse) {
+  .k-social-link {
+    min-height: var(--k-touch-target-min);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-loader='pending']) .k-social-cluster li {
+    animation: none;
+  }
+}
+
+/* ── Keeping the hero clear of the rail ────────────────────────────────────
+   THIS TOOK TWO WRONG ANSWERS BEFORE THE RIGHT ONE, so both are recorded.
+
+   Attempt 1 added a flat `padding-top: clamp(64px, 9vh, 120px)` to .k-hero.
+   Measured at 1440x900, that stacked on the hero UI's own
+   `clamp(56px, 7vw, 112px)` and left 190px of empty black above the status
+   line — and it was 190px whether the rail had three channels in it or none.
+
+   Attempt 2 removed it entirely, on the arithmetic that the existing padding
+   already cleared the rail. It does not: measured with two channels live, the
+   rail's last pixel was at y=116 and "IN DEVELOPMENT" was at y=94. They
+   overlapped.
+
+   The right answer is that the clearance is CONTENT-DEPENDENT — it is however
+   tall the rail actually is — and that it should REPLACE the hero's own top
+   padding rather than add to it. So the layout publishes the channel count on
+   #app-root, the lane height is computed from it, and the hero takes whichever
+   of the two is larger. With no cluster the site is exactly as it was; with
+   three channels the hero gives up 20px. */
+#app-root[data-social-cluster='true'] {
+  /* top offset + one row per channel, rows being 32px plus a 4px gap. */
+  --k-social-lane: calc(var(--k-space-lg) + var(--k-social-count, 0) * 36px);
+}
+
+.k-hero[data-media='false'] .k-hero-ui {
+  padding-top: max(clamp(56px, 7vw, 112px), var(--k-social-lane, 0px));
+}
+
+@media (max-width: 767px) {
+  #app-root[data-social-cluster='true'] {
+    /* One horizontal row, at the full touch height, whatever the count. */
+    --k-social-lane: calc(var(--k-space-md) + 44px + var(--k-space-md));
+  }
+}
+
+/* ============================================================================
+   PATREON / DEVELOPMENT LOG
+   ----------------------------------------------------------------------------
+   Rows, not cards. The canon has no card-with-a-shadow; it has a spine, a label
+   and a selection colour, and a devlog entry is a menu row.
+   ========================================================================== */
+
+.k-post-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+}
+
+.k-post-row {
+  display: grid;
+  gap: var(--k-space-sm);
+  padding: clamp(18px, 2vw, 28px) 0 clamp(18px, 2vw, 28px) var(--k-space-lg);
+  border-top: var(--k-thin-width) solid var(--k-divider);
+  border-left: var(--k-divider-width) solid var(--k-divider);
+  text-decoration: none;
+  color: inherit;
+  transition:
+    border-left-color var(--k-motion-selection) var(--k-ease-out),
+    background-color var(--k-motion-selection) var(--k-ease-out);
+}
+
+/* The last row closes the list, so the group reads as one block. */
+.k-post-list > li:last-child .k-post-row {
+  border-bottom: var(--k-thin-width) solid var(--k-divider);
+}
+
+/* The selection treatment: the rule moves to green and the panel fill comes up.
+   NO TILT, no pointer tracking, no cursor-keyed image scale — and nothing is
+   revealed by it, so a touch visitor loses nothing by not having it. */
+.k-post-row:hover,
+.k-post-row:focus-visible {
+  border-left-color: var(--k-positive);
+  background-color: var(--k-surface-panel);
+}
+
+.k-post-meta {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--k-space-md);
+  color: var(--k-text-tertiary);
+}
+
+/* A locked post says so, in the canon's accent, as a static label. Its BODY is
+   never rendered — enforced in lib/patreon/posts.ts, not here. */
+.k-post-lock {
+  color: var(--k-accent);
+  border-left: var(--k-thin-width) solid var(--k-accent);
+  padding-left: var(--k-space-sm);
+}
+
+.k-post-title {
+  display: block;
+  color: var(--k-text-primary);
+}
+
+.k-post-excerpt {
+  display: block;
+  margin: 0;
+  max-width: 68ch;
+  color: var(--k-text-secondary);
+}
+
+/* The YouTube block's caption. */
+.k-video-meta {
+  display: grid;
+  gap: var(--k-space-sm);
+  margin-top: var(--k-space-lg);
+  max-width: var(--k-content);
+}
+
+.k-video-meta > p {
+  margin: 0;
+}

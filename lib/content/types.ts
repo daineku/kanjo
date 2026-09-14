@@ -55,12 +55,30 @@ export const SOCIAL_PLATFORMS = [
 export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number]
 
 export type SocialLink = Publishable & {
+  /**
+   * The destination's kind. Drives the icon lookup and nothing else — a channel
+   * with no matching mark still renders, as its label.
+   */
   platform: SocialPlatform
   /** Shown when the platform is 'other', and as the accessible name otherwise. */
   label: string
+  /**
+   * Empty means "not announced". The UI DROPS the entry rather than linking
+   * nowhere: Steam in particular has no page yet, and a dead link in the
+   * persistent cluster is worse than an absent one. Nothing here is invented.
+   */
   url: string
   /** Optional handle, e.g. "@thekanjo". Rendered as a subtitle where there is room. */
   handle?: string
+  /**
+   * An optional mark supplied by the owner. Absent it, the cluster draws the
+   * label in the canon's display face, which is what the game's own menu does —
+   * a row of third-party logos is the generic-social-widget look the brief rules
+   * out. SVG is fine here; it is rendered as a plain <img>, never inlined.
+   */
+  icon?: ImageRef
+  /** Defaults to true for an external destination. */
+  openInNewTab?: boolean
 }
 
 /**
@@ -110,6 +128,23 @@ export type FooterSettings = {
   links: NavItem[]
 }
 
+/**
+ * Site chrome.
+ *
+ * The homepage is a title screen, not a document, so it carries no header bar —
+ * the nav belongs to the reading routes (/updates), where a visitor actually
+ * needs to move between documents. That is configuration rather than a rule
+ * hardcoded into a layout, so the decision can be revisited without an edit.
+ */
+export type ChromeSettings = {
+  /** The header + nav strip on the reading routes. */
+  headerOnReadingPages: boolean
+  /** The header on the homepage. Off: the homepage is a title screen. */
+  headerOnHome: boolean
+  /** The persistent social cluster at the upper-left edge. */
+  socialCluster: boolean
+}
+
 export type SiteSettings = {
   title: string
   subtitle?: string
@@ -122,6 +157,105 @@ export type SiteSettings = {
   social: SocialLink[]
   status: GameStatus
   footer: FooterSettings
+  chrome: ChromeSettings
+}
+
+// ── Loader ───────────────────────────────────────────────────────────────────
+
+/**
+ * How hard the loader's motion works. The responsive motion policy turns this
+ * down on a coarse pointer; it is NOT a quality setting.
+ *
+ *   low    — one lane, no light accents, slowest road
+ *   medium — both lanes, restrained accents (the default)
+ *   high   — both lanes, accents, strongest parallax separation
+ */
+export const LOADER_INTENSITIES = ['low', 'medium', 'high'] as const
+export type LoaderIntensity = (typeof LOADER_INTENSITIES)[number]
+
+/**
+ * The night-highway loader.
+ *
+ * TWO CARS TRADING POSITION IS THE WHOLE IDEA, so the two vehicle images are
+ * first-class configuration rather than decoration baked into a component. What
+ * ships today is a NEUTRAL, DELIBERATELY TEMPORARY silhouette — no badge, no
+ * grille, no real car, nothing that claims to be a Honda or a Nissan.
+ * Replacing it is a content change and nothing else.
+ */
+export type LoaderConfig = {
+  enabled: boolean
+  /**
+   * The floor. The loader is a deliberate moment; one that vanishes in 200ms on
+   * a warm cache reads as a flicker rather than as an entrance.
+   */
+  minimumDisplayMs: number
+  /**
+   * THE ESCAPE PATH, and the reason the loader can never strand a visitor. It
+   * represents APP readiness — hydration and the display face — not every asset
+   * on the page. Past this ceiling the site opens regardless of what is still
+   * in flight.
+   */
+  maximumDisplayMs: number
+  intensity: LoaderIntensity
+  /**
+   * Whether THE KANJO animates in as the highway masks away. Off, the title is
+   * simply there when the loader lifts. Under prefers-reduced-motion this is
+   * treated as off whatever it says.
+   */
+  titleRevealEnabled: boolean
+  /** The near lane, closest to the camera. */
+  carA: ImageRef
+  /** The far lane. It is the one that closes and overtakes first. */
+  carB: ImageRef
+  /**
+   * An optional painted road plate behind the generated surface. Absent, the
+   * loader draws the highway from CSS alone, which costs no request at all.
+   */
+  road?: ImageRef
+}
+
+// ── Patreon ──────────────────────────────────────────────────────────────────
+
+/**
+ * One post, reduced to what may be shown in public.
+ *
+ * THERE IS DELIBERATELY NO `content` FIELD. A creator-level token can read the
+ * full body of PAID posts, and a type the UI can reach that carries that body is
+ * how it eventually reaches a public page. The adapter derives `excerpt` from
+ * content Patreon itself marks public, and never for a locked post — see
+ * lib/patreon/posts.ts.
+ */
+export type PatreonPost = {
+  id: string
+  title: string
+  /** The post's own page on patreon.com. */
+  url: string
+  /** ISO 8601. */
+  publishedAt: string
+  /**
+   * A short plain-text teaser. ALWAYS EMPTY for a locked post: it is only ever
+   * derived from content Patreon has marked public.
+   */
+  excerpt: string
+  /** Patreon's `is_public`. False means members-only. */
+  isPublic: boolean
+  /** Patreon's `is_paid`. Informational; `isPublic` is what gates rendering. */
+  isPaid: boolean
+}
+
+export type PatreonFeedStatus =
+  /** Credentials present, request succeeded. */
+  | 'ok'
+  /** No credentials configured. Not an error — the expected state of a clone. */
+  | 'unconfigured'
+  /** Credentials present, request failed. The section falls back. */
+  | 'error'
+
+export type PatreonFeed = {
+  status: PatreonFeedStatus
+  posts: PatreonPost[]
+  /** Diagnostics for the server log. NEVER rendered. */
+  detail?: string
 }
 
 // ── Media ────────────────────────────────────────────────────────────────────
@@ -229,6 +363,8 @@ export type Article = ArticleSummary & {
 export const SECTION_TYPES = [
   'hero',
   'intro',
+  'youtube',
+  'patreon',
   'video',
   'media',
   'status',
@@ -352,9 +488,63 @@ export type LinksConfig = SectionHeader & {
   linkIds: string[]
 }
 
+/**
+ * The homepage's one video block.
+ *
+ * Separate from `video` (which renders configured `Video` entries) because it
+ * has a different job: ONE canonical YouTube upload, framed as the centrepiece.
+ * `video` stays for local gameplay clips that ship no third-party anything.
+ */
+export type YouTubeConfig = SectionHeader & {
+  /**
+   * A bare id OR any YouTube URL. Normalised on the SERVER by
+   * lib/media.ts#youTubeId, so a pasted watch URL carrying a playlist, a
+   * timestamp and a tracking string cannot reach the embed.
+   */
+  video: string
+  title: string
+  description?: string
+  /**
+   * Overrides the still. Absent, the poster is YouTube's own thumbnail, fetched
+   * SERVER-SIDE through next/image — so the browser contacts no Google host
+   * until the visitor presses play.
+   */
+  poster?: ImageRef
+  /** CSS aspect-ratio, e.g. '16 / 9'. Reserves the box, so nothing shifts. */
+  aspectRatio: string
+}
+
+/**
+ * The development-log block, fed by the Patreon API.
+ *
+ * Nothing here is a credential. The token lives in the server environment; this
+ * says only how the block behaves and what it says when the feed is not
+ * available, which is the normal state of a fresh clone.
+ */
+export type PatreonConfig = SectionHeader & {
+  /** The public creator page: the CTA's destination, and the only URL needed. */
+  campaignUrl: string
+  limit: number
+  ctaLabel: string
+  /**
+   * What the block does when the feed is unavailable — no credentials, or a
+   * failed request. 'cta' keeps the section, its copy and the button; 'hide'
+   * renders nothing at all. Never a broken feed, never an error on the page.
+   */
+  fallback: 'cta' | 'hide'
+  fallbackDescription?: string
+  /**
+   * Whether members-only posts appear as metadata rows. Their bodies are NEVER
+   * rendered either way — see PatreonPost.
+   */
+  showLockedPosts: boolean
+}
+
 export type SectionConfigMap = {
   hero: HeroConfig
   intro: IntroConfig
+  youtube: YouTubeConfig
+  patreon: PatreonConfig
   video: VideoConfig
   media: MediaConfig
   status: StatusConfig
@@ -384,9 +574,15 @@ export type Section = {
  */
 export type LandingContent = {
   settings: SiteSettings
+  loader: LoaderConfig
   sections: Section[]
   videos: Video[]
   media: MediaItem[]
   links: LinkBlock[]
   updates: ArticleSummary[]
+  /**
+   * The Patreon feed, already reduced to what is publishable. Fetched alongside
+   * everything else so the section component itself awaits nothing.
+   */
+  patreon: PatreonFeed
 }

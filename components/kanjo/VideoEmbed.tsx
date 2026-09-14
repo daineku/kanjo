@@ -68,11 +68,19 @@ export function VideoEmbed({
   video,
   priority = false,
   ratio = '16 / 9',
+  sizes = '(max-width: 930px) 100vw, 930px',
 }: {
   video: Video
   /** Only ever true for a single above-the-fold poster. */
   priority?: boolean
   ratio?: string
+  /**
+   * The poster's `sizes`. Defaulted to the reading column because that is where
+   * most videos sit, but the homepage's YouTube block runs to the wide track —
+   * and a `sizes` that understates the box makes `next/image` pick a source too
+   * small for it, which on a full-width still is visibly soft.
+   */
+  sizes?: string
 }) {
   const [playing, setPlaying] = useState(false)
   const url = embedUrl(video)
@@ -169,7 +177,7 @@ export function VideoEmbed({
           height={video.poster.height}
           priority={priority}
           loading={priority ? undefined : 'lazy'}
-          sizes="(max-width: 930px) 100vw, 930px"
+          sizes={sizes}
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
         <span

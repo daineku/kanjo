@@ -5,14 +5,29 @@
     "",
     "PLACEHOLDER POLICY: entries marked PLACEHOLDER below are structural stand-ins.",
     "No release date, platform, price, store page, Discord invite or social handle",
-    "has been invented. A social link with an empty url is dropped by the UI, and a",
-    "link block with available:false renders disabled with its own reason rather",
-    "than pretending a destination exists."
+    "has been invented. A social link with an empty url is DROPPED by the cluster",
+    "rather than rendered as a dead item.",
+    "",
+    "THE CHANNELS THE BRIEF NAMES ARE TIKTOK, PATREON AND STEAM, in that order.",
+    "All three are published:true and all three have an empty url, so none of them",
+    "renders yet. Supply a url and the entry appears. STEAM HAS NO PAGE YET AND",
+    "NO URL IS INVENTED FOR IT."
   ],
 
   "title": "THE KANJO",
   "subtitle": "PLACEHOLDER — one-line positioning, to be written by the owner",
   "primaryDomain": "https://thekanjo.com",
+
+  "chrome": {
+    "_comment": [
+      "The homepage is a title screen: no bar across the top of it. The header",
+      "belongs to /updates, where a visitor is reading documents and needs a way",
+      "between them. Set headerOnHome to true to put it back on the homepage."
+    ],
+    "headerOnReadingPages": true,
+    "headerOnHome": false,
+    "socialCluster": true
+  },
 
   "seo": {
     "title": "THE KANJO",
@@ -25,58 +40,63 @@
   },
 
   "nav": [
-    { "label": "GAME", "href": "/#game", "visible": true },
-    { "label": "MEDIA", "href": "/#media", "visible": true },
-    { "label": "UPDATES", "href": "/updates", "visible": true },
-    { "label": "ABOUT", "href": "/#about", "visible": true }
+    { "label": "UPDATES", "href": "/updates", "visible": true }
   ],
 
   "social": [
     {
-      "id": "youtube",
-      "platform": "youtube",
-      "label": "YOUTUBE",
-      "url": "",
-      "published": false,
-      "order": 0
-    },
-    {
-      "id": "instagram",
-      "platform": "instagram",
-      "label": "INSTAGRAM",
-      "url": "",
-      "published": false,
-      "order": 1
-    },
-    {
+      "_comment": "The persistent cluster, upper-left. order is the rail's order, top to bottom. An empty url means the entry is not rendered at all.",
       "id": "tiktok",
       "platform": "tiktok",
       "label": "TIKTOK",
       "url": "",
-      "published": false,
-      "order": 2
-    },
-    {
-      "id": "discord",
-      "platform": "discord",
-      "label": "DISCORD",
-      "url": "",
-      "published": false,
-      "order": 3
+      "openInNewTab": true,
+      "published": true,
+      "order": 0
     },
     {
       "id": "patreon",
       "platform": "patreon",
       "label": "PATREON",
       "url": "",
-      "published": false,
-      "order": 4
+      "openInNewTab": true,
+      "published": true,
+      "order": 1
     },
     {
+      "_comment": "NO STEAM PAGE EXISTS YET. url stays empty until the owner supplies the real store URL; nothing here is invented and the entry simply does not render.",
       "id": "steam",
       "platform": "steam",
       "label": "STEAM",
       "url": "",
+      "openInNewTab": true,
+      "published": true,
+      "order": 2
+    },
+    {
+      "id": "youtube",
+      "platform": "youtube",
+      "label": "YOUTUBE",
+      "url": "",
+      "openInNewTab": true,
+      "published": false,
+      "order": 3
+    },
+    {
+      "id": "discord",
+      "platform": "discord",
+      "label": "DISCORD",
+      "url": "",
+      "openInNewTab": true,
+      "published": false,
+      "order": 4
+    },
+    {
+      "id": "instagram",
+      "platform": "instagram",
+      "label": "INSTAGRAM",
+      "url": "",
+      "openInNewTab": true,
       "published": false,
       "order": 5
     }
@@ -93,6 +113,7 @@
     "copyrightHolder": "Daineku",
     "note": "PLACEHOLDER — optional footer note",
     "links": [
+      { "label": "UPDATES", "href": "/updates", "visible": true },
       { "label": "STUDIO", "href": "https://daineku.com", "external": true, "visible": true }
     ]
   }

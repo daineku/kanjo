@@ -18,10 +18,32 @@
  *
  * The reduced-motion control sets `reducedMotion: 'no-preference'` explicitly.
  * A bare context inherits the host's setting, so it is not a control.
+ *
+ * A SECOND TRAP, ADDED WITH THE LOADER: while the loader is up it marks
+ * `#app-root` as `inert`, which is correct — nothing behind an opaque overlay
+ * should be focusable — but it means any measurement taken before the loader
+ * lifts is a measurement of the loader. The first version of this script
+ * reported a tab order of "Skip to content" seven times, which is exactly what
+ * an inert page looks like and says nothing about the site. `settled()` below
+ * is therefore mandatory before anything is measured.
  */
 
 import { chromium } from 'playwright'
 import fs from 'node:fs'
+
+/**
+ * Waits for the loader to finish and remove itself.
+ *
+ * Tolerant of the loader being disabled or already gone — it resolves at once
+ * if there is no overlay, so this is safe to call unconditionally.
+ */
+async function settled(page) {
+  await page
+    .waitForFunction(() => !document.querySelector('.k-loader'), null, { timeout: 15000 })
+    .catch(() => {
+      /* the loader is disabled, or it never mounted; the checks still run */
+    })
+}
 
 const BASE = process.env.BASE ?? 'http://localhost:3517'
 const WIDTHS = [1920, 1440, 1024, 768, 430, 390, 360]
@@ -68,6 +90,7 @@ for (const route of ROUTES) {
 
     const response = await page.goto(`${BASE}${route}`, { waitUntil: 'networkidle' })
     const status = response?.status() ?? 0
+    await settled(page)
 
     const metrics = await page.evaluate(() => {
       const de = document.documentElement
@@ -126,6 +149,7 @@ for (const route of ROUTES) {
 const kbContext = await browser.newContext({ viewport: { width: 1440, height: 900 } })
 const kb = await kbContext.newPage()
 await kb.goto(`${BASE}/`, { waitUntil: 'networkidle' })
+await settled(kb)
 
 const tabOrder = []
 for (let i = 0; i < 14; i += 1) {
@@ -153,6 +177,7 @@ const rmContext = await browser.newContext({
 })
 const rm = await rmContext.newPage()
 await rm.goto(`${BASE}/`, { waitUntil: 'networkidle' })
+await settled(rm)
 const reducedMotion = await rm.evaluate(() => {
   const el = document.querySelector('.k-reveal')
   if (!el) return { found: false }
@@ -174,6 +199,7 @@ const nmContext = await browser.newContext({
 })
 const nm = await nmContext.newPage()
 await nm.goto(`${BASE}/`, { waitUntil: 'networkidle' })
+await settled(nm)
 await nm.waitForTimeout(400)
 const normalMotion = await nm.evaluate(() => {
   const el = document.querySelector('.k-reveal')
@@ -187,6 +213,7 @@ for (const width of [1440, 768, 390]) {
   const ctx = await browser.newContext({ viewport: { width, height: 1200 } })
   const p = await ctx.newPage()
   await p.goto(`${BASE}/`, { waitUntil: 'networkidle' })
+  await settled(p)
   await p.waitForTimeout(500)
   await p.screenshot({ path: `shot-home-${width}.png`, fullPage: false })
   await p.goto(`${BASE}/updates/site-foundation`, { waitUntil: 'networkidle' })

@@ -2,6 +2,7 @@ import type {
   Article,
   ArticleSummary,
   LandingContent,
+  LoaderConfig,
   SiteSettings,
 } from './types'
 
@@ -29,6 +30,16 @@ export interface ContentSource {
   readonly kind: string
 
   getSiteSettings(): Promise<SiteSettings>
+
+  /**
+   * The loader's configuration.
+   *
+   * Separate from `getLandingContent` because the loader is rendered by the
+   * ROOT LAYOUT, not by the page — it is the entrance to the site, not a block
+   * on one document — and the layout must not have to fetch the whole landing
+   * bundle to learn whether it is switched on.
+   */
+  getLoaderConfig(): Promise<LoaderConfig>
 
   /** Everything the landing page needs, in one call. */
   getLandingContent(): Promise<LandingContent>

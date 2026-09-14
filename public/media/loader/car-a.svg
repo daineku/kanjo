@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 80" width="200" height="80" aria-hidden="true">
+  <!--
+    TEMPORARY LOADER VEHICLE A — near lane.
+
+    A NEUTRAL SILHOUETTE, ON PURPOSE. It is not a Honda, a Nissan or any other
+    real car: no badge, no grille, no model-specific proportion. The loader's
+    architecture treats both vehicles as configuration (content/loader.json →
+    carA / carB), so this file exists only so the choreography has something to
+    move while the real art is drawn. Replacing it is a content change.
+
+    Colours are the canon's: body #242425 (panel), road black #000003, the
+    taillight in accent #E84A4A, outlines white at the canon's 0.5 secondary
+    opacity. Nothing here is invented.
+  -->
+  <path d="M8 60 L10 47 Q12 40 24 38 L56 34 L78 21 Q84 18 94 18 L124 18 Q136 18 145 24 L166 37 L182 40 Q192 42 193 49 L194 60 Z"
+        fill="#242425" stroke="#FFFFFF" stroke-opacity="0.45" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M84 33 L97 23 Q101 21 108 21 L121 21 Q129 21 135 26 L145 33 Z"
+        fill="#FFFFFF" fill-opacity="0.16"/>
+  <rect x="9" y="43" width="8" height="6" fill="#E84A4A"/>
+  <rect x="185" y="44" width="9" height="6" fill="#FFFFFF" fill-opacity="0.85"/>
+  <circle cx="54" cy="60" r="13" fill="#000003" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="2"/>
+  <circle cx="152" cy="60" r="13" fill="#000003" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="2"/>
+</svg>
