@@ -34,16 +34,23 @@ local files in `content/`, so a fresh clone runs and renders the whole site.
 | `npm start` | Serve the production build |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | `eslint .` |
-| `npm test` | The unit tests plus the media-path check, on Node's own runner |
-| `npm run test:patreon` | The Patreon public/locked gate. See [docs/PATREON.md](docs/PATREON.md). |
+| `npm test` | Every unit test plus the media-path check, on Node's own runner. No network, no credentials. |
+| `npm run test:patreon` | The Patreon public/locked gate — the most important tests here. See [docs/PATREON.md](docs/PATREON.md). |
+| `npm run test:youtube` | Handle parsing and latest-upload normalisation |
+| `npm run test:tiktok` | Profile validation, including the injection attempts |
+| `npm run test:document` | The stored-content-document validator |
+| `npm run test:infra` | The admin allowlist, the preview-write matrix, upload validation |
 | `npm run test:media` | Every published content entry points at a file that exists |
+| `npm run content:export` | Regenerates the Supabase seed from `content/`. `-- --sql` also writes the insert. |
 | `npm run check` | typecheck + lint + tests + build. **Run this before committing.** |
 
-Two browser scripts are deliberately **not** in `npm run check`, because
+Three browser scripts are deliberately **not** in `npm run check`, because
 Playwright is not a dependency of this project — see the header of each for how
-to run them: `scripts/check-motion.mjs` (the loader, the reveals, reduced
-motion, the escape path) and `scripts/check-rendering.mjs` (overflow, keyboard,
-console errors).
+to run them:
+
+- `scripts/check-motion.mjs` — the loader, the reveals, reduced motion, the escape path
+- `scripts/check-integrations.mjs` — YouTube, TikTok and Patreon states, including TikTok blocked
+- `scripts/check-rendering.mjs` — overflow, keyboard, console errors
 
 ## Editing content in a browser
 
@@ -51,10 +58,14 @@ console errors).
 ADMIN_ENABLED=true npm run dev   # then /admin
 ```
 
-A small editor for the loader, the hero, the channels, the video, the Patreon
-block and every section's visibility — including image uploads. It is a
-**development tool**: the route does not exist in production. See
-[docs/ADMIN.md](docs/ADMIN.md).
+A small editor for the loader, the hero, the channels, the video, the TikTok and
+Patreon blocks, the publisher and every section's visibility — including image
+uploads.
+
+That command runs the **local, file-backed** admin, which has no accounts and
+cannot be enabled on a deployment. In production the same interface is behind
+Supabase Auth with a server-side email allowlist, and writes to Supabase and R2.
+See [docs/ADMIN.md](docs/ADMIN.md).
 
 ## Environment variables
 
@@ -62,10 +73,13 @@ All optional. The site works with none of them.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `CONTENT_SOURCE` | `local` | `local` reads `content/`. `remote` is a seam and is not implemented — see [docs/BACKEND_DECISION.md](docs/BACKEND_DECISION.md). |
 | `NEXT_PUBLIC_SITE_URL` | `site.json` → `primaryDomain` | Origin for canonical URLs, absolute OG images, robots and sitemap. Set this on a preview deployment so it describes itself honestly. |
 | `NEXT_PUBLIC_NOINDEX` | unset | `true` makes robots.txt disallow everything and sets `noindex`. For preview deployments. |
-| `ADMIN_ENABLED` | unset | `true` enables `/admin` in development. The route 404s in production whatever this says. |
+| `CONTENT_SOURCE` | `local` | `local` reads `content/`; `supabase` reads one row in `public.thekanjo_site`. Governs the admin's writes too. |
+| `MEDIA_STORE` | `local` | `local` writes `public/media/`; `r2` writes the `thekanjo-media` bucket. |
+| `ADMIN_ENABLED` | unset | `true` enables the LOCAL file-backed admin in development. It cannot be enabled on a deployment. |
+| `THEKANJO_ADMIN_EMAILS` | unset | Who may administer the site in production. An empty list authorises nobody. |
+| `YOUTUBE_API_KEY` | unset | Data API v3 key. Without it the video block shows a link to the channel. **Never `NEXT_PUBLIC_`.** |
 | `PATREON_ACCESS_TOKEN` | unset | Creator token, scope `campaigns.posts`. Without it the Patreon block shows its copy and a CTA. **Never `NEXT_PUBLIC_`.** See [docs/PATREON.md](docs/PATREON.md). |
 | `PATREON_CAMPAIGN_ID` | discovered | Skips a lookup. Only needed with more than one campaign. |
 | `PATREON_REVALIDATE_SECONDS` | `3600` | How long a fetched feed is reused. |
@@ -78,10 +92,18 @@ Everything the site shows lives in `content/` — settings, landing sections,
 videos, media, links, and articles as Markdown. Nothing is hardcoded in a
 component. See [docs/CONTENT.md](docs/CONTENT.md).
 
-Note the placeholder policy: no release date, platform, store page, Discord
-invite, Patreon URL, social account or screenshot has been invented. Sections
-with no content say so and show the game's own pending-slot treatment. Please
-keep it that way.
+The real public channels are configured: TikTok
+[@the_kanjo](https://www.tiktok.com/@the_kanjo), Patreon
+[/cw/TheKanjo](https://www.patreon.com/cw/TheKanjo), YouTube
+[@thekanjo](https://www.youtube.com/@thekanjo), publisher
+[Daineku](https://daineku.com/).
+
+The placeholder policy still holds for everything that has **not** been
+supplied: no release date, platform, store page, Discord invite or screenshot
+has been invented, and **there is no Steam URL** — that entry is configured with
+an empty `url` and is dropped by the channel rail until a real store page
+exists. Sections with no content say so and show the game's own pending-slot
+treatment. Please keep it that way.
 
 ## Documentation
 
@@ -92,8 +114,10 @@ keep it that way.
 | [docs/BACKEND_DECISION.md](docs/BACKEND_DECISION.md) | Why the backend is separate from Daineku's, with the evidence |
 | [docs/CONTENT.md](docs/CONTENT.md) | How to edit content and write an article |
 | [docs/MEDIA_WORKFLOW.md](docs/MEDIA_WORKFLOW.md) | How to prepare media — resolutions, formats, and the night-image pitfalls |
+| [docs/PRODUCTION_SETUP.md](docs/PRODUCTION_SETUP.md) | **The deployment runbook** — Supabase, Cloudflare R2, YouTube, Patreon, Vercel, the domain |
+| [docs/TIKTOK.md](docs/TIKTOK.md) | The official creator embed, why not the Display API, and the upgrade path |
 | [docs/MOTION.md](docs/MOTION.md) | The GSAP architecture, the responsive motion policy, and which reference effects were adopted or rejected |
-| [docs/ADMIN.md](docs/ADMIN.md) | The content admin at `/admin`, and why it is a development tool |
+| [docs/ADMIN.md](docs/ADMIN.md) | The content admin at `/admin` — the local one, the authenticated one, and why a preview cannot write |
 | [docs/PATREON.md](docs/PATREON.md) | The Patreon API v2 integration and its security model |
 | [docs/CONTENT_REQUIRED.md](docs/CONTENT_REQUIRED.md) | What real content the site still needs |
 
