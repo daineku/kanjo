@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 
 import './globals.css'
+import './production-tuning.css'
 import { KanjoLoader } from '@/components/loader/KanjoLoader'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { SocialCluster } from '@/components/layout/SocialCluster'
