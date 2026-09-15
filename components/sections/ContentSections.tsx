@@ -5,6 +5,7 @@ import { ScreenshotGrid } from '@/components/kanjo/ScreenshotGrid'
 import { EmptyNotice, Section } from '@/components/kanjo/Section'
 import { VideoEmbed } from '@/components/kanjo/VideoEmbed'
 import { WedgeCard } from '@/components/kanjo/WedgeCard'
+import { youTubeId, youTubeThumbnail } from '@/lib/media'
 import { isPlaceholder, real, realRows } from '@/lib/content/placeholder'
 import type {
   ArticleSummary,
@@ -50,6 +51,7 @@ function cleanHeader(header: SectionHeader): SectionHeader {
     eyebrow: real(header.eyebrow),
     heading: real(header.heading),
     standfirst: real(header.standfirst),
+    ornament: header.ornament,
   }
 }
 
@@ -65,10 +67,50 @@ export function IntroSection({ id, config }: { id: string; config: IntroConfig }
     .join('\n\n')
 
   const rendered = renderRichText(body)
+  const blocks = config.blocks ?? []
 
   return (
     <Section id={id} header={cleanHeader(config)}>
       {rendered ? <div className="k-body k-prose k-rt">{rendered}</div> : null}
+
+      {/* Ordered blocks after the body: text, or a video through the same
+          click-to-load facade the main video section uses. A block whose id
+          is not a YouTube id renders nothing rather than an empty frame. */}
+      {blocks.map((block, index) => {
+        if (block.type === 'text') {
+          const text = renderRichText(
+            block.body
+              .split(/\n\s*\n/)
+              .filter((paragraph) => !isPlaceholder(paragraph))
+              .join('\n\n'),
+          )
+          return text ? (
+            <div key={index} className="k-body k-prose k-rt k-intro-block">
+              {text}
+            </div>
+          ) : null
+        }
+        const videoId = youTubeId(block.video)
+        if (!videoId) return null
+        return (
+          <div key={index} className="k-intro-block k-intro-block--video">
+            <VideoEmbed
+              ratio={block.aspectRatio?.trim() || '16 / 9'}
+              video={{
+                id: `${id}-block-${index}`,
+                provider: 'youtube',
+                ref: videoId,
+                title: block.title ?? 'Video',
+                poster: { src: youTubeThumbnail(videoId), alt: '', width: 480, height: 360 },
+                featured: false,
+                published: true,
+                order: index,
+              }}
+            />
+            {block.title && <p className="k-item-title k-intro-block-title">{block.title}</p>}
+          </div>
+        )
+      })}
     </Section>
   )
 }
@@ -222,7 +264,7 @@ export function StatusSection({ id, config }: { id: string; config: StatusConfig
               style={{
                 margin: 0,
                 textAlign: 'right',
-                color: row.emphasis ? 'var(--k-positive)' : 'var(--k-text-primary)',
+                color: row.emphasis ? 'var(--k-accent)' : 'var(--k-text-primary)',
               }}
             >
               {row.value}

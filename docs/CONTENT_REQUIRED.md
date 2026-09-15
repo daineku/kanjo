@@ -36,13 +36,15 @@ results or link previews.
 
 | # | Item | Where | Why it is V1 | V1 |
 |---|---|---|---|---|
-| 0.1 | **Loader vehicle art — car A and car B** | admin → LOADER, or `content/loader.json` | What ships today is a pair of **deliberately temporary, unbranded silhouettes**. They are the first thing every visitor sees. Nothing branded has been fabricated and nothing should be until you supply it. | **YES** |
-| 0.2 | **YouTube video** | admin → YOUTUBE, or `sections.json` → `watch` | The block is **`published: false`** because no upload exists. No video id has been invented. Supply the id or URL and publish it. | **YES** |
-| 0.3 | **TikTok URL** | admin → CHANNELS, or `site.json` → `social.tiktok.url` | The rail drops any channel with an empty URL, so today it renders nothing. | **YES** |
-| 0.4 | **Patreon creator page URL** | admin → CHANNELS *and* admin → PATREON → Creator page URL | Two places: the rail entry, and the section's CTA. | **YES** |
-| 0.5 | Patreon API access token | `.env.local` → `PATREON_ACCESS_TOKEN` | Turns the block from copy-plus-a-button into the live post feed. Scope `campaigns.posts`. See [PATREON.md](PATREON.md). | Recommended |
-| 0.6 | **Steam page URL** | admin → CHANNELS, or `site.json` → `social.steam.url` | **No URL has been invented for this.** The entry exists, empty, and does not render. Fill it when the store page exists. | When it exists |
-| 0.7 | Hero background media | §1.1 below | Unchanged, and still the asset that most changes what the site *is*. | **YES** |
+| 0.1 | ~~Loader vehicle art~~ | — | **DONE.** The EG6 and EK9 are in (`IMAGES/` → `npm run assets:prepare`). | — |
+| 0.2 | **YouTube video** | admin → YOUTUBE | **There is no upload yet.** The block hides itself until one is pinned or a Data API key is added. No video id has been invented. | When one exists |
+| 0.3 | ~~TikTok URL~~ | — | **DONE.** `https://www.tiktok.com/@the_kanjo` | — |
+| 0.4 | ~~Patreon creator page URL~~ | — | **DONE.** `https://www.patreon.com/cw/TheKanjo` | — |
+| 0.5 | Patreon API access token | Vercel → `PATREON_ACCESS_TOKEN` | Turns the block from copy-plus-a-button into the live post feed. Scope `campaigns.posts`. **Issue a fresh token; do not reuse one that has been shared anywhere.** See [PATREON.md](PATREON.md). | Recommended |
+| 0.6 | **Steam page URL** | admin → CHANNELS | **No URL has been invented.** The entry exists, empty, and does not render. | When it exists |
+| 0.7 | ~~Hero background media~~ | — | **DONE.** `hero.png`, 6336×2688, cropped with object-position only. | — |
+| 0.8 | **App Store / Google Play URLs** | admin → CHANNELS | Entries exist, empty and hidden, for the day mobile stores exist. | When they exist |
+| 0.9 | Legal review | admin → LEGAL | `/privacy` and `/terms` carry baseline text that states only what the site does. **Have them read by a person before launch**; the date on each is the date of the current version. | **YES** |
 
 ### §0.1 Loader vehicle art — spec
 

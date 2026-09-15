@@ -53,6 +53,7 @@ export function YouTubeSection({
     eyebrow: real(config.eyebrow),
     heading: real(config.heading),
     standfirst: real(config.standfirst),
+    ornament: config.ornament,
   }
 
   const ratio = config.aspectRatio?.trim() || '16 / 9'

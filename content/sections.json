@@ -29,46 +29,50 @@
       "description": "An elevated expressway loop after dark, drawing on Japanese highway racing culture and the atmosphere of late 1990s and early 2000s Japan.",
       "background": {
         "_README": [
-          "HERO MEDIA. The canon's own composition is media + dim + UI",
-          "(UI_Canon/Screens/MainMenu/layout.json defaultTreatment.mode = 'dim').",
-          "kind is 'none' only because no footage exists yet. The hero already",
-          "reserves the full media footprint and applies the dim, so switching is a",
-          "CONTENT change with no layout change and no component edit.",
+          "HERO MEDIA. hero.png is the approved 6336x2688 source, copied byte for byte by",
+          "`npm run assets:prepare`. It is never regenerated: framing is object-position",
+          "only. The red car sits right of centre (x 47-88% of the frame), so the phone",
+          "crop is pulled to 72% to keep it in view; the desktop crop sits slightly low",
+          "so the road and the tail lights carry the bottom third under the logo.",
           "",
-          "A STILL — copy the export to public/media/hero/, then:",
-          "  \"kind\": \"image\",",
-          "  \"image\": { \"src\": \"/media/hero/hero.jpg\", \"alt\": \"\",",
-          "              \"width\": 2560, \"height\": 1440 },",
-          "  \"treatment\": \"dim\"",
+          "identity: 'logo' shows the supplied logo artwork as the visible identity. The",
+          "H1 is still THE KANJO — it is the logo's alt text — so a crawler and a screen",
+          "reader get the name. 'text' sets the title in the display face instead.",
           "",
-          "A LOOP — MP4 always, WebM as well if you can. A poster is MANDATORY:",
-          "it is the first paint, the fallback if the loop cannot play, and what",
-          "shows under prefers-reduced-motion, where the video is not rendered.",
-          "  \"kind\": \"video\",",
-          "  \"videoSources\": [\"/media/hero/loop.webm\", \"/media/hero/loop.mp4\"],",
-          "  \"poster\": { \"src\": \"/media/hero/loop-poster.jpg\", \"alt\": \"\",",
-          "               \"width\": 2560, \"height\": 1440 },",
-          "  \"treatment\": \"dim\"",
-          "",
-          "FRAMING. objectPosition is a plain CSS object-position: 'center 35%'",
-          "pulls the crop upward, 'center 70%' downward. mobileObjectPosition",
-          "applies below 768px, where the crop is tallest. Both default to",
-          "'center'. See docs/MEDIA_WORKFLOW.md."
+          "treatment: 'dim' (canon default) | 'strong_dim' | 'transparent' | 'blackout'."
         ],
-        "kind": "none",
+        "kind": "image",
         "treatment": "dim",
-        "objectPosition": "center",
-        "mobileObjectPosition": "center"
+        "objectPosition": "center 58%",
+        "mobileObjectPosition": "72% 50%",
+        "image": {
+          "src": "/media/hero/hero.png",
+          "alt": "",
+          "width": 6336,
+          "height": 2688
+        }
       },
       "actionIds": [],
-      "platformNote": "PLACEHOLDER — platforms not announced"
+      "platformNote": "PLACEHOLDER — platforms not announced",
+      "identity": "logo",
+      "logo": {
+        "src": "/media/brand/logo.png",
+        "alt": "THE KANJO",
+        "width": 1703,
+        "height": 562
+      }
     }
   },
   {
     "_comment": [
-      "THE PROJECT DESCRIPTION. Not a marketing section: one heading and two",
-      "short paragraphs. If it grows past three paragraphs it has stopped being",
-      "this block and started being an About page."
+      "THE PROJECT DESCRIPTION. Not a marketing section: one heading and two short",
+      "paragraphs. `blocks` is an ordered list rendered after `body` — text blocks",
+      "and YouTube blocks (the same click-to-load facade as the main video), so a",
+      "clip can sit between paragraphs later. Managed in the admin (INTRO panel).",
+      "",
+      "ornament 'divider' draws the supplied brand divider above the heading. It is",
+      "used here ONCE; the badge is used once on the development log. Neither is",
+      "repeated on every section."
     ],
     "id": "game",
     "type": "intro",
@@ -77,34 +81,28 @@
     "config": {
       "eyebrow": "THE GAME",
       "heading": "ONE LOOP, AFTER DARK",
-      "body": "The Kanjo is a racing game built around a single elevated expressway loop at night — a fictionalised Japanese night circuit, loosely inspired rather than reproduced.\n\nHandling aims at believable vehicle behaviour rather than simulation for its own sake, and the interface stays deliberately minimal: the road, the traffic, and the car."
+      "body": "The Kanjo is a racing game built around a single elevated expressway loop at night — a fictionalised Japanese night circuit, loosely inspired rather than reproduced.\n\nHandling aims at believable vehicle behaviour rather than simulation for its own sake, and the interface stays deliberately minimal: the road, the traffic, and the car.",
+      "ornament": "divider",
+      "blocks": []
     }
   },
   {
     "_comment": [
       "THE LATEST YOUTUBE VIDEO — resolved automatically, not pinned.",
       "",
+      "THERE IS NO VIDEO YET, AND THE BLOCK HIDES ITSELF: fallback 'hide' means that",
+      "without a YOUTUBE_API_KEY (or a pinned video) nothing renders — no empty",
+      "frame, no button pointing at an empty channel. The channel is still in the",
+      "rail. The moment a key is added in Vercel, or a video is pinned in the admin,",
+      "the block appears with no code change and no deploy of its own.",
+      "",
       "mode 'latest' resolves the channel's newest PUBLIC upload server-side:",
       "  @thekanjo -> channels.list(forHandle) -> uploads playlist ->",
       "  playlistItems.list -> newest usable item",
-      "search.list is deliberately NOT used: it costs 100 quota units against 1,",
-      "its ordering is the search index's rather than the channel's, and a fresh",
-      "upload can be missing from it for hours. See lib/youtube/client.ts.",
+      "search.list is deliberately NOT used. See lib/youtube/client.ts.",
       "",
-      "A new upload appears here within one revalidation window (default 15",
-      "minutes, YOUTUBE_REVALIDATE_SECONDS) with NO content edit and NO deploy.",
-      "",
-      "WITHOUT YOUTUBE_API_KEY — the normal state of a fresh clone — the block",
-      "renders its heading and WATCH ON YOUTUBE pointing at the channel. Nothing",
-      "fake is shown. Adding the key in Vercel later makes the video appear with",
-      "no frontend change.",
-      "",
-      "mode 'pinned' + `video` keeps one specific upload on the homepage instead.",
-      "`video` is also the fallback for 'latest' if the API is ever unreachable.",
-      "",
-      "poster is OPTIONAL. Without one the still comes from the API response (or",
-      "YouTube's thumbnail host), fetched by OUR server through next/image — so",
-      "the visitor's browser contacts no Google host until they press PLAY."
+      "mode 'pinned' + `video` keeps one specific upload on the homepage instead,",
+      "and needs no API key at all. Do not invent a video id."
     ],
     "id": "watch",
     "type": "youtube",
@@ -120,7 +118,7 @@
       "description": "",
       "aspectRatio": "16 / 9",
       "ctaLabel": "WATCH ON YOUTUBE",
-      "fallback": "cta"
+      "fallback": "hide"
     }
   },
   {
@@ -190,7 +188,8 @@
       "ctaLabel": "VIEW ON PATREON",
       "fallback": "cta",
       "fallbackDescription": "Development updates, work-in-progress footage and technical write-ups are posted as the build progresses.",
-      "showLockedPosts": true
+      "showLockedPosts": true,
+      "ornament": "badge"
     }
   },
   {

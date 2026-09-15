@@ -190,6 +190,15 @@ function parseSettings(value: unknown, where: string): SiteSettings {
   requireBoolean(chrome.headerOnHome, where, 'content.settings.chrome.headerOnHome')
   requireBoolean(chrome.socialCluster, where, 'content.settings.chrome.socialCluster')
 
+  // The legal pages are routes: a missing body is a 200 with nothing on it, on
+  // the two pages a visitor reads before trusting the site with anything.
+  const legal = requireRecord(settings.legal, where, 'content.settings.legal')
+  for (const key of ['privacy', 'terms'] as const) {
+    const doc = requireRecord(legal[key], where, `content.settings.legal.${key}`)
+    requireString(doc.title, where, `content.settings.legal.${key}.title`)
+    requireString(doc.body, where, `content.settings.legal.${key}.body`)
+  }
+
   return settings as unknown as SiteSettings
 }
 

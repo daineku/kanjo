@@ -52,8 +52,8 @@ html[data-loader='pending'] body {
   margin: 0 0 var(--k-space-md);
 }
 .a-ok {
-  border-left: var(--k-divider-width) solid var(--k-positive);
-  color: var(--k-positive-bright);
+  border-left: var(--k-divider-width) solid var(--k-accent);
+  color: var(--k-accent-bright);
 }
 .a-error {
   border-left: var(--k-divider-width) solid var(--k-accent);
@@ -154,7 +154,7 @@ html[data-loader='pending'] body {
   font-size: var(--k-action-size);
   letter-spacing: var(--k-small-tracking);
   color: var(--k-background);
-  background: var(--k-positive);
+  background: var(--k-accent);
   border: 0;
   border-radius: var(--k-control-radius);
   padding: var(--k-space-sm) var(--k-space-xl);

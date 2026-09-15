@@ -34,6 +34,12 @@
       "genre": [
         "Racing"
       ]
+    },
+    "defaultSocialImage": {
+      "src": "/media/og/og.png",
+      "alt": "The Kanjo — three cars on an elevated expressway at night",
+      "width": 1730,
+      "height": 909
     }
   },
   "nav": [
@@ -99,6 +105,26 @@
       "openInNewTab": true,
       "published": false,
       "order": 5
+    },
+    {
+      "_comment": "No store page exists. url stays empty until one does; the rail drops any channel with an empty url.",
+      "id": "appstore",
+      "platform": "appstore",
+      "label": "APP STORE",
+      "url": "",
+      "openInNewTab": true,
+      "published": false,
+      "order": 6
+    },
+    {
+      "_comment": "No store page exists. url stays empty until one does; the rail drops any channel with an empty url.",
+      "id": "googleplay",
+      "platform": "googleplay",
+      "label": "GOOGLE PLAY",
+      "url": "",
+      "openInNewTab": true,
+      "published": false,
+      "order": 7
     }
   ],
   "status": {
@@ -126,16 +152,37 @@
     "note": "PLACEHOLDER — optional footer note",
     "links": [
       {
-        "label": "UPDATES",
-        "href": "/updates",
+        "label": "PRIVACY",
+        "href": "/privacy",
         "visible": true
       },
       {
-        "label": "STUDIO",
-        "href": "https://daineku.com",
-        "external": true,
+        "label": "TERMS",
+        "href": "/terms",
+        "visible": true
+      },
+      {
+        "label": "UPDATES",
+        "href": "/updates",
         "visible": true
       }
     ]
+  },
+  "legal": {
+    "_comment": [
+      "The two legal pages, as content. Markdown subset — the same renderer as an article, never raw HTML — and editable in the admin (LEGAL panel).",
+      "",
+      "Both are baseline texts covering ONLY what this site actually does. Neither names a legal entity beyond 'Daineku', an address, a jurisdiction, or an analytics/advertising system, because none of those has been supplied and inventing one would be a false statement on the two pages a visitor reads before trusting the site."
+    ],
+    "privacy": {
+      "title": "Privacy",
+      "updatedAt": "2026-09-15",
+      "body": "This page describes what information is processed when you visit thekanjo.com, the website for The Kanjo, a video game in development published by Daineku ([daineku.com](https://daineku.com/)). It covers only what this site actually does.\n\n## What this site is\n\nAn information site about a game in development: a short description, footage, development updates and links to our channels. There are no visitor accounts, no purchases and no forms that ask for personal details.\n\n## Server request data\n\nLike every website, this one is served by a hosting provider that processes the technical data a browser sends with each request — your IP address, browser type, the page requested and the time. That data is used to deliver the pages and to keep the service secure and reliable. It is not used to build a profile of you.\n\n## Cookies and tracking\n\nThe public site sets no cookies of its own and runs no analytics, tracking pixels or advertising systems.\n\nThe administration area used to edit this site is restricted to authorised editors. Signing in to it sets an authentication session cookie; nothing about ordinary visitors is stored there.\n\n## Embedded services\n\nSome parts of the site are provided by third parties, and using them means those parties process data under their own privacy policies:\n\n- **YouTube.** Videos are shown as a still image until you press play. Only then is YouTube's player loaded, through youtube-nocookie.com.\n- **TikTok.** Recent clips are shown through TikTok's official creator embed, which loads as you scroll to it. TikTok may set cookies and collect data when its embed loads.\n- **Patreon.** Development-log entries are read by our server from Patreon's public API and shown here. Viewing this site sends nothing about you to Patreon; following a link to Patreon is governed by Patreon's own policies.\n\n## Images and media\n\nImages on this site may be delivered from Cloudflare's network, which processes request data in order to serve them.\n\n## External links\n\nLinks to other sites — our channels, the publisher's site, stores — lead to services we do not control. Their privacy practices are their own.\n\n## Content editing\n\nThe site's content is stored with a hosting database provider and edited by authorised people at Daineku. It contains no visitor data.\n\n## Changes\n\nThis page will be updated if the site starts doing something it does not do today. The date at the top is the date of the current version.\n\n## Contact\n\nQuestions about this page can be raised through the publisher's site, [daineku.com](https://daineku.com/)."
+    },
+    "terms": {
+      "title": "Terms of Use",
+      "updatedAt": "2026-09-15",
+      "body": "These are the terms on which thekanjo.com, the website for The Kanjo, is made available by its publisher, Daineku ([daineku.com](https://daineku.com/)). By using the site you accept them.\n\n## Use of the site\n\nThe site exists to share information about The Kanjo, a video game currently in development. You may browse it, link to it and share its public pages. You may not misuse it — for example by attempting to access the administration area, interfering with its operation, or reproducing its assets as though they were your own.\n\n## Development information\n\nEverything shown here describes a game that is still being made. Features, mechanics, screenshots, footage, vehicles, locations and interface details may change or be removed before release, and nothing on this site is a commitment that any of them will appear in a finished product.\n\n**No release date, platform, price or store availability is confirmed unless it has been officially announced by Daineku.** Where the site says something is not yet announced, it is not yet announced.\n\n## Intellectual property\n\nThe Kanjo, its name, logos, artwork, screenshots, footage, text and design belong to Daineku and are protected by copyright and trademark law. They are shown here for information. You may share them in the ordinary way — a screenshot in a post, a link to a page — but you may not use them commercially, present them as your own, or use them to suggest an association with Daineku that does not exist.\n\n## Third-party marks and services\n\nYouTube, TikTok, Patreon, Steam and other names and marks that appear on this site belong to their respective owners. Their appearance here indicates where The Kanjo can be found or followed and does not imply any endorsement of, or by, those companies. Content embedded from those services is provided under their own terms.\n\n## External links\n\nThe site links to other websites. Daineku does not control them and is not responsible for their content, availability or practices.\n\n## Availability\n\nThe site is provided as it is. It may be changed, be unavailable for a time, or be withdrawn, without notice. Daineku does not guarantee that it will be uninterrupted or free of errors.\n\n## Changes to these terms\n\nThese terms may be updated. The date at the top is the date of the current version; continued use of the site after a change means acceptance of the updated terms."
+    }
   }
 }

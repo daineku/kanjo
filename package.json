@@ -10,6 +10,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "assets:prepare": "node scripts/prepare-brand-assets.mjs",
     "content:export": "node scripts/export-content.mjs",
     "test:content": "node lib/content/local/parse.test.ts",
     "test:markdown": "node lib/richText.test.ts",

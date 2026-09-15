@@ -26,8 +26,13 @@ import { NavStrip } from './NavStrip'
  *    the game's answer and a better one for a phone than a generic drawer, so
  *    the narrow layout keeps the same strip and lets it scroll.
  *
- * 3. THE ACTIVE ITEM TAKES THE CANON'S SELECTION TREATMENT — the green band and
- *    green left rule — rather than a text-colour swap.
+ * 3. THE ACTIVE ITEM TAKES THE CANON'S SELECTION TREATMENT — the accent band
+ *    and accent left rule, in the site's red — rather than a text-colour swap.
+ *
+ * The header is laid out by `.k-site-header-bar` in globals.css rather than
+ * inline, because on a page that also carries the fixed channel rail the bar
+ * has to start BELOW the rail — see "Keeping the hero clear of the rail" —
+ * and that clearance is content-dependent, so it has to be a stylesheet rule.
  *
  * The header is deliberately NOT sticky. A translucent bar following the
  * visitor down a dark page is the generic-marketing reflex, and the game's menu
@@ -36,24 +41,8 @@ import { NavStrip } from './NavStrip'
 
 export function SiteHeader({ settings }: { settings: SiteSettings }) {
   return (
-    <header
-      style={{
-        borderBottom: 'var(--k-thin-width) solid var(--k-divider)',
-        background: 'var(--k-background)',
-      }}
-    >
-      <div
-        className="k-shell"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 'var(--k-space-lg)',
-          minHeight: 'var(--k-touch-target-min)',
-          paddingBlock: 'var(--k-space-md)',
-          flexWrap: 'wrap',
-        }}
-      >
+    <header className="k-site-header">
+      <div className="k-shell k-site-header-bar">
         <Link
           href="/"
           prefetch={false}

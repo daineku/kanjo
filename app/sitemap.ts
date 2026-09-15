@@ -44,5 +44,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly' as const,
       priority: 0.6,
     })),
+    // The legal pages. `lastModified` is the date the editor states on the
+    // page, for the same reason as above: it should move when the meaning
+    // does, not on every build.
+    ...(['privacy', 'terms'] as const).map((key) => ({
+      url: `${origin}/${key}`,
+      changeFrequency: 'yearly' as const,
+      priority: 0.3,
+      ...(settings.legal[key].updatedAt ? { lastModified: settings.legal[key].updatedAt } : {}),
+    })),
   ]
 }

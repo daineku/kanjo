@@ -1,6 +1,7 @@
 ---
 title: The site, and where its design comes from
 publishedAt: 2026-08-31
+updatedAt: 2026-09-15
 author: Daineku
 tags: [site, design]
 featured: true
@@ -19,8 +20,9 @@ So this site did not need a visual direction. It needed a transcription. Every
 colour, every type size, every duration on this page is a value read out of that
 canon:
 
-- the near-black background, the panel fill at one tenth opacity, and the green
-  used for a selected item
+- the near-black background, the panel fill at one tenth opacity, and the
+  accent red — the site's one selection colour, standing in for the game's
+  green so the web reads as one hue
 - **Big Shoulders Display** for anything in a display role and **Iceland** for
   anything technical, served from the same open-licensed font binaries the game
   bakes its own font assets from
@@ -33,7 +35,7 @@ canon:
 The block that carries a heading and a subtitle here — a band across the top, a
 rule down the left edge, a faint panel behind it — is the same construction the
 game uses for a menu item. Its states are the same too. Normal is the divider
-grey. Selected is green. Hover and keyboard focus share one brighter green,
+grey. Selected is red. Hover and keyboard focus share one brighter red,
 applied *on top of* selection rather than instead of it, so an item you have
 arrowed onto does not stop looking chosen.
 

@@ -71,9 +71,16 @@ revoke all on table public.thekanjo_site from public;
 revoke all on table public.thekanjo_site from anon;
 revoke all on table public.thekanjo_site from authenticated;
 
--- No grant to service_role is needed. It is a superuser-equivalent role in
--- Supabase and bypasses both RLS and table grants; granting to it explicitly
--- would only obscure where the access actually comes from.
+-- The server's access, stated explicitly.
+--
+-- service_role bypasses RLS and holds table privileges by default, so this
+-- grant changes nothing today. It is here so the intended access is WRITTEN
+-- DOWN next to the revokes above — an auditor reading this file sees exactly
+-- which role may do what, and a future `revoke all ... from public` cascade or
+-- default-privilege change cannot silently leave the site unable to read its
+-- own content. No DELETE: the site never deletes the row, so the credential
+-- should not be able to either.
+grant select, insert, update on table public.thekanjo_site to service_role;
 
 -- ============================================================================
 -- updated_at

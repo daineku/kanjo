@@ -55,6 +55,10 @@ function documentWithTitle(title: string) {
       publisher: { name: 'Daineku', url: 'https://daineku.com/' },
       footer: { copyrightHolder: 'Daineku', links: [] },
       chrome: { headerOnReadingPages: true, headerOnHome: false, socialCluster: true },
+      legal: {
+        privacy: { title: 'Privacy', body: 'What is processed.' },
+        terms: { title: 'Terms', body: 'How the site may be used.' },
+      },
     },
     loader: {
       enabled: true,

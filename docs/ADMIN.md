@@ -79,9 +79,13 @@ so.
 | Panel | Covers |
 | --- | --- |
 | **Site identity** | Title, subtitle, canonical origin, status line, SEO title/template/description, default social image, wordmark, which routes get a header, whether the channel cluster renders, **publisher name and URL**, footer holder and note |
-| **Loader** | Enabled, minimum/maximum display, intensity, title reveal, **car A**, **car B**, optional road plate |
-| **Channels** | Per channel: label, platform, URL, order, published, open-in-new-tab, optional icon |
-| **Each section** | Published and order, plus type-specific fields for hero, intro, YouTube, TikTok and Patreon |
+| **Loader** | Enabled, minimum/maximum display, intensity, title reveal, **car A (EG6)**, **car B (EK9)**, optional road plate |
+| **Channels** | Per channel: label, platform, URL, order, published, open-in-new-tab, optional icon. Platforms: TikTok, YouTube, Patreon, Instagram, Discord, Steam, App Store, Google Play (and X, Bluesky, Reddit, other). **A channel with an empty URL is never rendered.** |
+| **Legal** | The `/privacy` and `/terms` pages: title, last-updated date, body. Markdown subset, never HTML. |
+| **Hero** | Title (always the H1), **visible identity — logo artwork or set type**, the logo image, background still, **desktop crop** and **mobile crop** (`object-position`), treatment |
+| **Intro** | Eyebrow, heading, body, and **ordered blocks** — text or a click-to-load YouTube clip — with add, remove and reorder |
+| **YouTube** | Channel, **latest-from-channel or pinned-video mode**, optional caption/description/poster, fallback (hide or CTA). With no video and no key the block hides itself. |
+| **Each other section** | Published and order, plus type-specific fields for TikTok and Patreon |
 
 Every image field takes an **upload** or a typed path. Blocks the V1 page does
 not use (features, status, screenshots, the local-video block, the links panel)

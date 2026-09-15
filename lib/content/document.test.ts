@@ -59,6 +59,10 @@ function valid(): Draft {
       publisher: { name: 'Daineku', url: 'https://daineku.com/' },
       footer: { copyrightHolder: 'Daineku', links: [] },
       chrome: { headerOnReadingPages: true, headerOnHome: false, socialCluster: true },
+      legal: {
+        privacy: { title: 'Privacy', body: 'What is processed.' },
+        terms: { title: 'Terms', body: 'How the site may be used.' },
+      },
     },
     loader: {
       enabled: true,
@@ -143,6 +147,13 @@ test('a missing nested settings field names its full path', () => {
   expectFailure(broken((d) => delete d.settings.chrome.socialCluster), 'content.settings.chrome.socialCluster')
   expectFailure(broken((d) => delete d.settings.publisher.url), 'content.settings.publisher.url')
   expectFailure(broken((d) => delete d.settings.footer.copyrightHolder), 'content.settings.footer.copyrightHolder')
+})
+
+test('a legal page with no body is refused — it is a route', () => {
+  // A missing body would be a 200 with nothing on it, on the two pages a
+  // visitor reads before trusting the site with anything.
+  expectFailure(broken((d) => delete d.settings.legal.privacy.body), 'content.settings.legal.privacy.body')
+  expectFailure(broken((d) => delete d.settings.legal.terms), 'content.settings.legal.terms')
 })
 
 test('a bad social entry names its index', () => {

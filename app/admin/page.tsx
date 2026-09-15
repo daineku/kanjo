@@ -10,7 +10,7 @@ import {
   type Section,
 } from '@/lib/content/types'
 
-import { saveIdentity, saveLoader, saveSection, saveSocial, signOut } from './actions'
+import { saveIdentity, saveLegal, saveLoader, saveSection, saveSocial, signOut } from './actions'
 import { Field, ImageField, Panel, Select, TextArea, Toggle } from './fields'
 
 /**
@@ -297,6 +297,34 @@ export default async function AdminPage({
         ))}
       </Panel>
 
+      <Panel
+        title="LEGAL"
+        action={saveLegal}
+        readOnly={readOnly}
+        note="The /privacy and /terms pages. Markdown subset — headings, paragraphs, lists, links — never HTML. Both must state only what the site actually does."
+      >
+        {(['privacy', 'terms'] as const).map((key) => (
+          <fieldset key={key} className="a-field a-field--wide a-row">
+            <legend className="a-label">/{key}</legend>
+            <div className="a-grid">
+              <Field label="Title" name={`${key}.title`} defaultValue={draft.settings.legal[key].title} />
+              <Field
+                label="Last updated"
+                name={`${key}.updatedAt`}
+                defaultValue={draft.settings.legal[key].updatedAt}
+                hint="YYYY-MM-DD. Change it when the meaning changes, not for a typo."
+              />
+              <TextArea
+                label="Body"
+                name={`${key}.body`}
+                defaultValue={draft.settings.legal[key].body}
+                rows={18}
+              />
+            </div>
+          </fieldset>
+        ))}
+      </Panel>
+
       {draft.sections.map((section) => (
         <SectionPanel key={section.id} section={section} readOnly={readOnly} draft={draft} />
       ))}
@@ -327,7 +355,26 @@ function SectionPanel({
 
       {section.type === 'hero' && (
         <>
-          <Field label="Title" name="title" defaultValue={section.config.title} />
+          <Field
+            label="Title"
+            name="title"
+            defaultValue={section.config.title}
+            hint="Always the page's H1. With the logo identity it is the logo's alt text."
+          />
+          <Select
+            label="Visible identity"
+            name="identity"
+            options={['logo', 'text'] as const}
+            defaultValue={section.config.identity ?? 'logo'}
+            hint="'logo' shows the artwork below; 'text' sets the title in the display face."
+          />
+          <ImageField
+            label="Logo"
+            name="logo"
+            value={section.config.logo}
+            folder="og"
+            hint="Transparent PNG or SVG. Shown at up to 560px wide over the hero."
+          />
           <Field label="Subtitle" name="subtitle" defaultValue={section.config.subtitle} />
           <TextArea
             label="Description"
@@ -355,15 +402,16 @@ function SectionPanel({
             hint="'dim' is the game's own default over live media."
           />
           <Field
-            label="Object position"
+            label="Crop — desktop"
             name="background.objectPosition"
             defaultValue={section.config.background?.objectPosition ?? 'center'}
-            hint="CSS object-position, e.g. 'center 35%'."
+            hint="CSS object-position. 'center 58%' sits the crop slightly low so the road carries the bottom third."
           />
           <Field
-            label="Object position (mobile)"
+            label="Crop — mobile"
             name="background.mobileObjectPosition"
             defaultValue={section.config.background?.mobileObjectPosition ?? 'center'}
+            hint="Below 768px the crop is tall and narrow; '72% 50%' keeps the red car in frame."
           />
           <ImageField
             label="Background still"
@@ -399,6 +447,60 @@ function SectionPanel({
             rows={8}
             hint="Markdown subset. Blank line between paragraphs. Keep it to three at most."
           />
+
+          {/* Ordered blocks after the body. One row per existing block plus one
+              empty row for a new one; order is a number, remove is a box. It
+              saves without JavaScript, like every other panel. */}
+          {[...(section.config.blocks ?? []).map((block, index) => ({ key: String(index), block })), { key: 'new', block: null }].map(
+            ({ key, block }) => (
+              <fieldset key={key} className="a-field a-field--wide a-row">
+                <legend className="a-label">
+                  {block ? `Block ${Number(key) + 1} — ${block.type}` : 'New block'}
+                </legend>
+                <div className="a-grid">
+                  <Select
+                    label="Type"
+                    name={`blocks[${key}].type`}
+                    options={block ? ([block.type] as const) : (['', 'text', 'youtube'] as const)}
+                    defaultValue={block?.type ?? ''}
+                    hint={block ? undefined : "Leave empty to add nothing."}
+                  />
+                  <Field
+                    label="Order"
+                    name={`blocks[${key}].order`}
+                    type="number"
+                    defaultValue={block ? Number(key) : (section.config.blocks?.length ?? 0)}
+                  />
+                  {block && <Toggle label="Remove this block" name={`blocks[${key}].remove`} />}
+                  <TextArea
+                    label="Text (for a text block)"
+                    name={`blocks[${key}].body`}
+                    defaultValue={block?.type === 'text' ? block.body : ''}
+                    rows={4}
+                    hint="Markdown subset."
+                  />
+                  <Field
+                    label="YouTube video (for a video block)"
+                    name={`blocks[${key}].video`}
+                    defaultValue={block?.type === 'youtube' ? block.video : ''}
+                    wide
+                    hint="A bare id or any YouTube URL. Click-to-load, like the main video."
+                  />
+                  <Field
+                    label="Video caption"
+                    name={`blocks[${key}].title`}
+                    defaultValue={block?.type === 'youtube' ? block.title : ''}
+                  />
+                  <Field
+                    label="Aspect ratio"
+                    name={`blocks[${key}].aspectRatio`}
+                    defaultValue={block?.type === 'youtube' ? block.aspectRatio : ''}
+                    hint="Defaults to 16 / 9."
+                  />
+                </div>
+              </fieldset>
+            ),
+          )}
         </>
       )}
 

@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 
 import { real } from '@/lib/content/placeholder'
@@ -48,6 +49,18 @@ export function SiteFooter({ settings }: { settings: SiteSettings }) {
         }}
       >
         <div>
+          {/* The supplied micro-mark, small and at secondary opacity: the
+              footer's signature rather than a second logo. Decorative — the
+              site's name is in the line beneath it. */}
+          <Image
+            className="k-footer-mark"
+            src="/media/brand/micro-mark.png"
+            alt=""
+            width={1785}
+            height={194}
+            sizes="220px"
+            aria-hidden="true"
+          />
           {/* No © glyph. Iceland has U+00A9 but draws it as a hollow square,
               which renders as tofu at 14px; "(C)" is uglier still. The year and
               the holder are what the notice needs. */}

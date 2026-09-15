@@ -44,6 +44,7 @@ export function TikTokSection({
     eyebrow: real(config.eyebrow),
     heading: real(config.heading),
     standfirst: real(config.standfirst),
+    ornament: config.ornament,
   }
 
   const handle = tikTokHandle(config.profileUrl)

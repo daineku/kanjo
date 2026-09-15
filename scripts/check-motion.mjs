@@ -217,6 +217,9 @@ for (const width of WIDTHS) {
   })
   const page = await context.newPage()
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
+  // Sample only once the loader has hydrated and placed its cars: the page
+  // behind it is made inert in the same effect, so that attribute is the cue.
+  await page.waitForSelector('#app-root[inert]', { state: 'attached', timeout: 8000 })
 
   // The cars must never repeat an overtake. Sample across a window longer than
   // one cycle would be; every sample must be the same position.
@@ -244,7 +247,10 @@ for (const width of WIDTHS) {
 
   const title = await page.evaluate(() => {
     const el = document.querySelector('#hero-title')
-    return el ? { text: el.textContent, opacity: getComputedStyle(el).opacity } : null
+    if (!el) return null
+    // The identity is either set type or the logo artwork; both must name the game.
+    const text = el.textContent?.trim() || el.querySelector('img')?.getAttribute('alt') || ''
+    return { text, opacity: getComputedStyle(el).opacity }
   })
   check('reduced: the title is present and opaque', title?.opacity === '1' && !!title?.text, JSON.stringify(title))
   await context.close()

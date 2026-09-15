@@ -3,6 +3,8 @@ import type { CSSProperties } from 'react'
 
 import { HeroVideo } from '@/components/kanjo/HeroVideo'
 import { WedgeCard } from '@/components/kanjo/WedgeCard'
+import { HeroMotion } from '@/components/motion/HeroMotion'
+import { LogoReveal } from '@/components/motion/LogoReveal'
 import { TitleReveal } from '@/components/motion/TitleReveal'
 import { isPlaceholder } from '@/lib/content/placeholder'
 import type { HeroConfig, LinkBlock, LoaderConfig, SiteSettings } from '@/lib/content/types'
@@ -113,7 +115,10 @@ export function HeroSection({
         }
       >
         {background.kind === 'image' && background.image && (
-          <>
+          // The settle-and-parallax island wraps the media only. The image
+          // itself is still a server-rendered, priority next/image — the
+          // island adds motion around it and nothing to how it loads.
+          <HeroMotion waitForLoader={loader.enabled}>
             <Image
               className={background.mobileImage ? 'k-hero-img k-hero-img--desktop' : 'k-hero-img'}
               src={background.image.src}
@@ -121,6 +126,10 @@ export function HeroSection({
               fill
               priority
               sizes="100vw"
+              // The source is 6336px wide. Asking the optimizer for a good
+              // quality at the largest device width keeps the tail lights
+              // clean; below that the default is fine.
+              quality={82}
             />
             {background.mobileImage && (
               <Image
@@ -132,7 +141,7 @@ export function HeroSection({
                 sizes="100vw"
               />
             )}
-          </>
+          </HeroMotion>
         )}
 
         {background.kind === 'video' && videoSources.length > 0 && (
@@ -192,7 +201,7 @@ export function HeroSection({
           <div style={{ maxWidth: 'var(--k-content)' }}>
             {status && (
               <p className="k-hero-status k-reveal">
-                <span className="k-small" style={{ color: 'var(--k-positive)' }}>
+                <span className="k-small" style={{ color: 'var(--k-accent)' }}>
                   {status}
                 </span>
                 {statusNote && (
@@ -203,16 +212,28 @@ export function HeroSection({
               </p>
             )}
 
-            {/* The identity moment. A string, split into words in JavaScript —
-                never parsed as HTML, unlike the reference implementation this
-                effect is adapted from. */}
-            <TitleReveal
-              id="hero-title"
-              className="k-hero-title"
-              text={config.title}
-              waitForLoader={loader.enabled}
-              enabled={loader.titleRevealEnabled}
-            />
+            {/* THE IDENTITY MOMENT, and always an H1 that reads "THE KANJO".
+                With the supplied logo the H1 wraps the image and the name is
+                its alt text; with set type it is the word-by-word reveal. A
+                string in both cases — never parsed as HTML, unlike the
+                reference implementation this effect is adapted from. */}
+            {config.identity === 'logo' && config.logo ? (
+              <LogoReveal
+                id="hero-title"
+                logo={config.logo}
+                title={config.title}
+                waitForLoader={loader.enabled}
+                enabled={loader.titleRevealEnabled}
+              />
+            ) : (
+              <TitleReveal
+                id="hero-title"
+                className="k-hero-title"
+                text={config.title}
+                waitForLoader={loader.enabled}
+                enabled={loader.titleRevealEnabled}
+              />
+            )}
 
             {subtitle && (
               <p

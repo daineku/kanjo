@@ -199,7 +199,7 @@ export function VideoEmbed({
               padding: 'var(--k-space-sm) var(--k-space-lg)',
               color: 'var(--k-text-primary)',
               background: 'rgb(0 0 3 / 0.72)',
-              borderLeft: 'var(--k-divider-width) solid var(--k-positive)',
+              borderLeft: 'var(--k-divider-width) solid var(--k-accent)',
             }}
           >
             PLAY

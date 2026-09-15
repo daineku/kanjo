@@ -20,9 +20,11 @@ Patreon feed and the latest YouTube video start appearing on their own.
 | Vercel | the existing Daineku **team** | A **separate Project** |
 | Supabase | the existing Daineku **project** | **Separate tables**, prefixed `thekanjo_` |
 | Cloudflare | the existing account | A **separate R2 bucket**, `thekanjo-media` |
-| Google Cloud | any | A YouTube Data API v3 key |
 | Patreon | The Kanjo's creator account | A creator access token |
 | TikTok | — | **Nothing.** No developer credentials are needed. |
+| Google Cloud | — | **Not needed for launch.** There is no YouTube video yet; the block hides itself. A key can be added later without a deploy. |
+| GoDaddy | the existing registrar account | Keeps the registration; nameservers point at Cloudflare |
+| Cloudflare DNS | the existing account | Authoritative DNS for `thekanjo.com` |
 
 **No existing Daineku table is read, written, altered or granted against.**
 
@@ -147,9 +149,11 @@ pointing at a `.vercel.app` address.
 Same account, **new bucket**.
 
 1. **R2 → Create bucket** → name it exactly `thekanjo-media`.
-2. **Settings → Public access**: either
-   - enable the **r2.dev** development subdomain (fine to start), or
-   - connect a custom domain such as `media.thekanjo.com`.
+2. **Settings → Public access** → **Custom Domains → Connect Domain** →
+   `media.thekanjo.com`. Because Cloudflare is the authoritative DNS for
+   `thekanjo.com` (step F), Cloudflare creates the record itself and the domain
+   is live within minutes. (The `r2.dev` development subdomain also works if
+   you need something before DNS is moved.)
 
    Whichever you choose, the resulting **public base URL** is
    `R2_PUBLIC_BASE_URL`. Uploading does not make an object readable — the
@@ -181,9 +185,21 @@ images.
 
 ---
 
-## D. YouTube Data API
+## D. YouTube Data API — LATER, NOT NOW
 
-The homepage shows the channel's **latest public upload**, resolved as:
+**There is no YouTube video yet, and nothing here is needed for launch.** The
+homepage's video block is configured with `fallback: hide`: with no API key and
+no pinned video it renders nothing at all — no empty frame, no button pointing
+at an empty channel. The channel stays in the rail. Skip this section until
+there is an upload to show.
+
+When there is, either of these makes it appear with **no code change and no
+deploy of its own**:
+
+- **Pin a video** in the admin (YOUTUBE panel → mode `pinned` → paste the URL).
+  No API key needed.
+- **Or** add `YOUTUBE_API_KEY` in Vercel and leave mode on `latest`, so the
+  newest public upload is resolved automatically. That resolution is:
 
 ```
 @thekanjo
@@ -254,6 +270,58 @@ The Kanjo-styled cards are ever wanted.
 
 ---
 
+## F. Domain: GoDaddy, Cloudflare DNS, Vercel
+
+The intended arrangement:
+
+```
+GoDaddy     = registrar        (owns the name; nothing else)
+Cloudflare  = authoritative DNS (every record for thekanjo.com lives here)
+Vercel      = website hosting  (thekanjo.com, www.thekanjo.com)
+R2          = media            (media.thekanjo.com)
+```
+
+### F1. Before changing anything: review the existing records
+
+Moving nameservers replaces the ENTIRE zone. In GoDaddy → **DNS**, write down
+every record that exists today — in particular any **MX**, **TXT** (SPF, DKIM,
+DMARC, domain verification) and **CNAME** records. If the domain sends or
+receives email, those records must be recreated in Cloudflare BEFORE the
+nameservers are switched, or mail stops.
+
+### F2. Add the site to Cloudflare
+
+1. Cloudflare dashboard → **Add a site** → `thekanjo.com` → the Free plan is
+   sufficient.
+2. Cloudflare scans and imports existing records. **Check the import against
+   your list from F1** and add anything it missed.
+3. Cloudflare shows **two nameservers assigned to this zone.** They are specific
+   to the account — copy them from the screen. (They are deliberately not
+   written here: guessing them is how a domain ends up pointed at nothing.)
+
+### F3. Point GoDaddy at Cloudflare
+
+GoDaddy → the domain → **Nameservers → Change → Enter my own nameservers** →
+paste the two Cloudflare nameservers → save. Propagation takes minutes to a
+few hours; Cloudflare emails when the zone is active.
+
+### F4. Records for the site and the media
+
+In Cloudflare → **DNS → Records**, add exactly what each service tells you:
+
+| Host | Purpose | Where the value comes from |
+|---|---|---|
+| `thekanjo.com` (apex) | the website | Vercel → Project → Settings → Domains, after adding the domain in G. Vercel shows the exact A/ALIAS or CNAME value. **Use that, not a value from memory.** |
+| `www` | redirects to the apex | Same screen. Vercel provides the CNAME. |
+| `media` | R2 public bucket | Created by Cloudflare itself in C2 when you connect the custom domain. |
+
+Set the Vercel records' proxy status to **DNS only** (grey cloud) — Vercel
+terminates TLS for the site itself, and proxying it through Cloudflare adds a
+second layer that complicates certificates for no benefit here. The `media`
+record can stay proxied (orange), which is R2's normal mode.
+
+---
+
 ## G. Vercel
 
 Same Daineku **team**, **new Project**.
@@ -280,16 +348,28 @@ Same Daineku **team**, **new Project**.
 | `R2_SECRET_ACCESS_KEY` | from C |
 | `R2_BUCKET_NAME` | `thekanjo-media` |
 | `R2_PUBLIC_BASE_URL` | from C2 |
-| `PATREON_ACCESS_TOKEN` | from E |
-| `YOUTUBE_API_KEY` | from D |
+| `PATREON_ACCESS_TOKEN` | from E — a **newly issued** token, not one that has been shared anywhere else |
 
-Optional: `PATREON_CAMPAIGN_ID`, `PATREON_REVALIDATE_SECONDS`,
+That is the complete Production list. `YOUTUBE_API_KEY` is deliberately
+absent — see D. Optional: `PATREON_CAMPAIGN_ID`, `PATREON_REVALIDATE_SECONDS`,
 `YOUTUBE_REVALIDATE_SECONDS`.
 
-### Preview
+### Preview — do NOT copy the production secrets by default
 
-Give Preview the **same** variables. Two things happen automatically and need
-no setting:
+A preview build points at whatever it is given. The safe default is to give
+Preview only the non-privileged variables:
+
+| Variable | Preview value |
+|---|---|
+| `CONTENT_SOURCE` | `local` — previews render the repository's own `content/` |
+| `MEDIA_STORE` | `local` |
+| `NEXT_PUBLIC_SITE_URL` | leave unset; the build derives its own `.vercel.app` origin |
+
+With that, a preview has **no** database credential, **no** R2 credential and
+**no** Patreon token, so a pull request cannot read or change anything in
+production. If a specific preview genuinely needs live content, add the
+`SUPABASE_*` read variables to that deployment only. Two things then happen
+automatically and need no setting:
 
 - **Preview cannot write.** `adminWritesAllowed()` reads `VERCEL_ENV`, which
   Vercel sets itself, so a pull-request preview reads production content and
@@ -301,11 +381,14 @@ no setting:
 ### Deploy, then the domain
 
 4. **Deploy.**
-5. **Settings → Domains** → add `thekanjo.com` (and `www`, redirecting to the
-   apex). Follow Vercel's DNS instructions at the registrar.
-6. Re-check that `NEXT_PUBLIC_SITE_URL` matches the final domain — it is what
-   canonical URLs, `robots.txt`, `sitemap.xml` and OpenGraph images are built
-   from.
+5. **Settings → Domains** → add **`thekanjo.com`** and **`www.thekanjo.com`**.
+   For `www`, choose **Redirect to `thekanjo.com`** (308). `thekanjo.com` is
+   the canonical host — it is what `NEXT_PUBLIC_SITE_URL` says, and every
+   canonical URL, the sitemap and the OpenGraph tags are built from it.
+6. Vercel now shows the exact DNS record for each host. Create those records in
+   Cloudflare (F4). Use Vercel's values verbatim.
+7. Wait for Vercel to show both domains as **Valid Configuration**; certificates
+   are issued automatically.
 
 ---
 
@@ -314,7 +397,9 @@ no setting:
 | Check | Where | Expected |
 |---|---|---|
 | Content comes from Supabase | homepage | It renders. If the row is missing or malformed the build fails with a message naming the exact path — it does not render an empty site. |
-| YouTube is live | homepage | The latest upload's title and thumbnail, not `WATCH ON YOUTUBE`. |
+| The video block is hidden | homepage | No video section at all (there is no video yet). It appears the moment one is pinned or a key is added. |
+| The legal pages render | `/privacy`, `/terms` | Both load, styled like the site, with the footer's PRIVACY / TERMS links pointing at them. |
+| The theme is red | any page | Selection, hover, focus rings and the rail are red. Nothing green anywhere. |
 | Patreon is live | homepage | Post titles and dates, not just `VIEW ON PATREON`. |
 | TikTok | homepage | The creator block. If it is blocked in your region you see `FOLLOW ON TIKTOK`, which is correct. |
 | Admin | `/admin` | Redirects to `/admin/login`; a magic link to an allowlisted address signs you in; a link to any other address is refused and the session is dropped. |

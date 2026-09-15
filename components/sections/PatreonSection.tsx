@@ -30,7 +30,7 @@ import { formatDate } from '@/lib/format'
  * ── MOTION ──────────────────────────────────────────────────────────────────
  *
  * Rows reveal on scroll with a small stagger, once. The hover treatment is the
- * canon's selection rule moving to green — CSS only, no pointer tracking, no
+ * canon's selection rule moving to red — CSS only, no pointer tracking, no
  * tilt — and it carries no information a touch visitor would miss: the date,
  * the state and the excerpt are all on screen without hovering anything.
  */
@@ -48,6 +48,7 @@ export function PatreonSection({
     eyebrow: real(config.eyebrow),
     heading: real(config.heading),
     standfirst: real(config.standfirst),
+    ornament: config.ornament,
   }
 
   const campaignUrl = config.campaignUrl.trim()

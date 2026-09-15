@@ -1,5 +1,17 @@
 # Design: where every value comes from
 
+> ## Colour — a deliberate departure, recorded
+>
+> The canon's `colors.json` carries a green "positive" pair (`#34C759` /
+> `#7DFF68`) that the game uses for selection, and the first web build used it
+> for selection, hover, focus and the channel rail. **The owner rejected green
+> for the web.** Every one of those states now sits on the canon's accent red
+> (`#E84A4A`) and four derived steps — `--k-accent-bright`, `--k-accent-deep`,
+> `--k-accent-glow`, `--k-accent-tint` — one hue varied only in brightness and
+> alpha. The green values no longer appear anywhere in the public site. Where
+> this document below cites the positive green, read the accent red.
+
+
 The Kanjo already has a design language. It lives in the game repository as a
 canon — token files, component specs, layout rules, font sources and a
 validator. So this site was **transcribed**, not designed.

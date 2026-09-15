@@ -2,6 +2,8 @@ import type { ReactNode } from 'react'
 
 import type { SectionHeader } from '@/lib/content/types'
 
+import { Ornament } from './Ornament'
+
 /**
  * The one section wrapper, and the one section heading treatment.
  *
@@ -50,10 +52,11 @@ export function Section({
     >
       <div className="k-shell">
         <div className={width === 'reading' ? 'k-reading' : undefined}>
+          {header?.ornament && <Ornament kind={header.ornament} />}
           {(header?.eyebrow || header?.heading || header?.standfirst) && (
             <header style={{ marginBottom: 'clamp(28px, 3vw, 48px)' }}>
               {header.eyebrow && (
-                <p className="k-small" style={{ color: 'var(--k-positive)' }}>
+                <p className="k-small" style={{ color: 'var(--k-accent)' }}>
                   {header.eyebrow}
                 </p>
               )}

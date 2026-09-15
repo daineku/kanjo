@@ -49,6 +49,8 @@ export const SOCIAL_PLATFORMS = [
   'x',
   'bluesky',
   'reddit',
+  'appstore',
+  'googleplay',
   'other',
 ] as const
 
@@ -92,7 +94,7 @@ export type GameStatus = {
   label: string
   /** One line under the label. Optional. */
   detail?: string
-  /** Draws the label in the canon's positive green rather than secondary text. */
+  /** Draws the label in the theme's accent red rather than secondary text. */
   emphasis?: boolean
 }
 
@@ -164,6 +166,26 @@ export type ChromeSettings = {
   socialCluster: boolean
 }
 
+/**
+ * One legal page, as editable content.
+ *
+ * `body` is the same Markdown subset every article and the intro use, rendered
+ * by lib/richText.tsx — never raw HTML, so the admin cannot introduce markup
+ * or script into a page. `updatedAt` is stated by the editor, not derived,
+ * because "last updated" on a legal page is a claim that should be deliberate.
+ */
+export type LegalDocument = {
+  title: string
+  /** ISO date, e.g. '2026-09-15'. Rendered as "Last updated". */
+  updatedAt?: string
+  body: string
+}
+
+export type LegalSettings = {
+  privacy: LegalDocument
+  terms: LegalDocument
+}
+
 export type SiteSettings = {
   title: string
   subtitle?: string
@@ -178,6 +200,7 @@ export type SiteSettings = {
   publisher: PublisherSettings
   footer: FooterSettings
   chrome: ChromeSettings
+  legal: LegalSettings
 }
 
 // ── Loader ───────────────────────────────────────────────────────────────────
@@ -437,6 +460,12 @@ export type SectionType = (typeof SECTION_TYPES)[number]
 
 /** Copy every section may carry. A missing heading renders no heading. */
 export type SectionHeader = {
+  /**
+   * One of the two supplied brand ornaments, drawn above the header.
+   * Content decides where; the intent is ONCE each on the page, not on every
+   * section — a decorative rule repeated six times stops being decoration.
+   */
+  ornament?: 'divider' | 'badge'
   /** Small uppercase label above the heading, in the canon's smallLabel role. */
   eyebrow?: string
   heading?: string
@@ -447,7 +476,17 @@ export type SectionHeader = {
 export type HeroConfig = {
   /** Status chip above the title. 'status' pulls from SiteSettings.status. */
   eyebrow?: string | 'status'
+  /**
+   * The site's name. ALWAYS the accessible H1: with `identity: 'logo'` it is
+   * the logo's alt text, with `identity: 'text'` it is set in the display face.
+   * Either way a screen reader and a crawler get "THE KANJO" as the page's
+   * heading.
+   */
   title: string
+  /** Whether the visible identity is the supplied logo artwork or set type. */
+  identity?: 'logo' | 'text'
+  /** The logo, for `identity: 'logo'`. Falls back to text when absent. */
+  logo?: ImageRef
   subtitle?: string
   description?: string
   /**
@@ -509,9 +548,37 @@ export type HeroConfig = {
   platformNote?: string
 }
 
+/**
+ * One block in the information section.
+ *
+ * Ordered, typed, and deliberately small: text or a video. A `youtube` block is
+ * the same click-to-load facade the main video section uses, so a paragraph
+ * can be followed by a clip and another paragraph without the section becoming
+ * a page builder.
+ */
+export type IntroBlock =
+  | {
+      type: 'text'
+      /** Markdown subset, same renderer as an article body. */
+      body: string
+    }
+  | {
+      type: 'youtube'
+      /** A bare id or any YouTube URL; reduced to the id on the server. */
+      video: string
+      title?: string
+      /** CSS aspect-ratio. Defaults to '16 / 9'. */
+      aspectRatio?: string
+    }
+
 export type IntroConfig = SectionHeader & {
-  /** Markdown subset, same renderer as an article body. */
+  /**
+   * Markdown subset, same renderer as an article body. Rendered BEFORE
+   * `blocks`, and kept so existing content and the simple case stay simple.
+   */
   body: string
+  /** Optional ordered blocks rendered after `body`. */
+  blocks?: IntroBlock[]
 }
 
 export type VideoConfig = SectionHeader & {

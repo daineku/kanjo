@@ -74,7 +74,7 @@ export default async function ArticlePage({ params }: Props) {
             <header
               style={{
                 marginTop: 'var(--k-space-lg)',
-                borderLeft: 'var(--k-divider-width) solid var(--k-positive)',
+                borderLeft: 'var(--k-divider-width) solid var(--k-accent)',
                 paddingLeft: 'clamp(16px, 2vw, 24px)',
               }}
             >
@@ -156,7 +156,7 @@ export default async function ArticlePage({ params }: Props) {
                   href={article.externalSource.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ color: 'var(--k-positive-bright)' }}
+                  style={{ color: 'var(--k-accent-bright)' }}
                 >
                   {article.externalSource.label}
                 </a>

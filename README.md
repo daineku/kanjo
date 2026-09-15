@@ -7,10 +7,11 @@ interpretation: every colour, type size, spacing value and transition duration
 is transcribed from the game's UI canon and cited to its source file. See
 [docs/DESIGN.md](docs/DESIGN.md).
 
-**The homepage is a title screen, not a landing page.** A loader of two cars
-trading position on a night highway, THE KANJO, one paragraph about the project,
-one video, the development log, and a persistent channel rail at the upper-left
-edge. That is the whole of it, deliberately — see [docs/MOTION.md](docs/MOTION.md)
+**The homepage is a title screen, not a landing page.** A loader of two cars —
+the EG6 and the EK9 — trading position on a night highway, the supplied logo
+over the approved hero frame, one paragraph about the project, recent TikTok
+clips, the Patreon development log, and a persistent channel rail at the
+upper-left edge. The theme is near-black, graphite, white and **red**. That is the whole of it, deliberately — see [docs/MOTION.md](docs/MOTION.md)
 for the motion architecture and `content/sections.json` for the composition.
 
 ## Run it
@@ -79,7 +80,7 @@ All optional. The site works with none of them.
 | `MEDIA_STORE` | `local` | `local` writes `public/media/`; `r2` writes the `thekanjo-media` bucket. |
 | `ADMIN_ENABLED` | unset | `true` enables the LOCAL file-backed admin in development. It cannot be enabled on a deployment. |
 | `THEKANJO_ADMIN_EMAILS` | unset | Who may administer the site in production. An empty list authorises nobody. |
-| `YOUTUBE_API_KEY` | unset | Data API v3 key. Without it the video block shows a link to the channel. **Never `NEXT_PUBLIC_`.** |
+| `YOUTUBE_API_KEY` | unset | **Optional, not part of the launch configuration.** With no key and no pinned video the video block hides itself; a pinned video needs no key at all. **Never `NEXT_PUBLIC_`.** |
 | `PATREON_ACCESS_TOKEN` | unset | Creator token, scope `campaigns.posts`. Without it the Patreon block shows its copy and a CTA. **Never `NEXT_PUBLIC_`.** See [docs/PATREON.md](docs/PATREON.md). |
 | `PATREON_CAMPAIGN_ID` | discovered | Skips a lookup. Only needed with more than one campaign. |
 | `PATREON_REVALIDATE_SECONDS` | `3600` | How long a fetched feed is reused. |

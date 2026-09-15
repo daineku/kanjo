@@ -199,7 +199,7 @@ version *did* hang, on an image line with a refused `src`.
 - Semantic landmarks; one `h1` per page; `h2`/`h3` only below it.
 - A skip link as the first tab stop.
 - Focus is visible and keyboard-only, drawn in the canon's own
-  `positiveBright` green so it reads as the game's focus treatment.
+  `--k-accent-bright` red so it reads as the game's focus treatment.
 - No hover-only content. Selection state is conveyed by the band *and* the left
   rule, not by colour alone.
 - Alt text is required by the type and defaults to `''` rather than to invented

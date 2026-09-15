@@ -25,9 +25,9 @@ export default function NotFound() {
           href="/"
           prefetch={false}
           style={{
-            color: 'var(--k-positive-bright)',
+            color: 'var(--k-accent-bright)',
             textDecoration: 'none',
-            borderLeft: 'var(--k-divider-width) solid var(--k-positive)',
+            borderLeft: 'var(--k-divider-width) solid var(--k-accent)',
             paddingLeft: 'var(--k-space-md)',
           }}
         >

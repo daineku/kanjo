@@ -13,6 +13,7 @@ import {
 import { resolveContentStore } from '@/lib/content/store'
 import type {
   ImageRef,
+  IntroBlock,
   LoaderConfig,
   LoaderIntensity,
   Section,
@@ -21,6 +22,7 @@ import type {
   SocialPlatform,
 } from '@/lib/content/types'
 import { LOADER_INTENSITIES, SOCIAL_PLATFORMS } from '@/lib/content/types'
+import { youTubeId } from '@/lib/media'
 import { tikTokHandle } from '@/lib/tiktok/profile'
 import { youTubeHandle } from '@/lib/youtube/channel'
 
@@ -367,6 +369,97 @@ export async function saveSocial(form: FormData): Promise<void> {
   done(message)
 }
 
+// ── Legal pages ──────────────────────────────────────────────────────────────
+
+export async function saveLegal(form: FormData): Promise<void> {
+  let message: string
+  try {
+    await requireAdmin()
+    const store = await resolveContentStore()
+    const { settings } = await store.loadDraft()
+
+    const read = (key: 'privacy' | 'terms') => {
+      const body = text(form, `${key}.body`)
+      if (!body) {
+        // An empty legal page is a live route with nothing on it. Refuse it
+        // here, with the field named, rather than at render time.
+        throw new Error(`The ${key} page needs a body. It is a public route.`)
+      }
+      const updatedAt = str(form, `${key}.updatedAt`)
+      if (updatedAt && !/^\d{4}-\d{2}-\d{2}$/.test(updatedAt)) {
+        throw new Error(`"${updatedAt}" is not a date. Use YYYY-MM-DD for the ${key} page.`)
+      }
+      return {
+        title: str(form, `${key}.title`, settings.legal[key].title),
+        updatedAt: updatedAt || undefined,
+        body,
+      }
+    }
+
+    await store.saveSiteSettings({
+      ...settings,
+      legal: { privacy: read('privacy'), terms: read('terms') },
+    })
+    message = 'Legal pages saved.'
+  } catch (error) {
+    failed(error)
+  }
+  done(message)
+}
+
+/**
+ * The information section's ordered blocks, from a no-JavaScript form.
+ *
+ * Each existing block posts as `blocks[<i>].*`; one extra row posts as
+ * `blocks[new].*` and is only kept if a type was chosen. `remove` drops a
+ * block, `order` reorders — integers, and ties keep the form's order. No
+ * client state, no drag handles, and nothing that needs JavaScript to save.
+ */
+function readIntroBlocks(form: FormData, current: IntroBlock[]): IntroBlock[] {
+  const keys = new Set<string>()
+  for (const key of form.keys()) {
+    const match = /^blocks\[(\w+)\]\./.exec(key)
+    if (match?.[1]) keys.add(match[1])
+  }
+
+  const rows: { order: number; index: number; block: IntroBlock }[] = []
+  let index = 0
+  for (const key of keys) {
+    const prefix = `blocks[${key}]`
+    if (bool(form, `${prefix}.remove`)) continue
+
+    const type = oneOf(form, `${prefix}.type`, ['text', 'youtube', ''] as const, '')
+    if (!type) continue // the empty "new block" row, left untouched
+
+    const order = num(form, `${prefix}.order`, index, 0, 999)
+    let block: IntroBlock
+    if (type === 'text') {
+      const body = text(form, `${prefix}.body`)
+      if (!body) continue
+      block = { type: 'text', body }
+    } else {
+      const video = str(form, `${prefix}.video`)
+      if (!video) continue
+      if (!youTubeId(video)) {
+        throw new Error(`Block ${key}: "${video}" is not a YouTube id or URL.`)
+      }
+      block = {
+        type: 'youtube',
+        video,
+        title: optional(form, `${prefix}.title`),
+        aspectRatio: optional(form, `${prefix}.aspectRatio`),
+      }
+    }
+    rows.push({ order, index, block })
+    index += 1
+  }
+
+  // Nothing posted at all (an older form) keeps what was there.
+  if (keys.size === 0) return current
+
+  return rows.sort((a, b) => a.order - b.order || a.index - b.index).map((row) => row.block)
+}
+
 // ── Sections ─────────────────────────────────────────────────────────────────
 
 /**
@@ -406,6 +499,8 @@ export async function saveSection(form: FormData): Promise<void> {
           config: {
             ...current.config,
             title: str(form, 'title', current.config.title),
+            identity: oneOf(form, 'identity', ['logo', 'text'] as const, current.config.identity ?? 'logo'),
+            logo: await imageField(form, 'logo', 'og', current.config.logo),
             subtitle: optional(form, 'subtitle'),
             description: optional(form, 'description'),
             platformNote: optional(form, 'platformNote'),
@@ -444,6 +539,7 @@ export async function saveSection(form: FormData): Promise<void> {
             eyebrow: optional(form, 'eyebrow'),
             heading: optional(form, 'heading'),
             body: text(form, 'body'),
+            blocks: readIntroBlocks(form, current.config.blocks ?? []),
           },
         }
         break

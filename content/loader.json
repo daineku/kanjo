@@ -2,29 +2,29 @@
   "_README": [
     "THE KANJO LOADER — two cars trading position on a night highway.",
     "",
-    "THE VEHICLE ART SHIPPING HERE IS TEMPORARY AND NEUTRAL. car-a.svg and",
-    "car-b.svg are unbranded silhouettes: no badge, no grille, no real car. They",
-    "exist so the choreography has something to move. Replacing them is a change",
-    "to this file and nothing else — drop the final art in public/media/loader/",
-    "and point carA/carB at it. Width and height are the art's INTRINSIC pixel",
-    "size and are what stop the loader from reflowing as the images decode.",
+    "THE VEHICLES ARE THE OWNER'S FINAL ART. carA is the EG6 (near lane), carB is",
+    "the EK9 (far lane, the one that closes and overtakes first). Both are derived",
+    "from IMAGES/ by `npm run assets:prepare`: trimmed to their opaque bounds so",
+    "the bottom edge of each image IS its wheel line, which is what the lane",
+    "markers are positioned against. Width and height are the trimmed pixel sizes",
+    "and are what stop the loader reflowing as the images decode.",
     "",
-    "TIMING. minimumDisplayMs is a floor so a warm cache does not turn the",
-    "entrance into a flicker; one full overtake takes about 3s, so ~2200 shows a",
-    "complete trade of position. maximumDisplayMs is the ESCAPE PATH: past it",
-    "the site opens whatever is still loading. The maximum always wins if the two",
-    "are ever set to disagree.",
+    "The road, the lane markers and the light accents are drawn in CSS. Nothing is",
+    "baked into the car images, so they can be swapped without touching the",
+    "highway.",
+    "",
+    "TIMING. minimumDisplayMs is a floor so a warm cache does not turn the entrance",
+    "into a flicker; one full overtake takes about 3s, so ~2200 shows a complete",
+    "trade of position. maximumDisplayMs is the ESCAPE PATH: past it the site opens",
+    "whatever is still loading. The maximum always wins if the two disagree.",
     "",
     "WHAT 'READY' MEANS: hydration plus the display font. NOT every asset on the",
-    "page — a loader that waits for the hero video is a loader a slow connection",
+    "page — a loader that waits for the hero image is a loader a slow connection",
     "can hold open for a minute.",
     "",
     "intensity: 'low' | 'medium' | 'high'. A phone automatically runs one step",
     "below whatever is set here, and prefers-reduced-motion replaces the whole",
-    "sequence with a still frame and a short fade.",
-    "",
-    "road: optional. A painted plate behind the generated surface. Omitted, the",
-    "highway is drawn from CSS alone and costs no request at all."
+    "sequence with a still frame and a short fade."
   ],
   "enabled": true,
   "minimumDisplayMs": 2200,
@@ -32,15 +32,15 @@
   "intensity": "medium",
   "titleRevealEnabled": true,
   "carA": {
-    "src": "/media/loader/car-a.svg",
+    "src": "/media/loader/car-a.png",
     "alt": "",
-    "width": 200,
-    "height": 80
+    "width": 1798,
+    "height": 556
   },
   "carB": {
-    "src": "/media/loader/car-b.svg",
+    "src": "/media/loader/car-b.png",
     "alt": "",
-    "width": 200,
-    "height": 80
+    "width": 1835,
+    "height": 594
   }
 }
