@@ -71,15 +71,14 @@ revoke all on table public.thekanjo_site from public;
 revoke all on table public.thekanjo_site from anon;
 revoke all on table public.thekanjo_site from authenticated;
 
--- The server's access, stated explicitly.
---
--- service_role bypasses RLS and holds table privileges by default, so this
--- grant changes nothing today. It is here so the intended access is WRITTEN
--- DOWN next to the revokes above — an auditor reading this file sees exactly
--- which role may do what, and a future `revoke all ... from public` cascade or
--- default-privilege change cannot silently leave the site unable to read its
--- own content. No DELETE: the site never deletes the row, so the credential
--- should not be able to either.
+-- Supabase grants the service role a broad default privilege set on tables.
+-- Reset that default explicitly before granting the exact permissions this
+-- site needs; otherwise DELETE / TRUNCATE / REFERENCES / TRIGGER can survive
+-- even though the migration below appears to grant only three operations.
+revoke all on table public.thekanjo_site from service_role;
+
+-- The server's access, stated explicitly. No DELETE: the site never deletes
+-- the canonical row, so the credential should not be able to either.
 grant select, insert, update on table public.thekanjo_site to service_role;
 
 -- ============================================================================
