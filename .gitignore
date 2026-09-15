@@ -11,3 +11,9 @@ npm-debug.log*
 next-env.d.ts
 /.vercel
 /tsconfig.tsbuildinfo
+
+# The DESTRUCTIVE repository-to-database reset, generated only by
+# `npm run content:export -- --sql --force`. Never committed: a file in the
+# repository named like the seed is a file somebody will eventually paste into
+# a SQL editor by mistake, and this one replaces the live site content.
+supabase/seed/*.reset.sql

@@ -5,6 +5,13 @@ import { cookies } from 'next/headers'
 
 import { adminWriteBlockedReason, adminWritesAllowed, deploymentMode } from '@/lib/runtime/mode'
 
+import {
+  authRedirectOrigin as authRedirectOriginFromEnv,
+  isAllowlistedEmail as isAllowlistedEmailFor,
+  parseAdminEmails,
+  type OriginEnv,
+} from './policy'
+
 /**
  * Who may administer this site, and what they may do.
  *
@@ -52,33 +59,38 @@ export class AdminAuthError extends Error {
 }
 
 /**
- * The allowlist, normalised.
+ * The allowlist, bound to this process's environment.
  *
- * Comma-separated, case-insensitive, whitespace-tolerant — because it is typed
- * into a Vercel environment variable field by a human, and `A@b.com , c@d.com`
- * should work.
+ * The RULE lives in ./policy as a pure function and is tested there directly —
+ * this is only the part that reads `process.env`. An authorisation rule that
+ * tests can only re-implement is an authorisation rule nobody is really
+ * testing.
  */
 export function adminEmails(): string[] {
-  return (process.env.THEKANJO_ADMIN_EMAILS ?? '')
-    .split(',')
-    .map((entry) => entry.trim().toLowerCase())
-    .filter((entry) => entry !== '')
+  return parseAdminEmails(process.env.THEKANJO_ADMIN_EMAILS)
+}
+
+export function isAllowlistedEmail(email: string | null | undefined): boolean {
+  return isAllowlistedEmailFor(process.env.THEKANJO_ADMIN_EMAILS, email)
 }
 
 /**
- * Tested in lib/infra.test.ts, where this rule is re-stated rather than
- * imported — this module loads `server-only`, which throws outside a request.
- * If you change the rule here, change it there.
+ * Where a magic link must come back to.
+ *
+ * Deliberately NOT derived from the request's Host headers — see
+ * ./policy.ts#authRedirectOrigin for why that is an auth-link poisoning
+ * primitive, and what is used instead.
  */
-export function isAllowlistedEmail(email: string | null | undefined): boolean {
-  if (!email) return false
-  const allowed = adminEmails()
-  // An EMPTY allowlist authorises NOBODY. The tempting alternative — "no list
-  // configured means allow anyone" — turns a forgotten environment variable
-  // into an open admin, which is the exact failure this function exists to
-  // prevent.
-  if (allowed.length === 0) return false
-  return allowed.includes(email.trim().toLowerCase())
+export function magicLinkOrigin(): string {
+  const origin = authRedirectOriginFromEnv(process.env as OriginEnv)
+  if (!origin) {
+    throw new AdminAuthError(
+      'unconfigured',
+      'NEXT_PUBLIC_SITE_URL must be set on a production deployment — it is where the ' +
+        'sign-in link comes back to, and it is deliberately not taken from the request.',
+    )
+  }
+  return origin
 }
 
 /**

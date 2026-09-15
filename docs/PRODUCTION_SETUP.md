@@ -59,10 +59,20 @@ it is always exactly what a fresh clone renders.
 The generated statement is committed at `supabase/seed/thekanjo_site.seed.sql`.
 Paste it into the SQL Editor and **Run**.
 
-> If `content/` has changed since that file was generated, regenerate it first:
-> `npm run content:export -- --sql`. The seed only initialises the row — after
-> that, the admin is the source of truth and re-running it would overwrite
-> whatever has been edited since.
+**Seed exactly once, during initial provisioning.** After that the Supabase row
+is authoritative: content is changed through `/admin`, and this file is not a
+way to publish changes.
+
+The statement ends in `on conflict (id) do nothing`, so re-running these setup
+steps against a live database is a **no-op** — it cannot replace content edited
+since launch. That is deliberate: the alternative is a command that looks like
+setup and silently discards months of editing.
+
+> A deliberate repository → database reset is a **different, destructive**
+> operation: `npm run content:export -- --sql --force` writes
+> `thekanjo_site.reset.sql`, which carries a warning banner and is gitignored so
+> it can never be confused with the seed. It replaces the live document. There
+> is no undo.
 
 ### B3. Verify RLS and grants
 
@@ -113,8 +123,22 @@ public by design.
 **Authentication → Providers → Email**: enable it. Magic links are on by
 default; a password is not used.
 
-> A redirect URL that is not on this list is rejected by Supabase, which is
-> what stops the sign-in flow being pointed at someone else's site.
+If you want the authenticated admin to work on **preview** deployments too, add
+a wildcard entry: `https://*.vercel.app/admin/auth/callback`. A preview signs in
+to itself rather than to production, so its links come back to its own
+`.vercel.app` origin.
+
+> A redirect URL that is not on this list is rejected by Supabase, which is what
+> stops the sign-in flow being pointed at someone else's site.
+>
+> That is a second layer, not the only one. The origin a magic link is sent to
+> comes from `NEXT_PUBLIC_SITE_URL` in production — **never** from the request's
+> Host header, which an attacker can choose on a deployment answering to more
+> than one hostname. See `lib/admin/policy.ts`.
+
+**`NEXT_PUBLIC_SITE_URL` is therefore required on production.** Without it the
+admin refuses to send a sign-in link and says so, rather than emailing a link
+pointing at a `.vercel.app` address.
 
 ---
 
@@ -148,10 +172,12 @@ R2_BUCKET_NAME=thekanjo-media
 R2_PUBLIC_BASE_URL
 ```
 
-Also add the public host to `next.config.ts` → `images.remotePatterns` if it is
-not an `r2.dev` domain (`**.r2.dev` is already allowed). That **is** a code
-change, and it is the only one on this page — it is needed because `next/image`
-refuses to optimise a host it has not been told about.
+**No source edit is needed for a custom domain.** `next.config.ts` derives the
+`next/image` remote pattern from `R2_PUBLIC_BASE_URL` at build time, pinned to
+that exact host — so pointing `media.thekanjo.com` at the bucket is an
+environment variable and nothing else. A malformed value fails the build with a
+message naming the variable rather than deploying something that serves broken
+images.
 
 ---
 
@@ -294,13 +320,15 @@ no setting:
 | Admin | `/admin` | Redirects to `/admin/login`; a magic link to an allowlisted address signs you in; a link to any other address is refused and the session is dropped. |
 | Media upload | `/admin` → any image field | The saved `src` is an `R2_PUBLIC_BASE_URL` URL, and the image loads. |
 | Preview is read-only | a preview `/admin` | A `READ ONLY` banner, and saving is refused. |
+| A content edit goes live | `/admin` → change the hero title → save | The homepage shows it immediately. The remote source memoises per REQUEST only, so no process restart is needed. |
+| Two tabs cannot clobber each other | two `/admin` tabs, save in both | The second is refused with "Somebody else saved while this page was open". |
 | Nothing is indexed but production | `/robots.txt` on a preview | `Disallow: /` |
 
 ### Cache behaviour
 
 | Source | Window | How to refresh sooner |
 |---|---|---|
-| Supabase content | per render | An admin save calls `revalidatePath` — it is immediate. |
+| Supabase content | per request | An admin save calls `revalidatePath` — it is immediate. The document is memoised within one render (so twelve sections cost one query) and never across requests, so nothing can serve a stale row. |
 | YouTube latest video | `YOUTUBE_REVALIDATE_SECONDS`, default 900s | Redeploy, or `revalidateTag('youtube')`. |
 | Patreon posts | `PATREON_REVALIDATE_SECONDS`, default 3600s | Redeploy, or `revalidateTag('patreon')`. |
 | TikTok | TikTok's own | Nothing to do — the embed always shows the current profile. |
@@ -325,3 +353,6 @@ Every failure is designed to be a **legible message**, not a blank page.
 | Upload fails: `R2 refused the upload (HTTP 403)` | The API token cannot write to the bucket. |
 | Upload fails: `Could not read the pixel dimensions` | The file is not actually a PNG/JPEG/GIF/WebP/SVG. Rejected on purpose. |
 | `/admin` bounces to login and back | The signed-in address is not in `THEKANJO_ADMIN_EMAILS`. An empty list authorises nobody. |
+| Save fails: `Somebody else saved while this page was open` | Two admin tabs raced. Reload and redo the edit — the guard refused rather than overwriting the other save. |
+| Build fails: `R2_PUBLIC_BASE_URL is not a URL` / `must be https` | The media origin is mistyped. It must be a full `https://` URL. |
+| Magic link never arrives, or points at the wrong site | On production, `NEXT_PUBLIC_SITE_URL` is where the link comes back to, and it is deliberately not taken from the request. It must be set. |

@@ -3,12 +3,11 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
-import { headers } from 'next/headers'
-
 import {
   authClient,
   isAdminAuthConfigured,
   isAllowlistedEmail,
+  magicLinkOrigin,
   requireAdminWrite,
 } from '@/lib/admin/auth'
 import { resolveContentStore } from '@/lib/content/store'
@@ -58,23 +57,6 @@ import { youTubeHandle } from '@/lib/youtube/channel'
  */
 async function requireAdmin(): Promise<void> {
   await requireAdminWrite()
-}
-
-/**
- * The origin this request arrived on.
- *
- * Read from the request rather than from `NEXT_PUBLIC_SITE_URL` because the
- * magic link has to come back to the SAME deployment that sent it — a preview
- * build whose links redirected to production would sign the editor into the
- * wrong site. Falls back to the configured origin for the case where no
- * forwarding headers are present.
- */
-async function currentOrigin(): Promise<string> {
-  const list = await headers()
-  const host = list.get('x-forwarded-host') ?? list.get('host')
-  const protocol = list.get('x-forwarded-proto') ?? 'https'
-  if (host) return `${protocol}://${host}`
-  return (process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000').replace(/\/+$/, '')
 }
 
 // ── FormData readers ─────────────────────────────────────────────────────────
@@ -205,7 +187,10 @@ export async function sendMagicLink(form: FormData): Promise<void> {
   if (email && isAllowlistedEmail(email)) {
     try {
       const supabase = await authClient()
-      const origin = await currentOrigin()
+      // A TRUSTED origin: production's configured site URL, or the deployment's
+      // own Vercel origin on a preview. Never the request's Host header — see
+      // lib/admin/policy.ts#authRedirectOrigin.
+      const origin = magicLinkOrigin()
       await supabase.auth.signInWithOtp({
         email,
         options: {

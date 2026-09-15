@@ -1,96 +1,41 @@
 import 'server-only'
 
 import { isLocalAdminEnabled } from '@/lib/admin/auth'
-import { adminWriteBlockedReason, adminWritesAllowed } from '@/lib/runtime/mode'
 
-import type { LoaderConfig, Section, SiteSettings } from './types'
+import type { ContentStore } from './store.contract'
 
 /**
- * The WRITE side of the content abstraction.
+ * Choosing a content store.
  *
- * `ContentSource` reads; this writes. They are separate interfaces on purpose:
- * every page in the site needs the reader, and exactly one route needs the
- * writer, so putting `saveSiteSettings` on `ContentSource` would put a mutation
- * method on an object that the entire rendering path holds a reference to.
+ * The CONTRACT — the interface, the error, the draft shape — lives in
+ * `./store.contract`, which imports nothing and is safe to load anywhere. This
+ * file is the part that reads the environment and picks a backend, which is
+ * what `server-only` is for.
+ *
+ * Everything from the contract is re-exported here, so
+ * `import { ContentStore } from '@/lib/content/store'` keeps working.
  *
  * ── WHY THE ADAPTER SEAM MATTERS MORE HERE THAN ANYWHERE ELSE ───────────────
  *
  * The brief's requirement is that everything important is editable from an
  * admin, and the warning attached to it is not to let a convenient local
- * persistence choice turn into a bad production architecture. Writing JSON files
- * on disk is exactly such a choice: it is perfect for a single developer on a
- * laptop and wrong the moment the site is deployed, because a serverless
- * filesystem is read-only and ephemeral, and two editors would overwrite each
- * other with no record.
+ * persistence choice turn into a bad production architecture. Writing JSON
+ * files on disk is exactly such a choice: perfect for a single developer on a
+ * laptop, and wrong the moment the site is deployed, because a serverless
+ * filesystem is read-only and ephemeral.
  *
- * So the local file writer is ONE IMPLEMENTATION BEHIND THIS INTERFACE, gated to
- * development, and the admin UI is written against the interface. Moving to a
- * hosted backend is a second implementation of these five methods — the forms,
- * the validation and the routes do not change. See docs/BACKEND_DECISION.md.
- *
- * ── THE SHAPE OF A SAVE ─────────────────────────────────────────────────────
- *
- * Whole documents, not patches. The admin edits one logical document at a time
- * (the settings, the loader, the section list) and writes it back entire, which
- * means there is no merge semantics to get wrong and no partial-update path that
- * could half-apply. The documents are small; this is not a CMS.
+ * So the local file writer is ONE IMPLEMENTATION BEHIND THE INTERFACE, gated to
+ * development, and the admin UI is written against the interface. The Supabase
+ * implementation is a second one; the forms, the validation and the routes did
+ * not change. See docs/BACKEND_DECISION.md.
  */
-export type ContentDraft = {
-  settings: SiteSettings
-  loader: LoaderConfig
-  /** Every section, published or not, in the order the file lists them. */
-  sections: Section[]
-}
 
-export interface ContentStore {
-  /** A label for diagnostics, e.g. 'local-files'. */
-  readonly kind: string
-
-  /**
-   * Whether writes are possible right now. False on a read-only filesystem, in
-   * production, or with the admin switched off — the UI renders read-only
-   * rather than offering a save button that will fail.
-   */
-  readonly writable: boolean
-  /** Why it is not writable. Shown in the admin; never on a public page. */
-  readonly readOnlyReason?: string
-
-  /**
-   * The content as an EDITOR sees it: nothing filtered, nothing sorted.
-   *
-   * `ContentSource` deliberately drops unpublished entries and sorts what
-   * remains, because that is what a page wants. An admin wants the opposite —
-   * the unpublished sections are precisely the ones that need editing, and an
-   * editor reordering a list needs to see the order they set rather than the
-   * order it resolved to. Two different questions, two different methods.
-   */
-  loadDraft(): Promise<ContentDraft>
-
-  saveSiteSettings(settings: SiteSettings): Promise<void>
-  saveLoaderConfig(loader: LoaderConfig): Promise<void>
-  saveSections(sections: Section[]): Promise<void>
-
-  /**
-   * Stores an uploaded image and returns the reference the content should carry.
-   *
-   * Intrinsic dimensions are the store's job because they are a property of the
-   * bytes, not of the form — and because every ImageRef in this codebase
-   * requires them. They are what stops the page shifting as images decode.
-   */
-  saveImage(file: {
-    name: string
-    bytes: Uint8Array
-    /** A subdirectory under the media root, e.g. 'loader' or 'hero'. */
-    folder: string
-  }): Promise<{ src: string; width: number; height: number }>
-}
-
-export class ContentStoreError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'ContentStoreError'
-  }
-}
+export {
+  ContentStoreError,
+  type ContentDraft,
+  type ContentStore,
+  type MediaSaver,
+} from './store.contract'
 
 /**
  * Whether the FILE-BACKED development admin is available.
@@ -117,6 +62,11 @@ let cached: ContentStore | null = null
  * an admin writing to local files while the site reads from Supabase would be
  * an editor whose saves appear to succeed and change nothing. One setting, one
  * backend, both directions.
+ *
+ * Caching the STORE INSTANCE is safe in a way that caching a loaded document
+ * was not: the stores below hold no content, only a client provider and a
+ * writable flag, and every save re-reads. See lib/content/remote/source.ts for
+ * the bug that distinction exists to prevent.
  */
 export async function resolveContentStore(): Promise<ContentStore> {
   if (cached) return cached
@@ -124,11 +74,11 @@ export async function resolveContentStore(): Promise<ContentStore> {
   const requested = (process.env.CONTENT_SOURCE ?? 'local').trim().toLowerCase()
 
   if (requested === 'supabase' || requested === 'remote') {
-    const { RemoteContentStore } = await import('./remote/store')
-    cached = new RemoteContentStore({
-      writable: adminWritesAllowed(),
-      readOnlyReason: adminWriteBlockedReason(),
-    })
+    // Built by the wiring module, which is the one place that reaches for the
+    // service-role credential and the media store. The store class itself takes
+    // both as arguments so it stays constructible — and testable — without them.
+    const { createRemoteContentStore } = await import('./remote')
+    cached = await createRemoteContentStore()
     return cached
   }
 

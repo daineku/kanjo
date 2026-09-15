@@ -1,15 +1,15 @@
-import 'server-only'
-
-import { serverSupabase } from '@/lib/supabase/server'
-
+// Explicit `.ts` extensions, and `store.contract` rather than `store`: this
+// module is executed directly by `node` from cache.test.ts, and `../store`
+// imports `server-only`, which throws outside a React Server Component.
+import { parseSiteContentDocument, type SiteContentDocument } from '../document.ts'
 import {
-  buildSiteContentDocument,
-  parseSiteContentDocument,
-  type SiteContentDocument,
-} from '../document'
-import { resolveMediaStore } from '@/lib/media/store'
-import { ContentStoreError, type ContentDraft, type ContentStore } from '../store'
-import type { LoaderConfig, Section, SiteSettings } from '../types'
+  ContentStoreError,
+  type ContentDraft,
+  type ContentStore,
+  type MediaSaver,
+} from '../store.contract.ts'
+import type { LoaderConfig, Section, SiteSettings } from '../types.ts'
+import { CONTENT_ROW_ID, CONTENT_TABLE, type SupabaseProvider } from './client.ts'
 
 /**
  * The Supabase-backed content store: the admin's write path in production.
@@ -22,15 +22,30 @@ import type { LoaderConfig, Section, SiteSettings } from '../types'
  * the admin's forms and actions be written once against `ContentStore` rather
  * than twice.
  *
- * ── THE CONCURRENCY STORY, STATED HONESTLY ──────────────────────────────────
+ * ── LOST-UPDATE PROTECTION ──────────────────────────────────────────────────
  *
- * Two editors saving different panels within the same second can lose one of
- * the two changes: both read, both modify, the later write wins whole. This is
- * a single-owner site with one admin account, so that is an acceptable V1
- * trade — but it is a real limitation rather than an oversight, and the fix
- * when it is needed is an `updated_at` precondition on the write (the column
- * exists for it) turning the second save into a refusal rather than a silent
- * overwrite.
+ * Read-modify-write has a race, and it is not theoretical: open the admin in
+ * two tabs, save the loader in one and the channels in the other, and the
+ * second write carries the first tab's stale copy of everything it did not
+ * touch. The first save is silently undone.
+ *
+ * So every write is CONDITIONAL on the row not having changed since it was
+ * read:
+ *
+ *   update ... where id = 'main' and updated_at = <value read a moment ago>
+ *
+ * Postgres reports how many rows matched. Zero means somebody else wrote in
+ * between, and the save is REFUSED with a message telling the editor to
+ * reload — rather than applied over the top of their colleague's work.
+ *
+ * The window is deliberately as small as it can be: the `updated_at` compared
+ * against is the one read at the START OF THIS SAVE, not the one the browser
+ * rendered its form from. That is the honest scope of what this protects. It
+ * does not stop two editors who loaded the same form ten minutes apart from
+ * overwriting each other's *fields* — preventing that needs per-field
+ * versioning, which for a single-owner site is not worth the complexity. It
+ * does stop the much likelier failure: two saves interleaving and one vanishing
+ * whole.
  *
  * ── VALIDATION HAPPENS ON THE WAY OUT, NOT ONLY ON THE WAY IN ───────────────
  *
@@ -41,8 +56,12 @@ import type { LoaderConfig, Section, SiteSettings } from '../types'
  * a failed save with a message naming the field, instead of a broken site.
  */
 
-const TABLE = 'thekanjo_site'
-const ROW_ID = 'main'
+/** A document plus the row version it was read at. */
+type VersionedDocument = {
+  document: SiteContentDocument
+  /** `updated_at` as the database reported it. The write's precondition. */
+  version: string | null
+}
 
 export class RemoteContentStore implements ContentStore {
   readonly kind = 'supabase'
@@ -55,7 +74,19 @@ export class RemoteContentStore implements ContentStore {
   readonly writable: boolean
   readonly readOnlyReason?: string
 
-  constructor(options: { writable: boolean; readOnlyReason?: string }) {
+  private readonly getClient: SupabaseProvider
+  private readonly media: MediaSaver
+
+  // Written out rather than as parameter properties: this module is executed
+  // directly by `node` in cache.test.ts, and Node's type stripping rejects
+  // them. Same reason as lib/content/local/parse.ts.
+  constructor(
+    getClient: SupabaseProvider,
+    media: MediaSaver,
+    options: { writable: boolean; readOnlyReason?: string },
+  ) {
+    this.getClient = getClient
+    this.media = media
     this.writable = options.writable
     this.readOnlyReason = options.readOnlyReason
   }
@@ -64,43 +95,68 @@ export class RemoteContentStore implements ContentStore {
     if (!this.writable) throw new ContentStoreError(this.readOnlyReason ?? 'Writes are disabled.')
   }
 
-  private async read(): Promise<SiteContentDocument> {
-    const supabase = serverSupabase()
-    const { data, error } = await supabase
-      .from(TABLE)
-      .select('content')
-      .eq('id', ROW_ID)
+  private async read(): Promise<VersionedDocument> {
+    const { data, error } = await this.getClient()
+      .from(CONTENT_TABLE)
+      .select('content, updated_at')
+      .eq('id', CONTENT_ROW_ID)
       .maybeSingle()
 
     if (error) {
-      throw new ContentStoreError(`Could not read ${TABLE}: ${error.message}`)
+      throw new ContentStoreError(`Could not read ${CONTENT_TABLE}: ${error.message}`)
     }
     if (!data) {
       throw new ContentStoreError(
-        `${TABLE} has no row with id='${ROW_ID}'. Seed it before editing — see docs/PRODUCTION_SETUP.md.`,
+        `${CONTENT_TABLE} has no row with id='${CONTENT_ROW_ID}'. Seed it once during ` +
+          `provisioning before editing — see docs/PRODUCTION_SETUP.md.`,
       )
     }
 
-    return parseSiteContentDocument((data as { content: unknown }).content, `${TABLE}.content`)
+    const row = data as { content: unknown; updated_at?: unknown }
+    return {
+      document: parseSiteContentDocument(row.content, `${CONTENT_TABLE}.content`),
+      version: typeof row.updated_at === 'string' ? row.updated_at : null,
+    }
   }
 
-  private async write(document: SiteContentDocument): Promise<void> {
+  private async write(next: SiteContentDocument, version: string | null): Promise<void> {
     // Re-validated on the way out. See the header.
-    const checked = parseSiteContentDocument(document, 'the document being saved')
+    const checked = parseSiteContentDocument(next, 'the document being saved')
 
-    const supabase = serverSupabase()
-    const { error } = await supabase
-      .from(TABLE)
+    let query = this.getClient()
+      .from(CONTENT_TABLE)
       .update({ content: checked, updated_at: new Date().toISOString() })
-      .eq('id', ROW_ID)
+      .eq('id', CONTENT_ROW_ID)
+
+    // THE PRECONDITION. Skipped only when the row carried no `updated_at` at
+    // all, which the migration makes impossible — but guessing a value would be
+    // worse than writing unconditionally and saying so.
+    if (version !== null) {
+      query = query.eq('updated_at', version)
+    }
+
+    // `.select()` is what makes the update RETURN the rows it changed, and it
+    // is load-bearing rather than decorative: without it supabase-js resolves
+    // `data: null` even on success, so a precondition that matched nothing
+    // would be indistinguishable from one that matched — and the guard below
+    // would reject every save.
+    const { data, error } = await query.select('id')
 
     if (error) {
-      throw new ContentStoreError(`Could not save to ${TABLE}: ${error.message}`)
+      throw new ContentStoreError(`Could not save to ${CONTENT_TABLE}: ${error.message}`)
+    }
+
+    const changed = Array.isArray(data) ? data.length : 0
+    if (version !== null && changed === 0) {
+      throw new ContentStoreError(
+        'Somebody else saved while this page was open, so nothing was written — ' +
+          'applying this would have silently undone their change. Reload the admin and redo your edit.',
+      )
     }
   }
 
   async loadDraft(): Promise<ContentDraft> {
-    const document = await this.read()
+    const { document } = await this.read()
     // UNFILTERED and UNSORTED, which is the whole difference between this and
     // the source: the unpublished sections are precisely the ones that need
     // editing, and an editor reordering a list must see the order they set.
@@ -113,29 +169,29 @@ export class RemoteContentStore implements ContentStore {
 
   async saveSiteSettings(settings: SiteSettings): Promise<void> {
     this.assertWritable()
-    const document = await this.read()
-    await this.write({ ...document, settings })
+    const { document, version } = await this.read()
+    await this.write({ ...document, settings }, version)
   }
 
   async saveLoaderConfig(loader: LoaderConfig): Promise<void> {
     this.assertWritable()
-    const document = await this.read()
-    await this.write({ ...document, loader })
+    const { document, version } = await this.read()
+    await this.write({ ...document, loader }, version)
   }
 
   async saveSections(sections: Section[]): Promise<void> {
     this.assertWritable()
-    const document = await this.read()
-    await this.write({ ...document, sections })
+    const { document, version } = await this.read()
+    await this.write({ ...document, sections }, version)
   }
 
   /**
    * Media goes to the media store, not into the database.
    *
    * The document holds a `src`, and where those bytes live is a separate
-   * decision — R2 in production, `public/media/` locally. Delegating means the
-   * admin's image field behaves the same either way, and it is why MediaStore
-   * is its own interface rather than a method on this one.
+   * decision — R2 in production, `public/media/` locally. Injected rather than
+   * imported so this class stays constructible without `server-only`, which is
+   * what lets the concurrency and cache tests exercise it directly.
    */
   async saveImage(file: {
     name: string
@@ -143,10 +199,6 @@ export class RemoteContentStore implements ContentStore {
     folder: string
   }): Promise<{ src: string; width: number; height: number }> {
     this.assertWritable()
-    const media = await resolveMediaStore()
-    return media.save(file)
+    return this.media.save(file)
   }
 }
-
-/** Used by the seed path to build a document from local content files. */
-export { buildSiteContentDocument }
