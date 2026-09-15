@@ -73,7 +73,7 @@ export function PatreonSection({
 
     return (
       <Section id={id} header={header}>
-        <Reveal stagger={0.08} distance={20}>
+        <Reveal className="k-patreon-fallback" stagger={0.08} distance={20}>
           {real(config.fallbackDescription) && (
             <p className="k-body" style={{ marginTop: 0, color: 'var(--k-text-secondary)' }}>
               {config.fallbackDescription}
