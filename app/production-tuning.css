@@ -1,0 +1,286 @@
+/*
+ * Production landing tuning.
+ *
+ * The game UI canon remains the visual source, but the live landing page needs
+ * web-scale typography, tighter vertical rhythm and restrained brand ornaments.
+ * These overrides intentionally sit after globals.css so the underlying canon
+ * stays intact and the production corrections remain easy to audit.
+ */
+
+:root {
+  --k-content: 980px;
+  --k-content-wide: 1320px;
+}
+
+/* -------------------------------------------------------------------------
+   Type hierarchy
+   ------------------------------------------------------------------------- */
+
+.k-body {
+  font-size: clamp(17px, 0.45vw + 15.5px, 20px);
+  line-height: 1.62;
+}
+
+.k-small {
+  font-size: clamp(13px, 0.18vw + 12.3px, 15px);
+  line-height: 1.35;
+}
+
+.k-nav-title {
+  font-size: clamp(19px, 0.75vw + 16px, 27px);
+  line-height: 1.16;
+}
+
+.k-section-title {
+  font-size: clamp(34px, 2vw + 23px, 54px);
+  line-height: 1;
+}
+
+.k-item-title {
+  font-size: clamp(17px, 0.35vw + 15.7px, 20px);
+}
+
+.k-link-action {
+  font-size: clamp(16px, 0.28vw + 14.8px, 19px);
+  line-height: 1.25;
+}
+
+/* -------------------------------------------------------------------------
+   Landing-page rhythm
+   ------------------------------------------------------------------------- */
+
+.k-section {
+  padding-block: clamp(44px, 4.2vw, 76px);
+}
+
+.k-section + .k-section > .k-shell::before,
+.k-section-divider > .k-shell::before {
+  margin-bottom: clamp(28px, 3vw, 52px);
+}
+
+.k-section header[style] {
+  margin-bottom: clamp(22px, 2.4vw, 36px) !important;
+}
+
+.k-reading {
+  max-width: var(--k-content);
+}
+
+.k-prose {
+  max-width: 68ch;
+}
+
+.k-prose > :first-child {
+  margin-top: 0;
+}
+
+.k-prose > :last-child {
+  margin-bottom: 0;
+}
+
+/* -------------------------------------------------------------------------
+   Brand ornaments are punctuation, not content blocks
+   ------------------------------------------------------------------------- */
+
+.k-ornament {
+  margin-bottom: clamp(14px, 1.6vw, 22px);
+}
+
+.k-ornament--divider img {
+  width: min(360px, 52vw);
+  opacity: 0.78;
+}
+
+.k-ornament--badge img {
+  width: min(300px, 44vw);
+  opacity: 0.9;
+}
+
+/* -------------------------------------------------------------------------
+   Hero
+   ------------------------------------------------------------------------- */
+
+.k-hero {
+  min-height: clamp(620px, 78svh, 900px);
+}
+
+.k-hero-ui {
+  padding-block: clamp(44px, 5vw, 80px);
+}
+
+.k-hero-logo {
+  width: min(620px, 62vw);
+  height: auto;
+}
+
+.k-hero .k-body {
+  font-size: clamp(18px, 0.42vw + 16.4px, 21px);
+  line-height: 1.58;
+  max-width: 48ch !important;
+}
+
+/* -------------------------------------------------------------------------
+   TikTok
+
+   The Creator Profile Embed is a cross-origin iframe, so its internal light
+   surface belongs to TikTok. The site owns the surrounding stage only: keep it
+   black, contained and aligned with the rest of the landing page.
+   ------------------------------------------------------------------------- */
+
+#tiktok > .k-shell > div {
+  width: 100%;
+  max-width: var(--k-content);
+}
+
+.k-tiktok {
+  width: min(100%, 860px);
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  background: #000;
+  border: var(--k-thin-width) solid var(--k-divider);
+  padding: clamp(12px, 1.8vw, 22px);
+}
+
+.k-tiktok .tiktok-embed {
+  margin: 0 auto !important;
+  background: #000 !important;
+  max-width: 100% !important;
+}
+
+.k-tiktok .tiktok-embed > section {
+  width: 100%;
+  background: #000;
+  padding: clamp(18px, 2vw, 28px);
+}
+
+.k-tiktok iframe {
+  display: block;
+  max-width: 100% !important;
+  margin-inline: auto !important;
+  background: #000 !important;
+}
+
+/* -------------------------------------------------------------------------
+   Patreon / development log
+   ------------------------------------------------------------------------- */
+
+#devlog .k-reading {
+  max-width: var(--k-content);
+}
+
+.k-post-row {
+  padding-block: clamp(18px, 1.9vw, 26px);
+}
+
+.k-post-excerpt {
+  max-width: 62ch;
+}
+
+/* -------------------------------------------------------------------------
+   Tablet
+   ------------------------------------------------------------------------- */
+
+@media (max-width: 1024px) {
+  :root {
+    --k-content: 820px;
+  }
+
+  .k-section {
+    padding-block: clamp(42px, 5.5vw, 64px);
+  }
+
+  .k-hero {
+    min-height: clamp(580px, 74svh, 760px);
+  }
+
+  .k-hero-logo {
+    width: min(600px, 72vw);
+  }
+}
+
+/* -------------------------------------------------------------------------
+   Phone
+   ------------------------------------------------------------------------- */
+
+@media (max-width: 767px) {
+  :root {
+    --k-content: 100%;
+  }
+
+  .k-shell {
+    padding-inline: clamp(18px, 5vw, 24px);
+  }
+
+  .k-body {
+    font-size: 17px;
+    line-height: 1.58;
+  }
+
+  .k-small {
+    font-size: 13px;
+  }
+
+  .k-section-title {
+    font-size: clamp(31px, 9vw, 42px);
+  }
+
+  .k-section {
+    padding-block: clamp(36px, 10vw, 54px);
+  }
+
+  .k-section + .k-section > .k-shell::before,
+  .k-section-divider > .k-shell::before {
+    margin-bottom: clamp(24px, 7vw, 36px);
+  }
+
+  .k-section header[style] {
+    margin-bottom: clamp(20px, 6vw, 28px) !important;
+  }
+
+  .k-ornament {
+    margin-bottom: 14px;
+  }
+
+  .k-ornament--divider img {
+    width: min(240px, 64vw);
+  }
+
+  .k-ornament--badge img {
+    width: min(220px, 58vw);
+  }
+
+  .k-hero {
+    min-height: 74svh;
+    padding-block: 0;
+  }
+
+  .k-hero-ui {
+    padding-top: max(84px, var(--k-social-lane, 0px));
+    padding-bottom: clamp(32px, 9vw, 52px);
+  }
+
+  .k-hero-logo {
+    width: min(86vw, 500px);
+  }
+
+  .k-hero .k-body {
+    font-size: 17px;
+    line-height: 1.55;
+    max-width: 32ch !important;
+  }
+
+  .k-tiktok {
+    width: 100%;
+    padding: 8px;
+  }
+
+  .k-tiktok .tiktok-embed > section {
+    padding: 18px 12px;
+  }
+
+  .k-post-row {
+    padding-block: 18px;
+  }
+}
