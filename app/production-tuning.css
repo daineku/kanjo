@@ -170,6 +170,25 @@
   max-width: var(--k-content);
 }
 
+.k-patreon-fallback {
+  display: grid;
+  gap: clamp(18px, 2vw, 26px);
+  max-width: 760px;
+  padding: clamp(22px, 2.6vw, 34px);
+  border-left: var(--k-divider-width) solid var(--k-accent);
+  border-top: var(--k-thin-width) solid var(--k-divider);
+  border-bottom: var(--k-thin-width) solid var(--k-divider);
+  background:
+    linear-gradient(90deg, var(--k-accent-tint), transparent 58%),
+    rgb(255 255 255 / 0.015);
+}
+
+.k-patreon-fallback .k-body {
+  margin-bottom: 0;
+  max-width: 58ch;
+  color: var(--k-text-primary) !important;
+}
+
 .k-post-row {
   padding-block: clamp(18px, 1.9vw, 26px);
 }
@@ -278,6 +297,11 @@
 
   .k-tiktok .tiktok-embed > section {
     padding: 18px 12px;
+  }
+
+  .k-patreon-fallback {
+    gap: 18px;
+    padding: 20px 18px;
   }
 
   .k-post-row {
