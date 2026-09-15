@@ -67,6 +67,22 @@ to import anything in that module graph — not a convention, a compile failure.
 The variables are not prefixed `NEXT_PUBLIC_`, which would inline them into the
 JavaScript bundle.
 
+### Members-only posts are listed on purpose
+
+**Owner decision: members-only posts stay visible on the public site, as
+promotional previews.** `showLockedPosts` ships `true` and should stay `true`. A
+locked post is advertising for the tier that unlocks it, and a devlog showing
+only the free posts understates how much is actually being published.
+
+A locked row carries **title, date, a `MEMBERS` marker, Patreon's own public
+teaser if the creator wrote one, and an `UNLOCK ON PATREON` action**. A public
+row carries the same minus the marker, with `VIEW ON PATREON`. What a locked row
+never carries is the post body — which is the next section, and is enforced in
+code rather than by this policy.
+
+Setting `showLockedPosts: false` in the admin drops locked posts from the list
+entirely. That is a display preference, not the security control.
+
 ### Paid posts cannot be published by accident
 
 This is the failure that matters, and it is subtle: **a creator-level token can
@@ -120,8 +136,9 @@ tests are the most important in the project.
 | --- | --- |
 | No token configured | The block's copy and `VIEW ON PATREON` (or nothing, with `fallback: "hide"`) |
 | Token configured, request fails | Identical to the above. The reason goes to the server log. |
-| Working, public post | Date, title, a ~180-character text excerpt, link out |
-| Working, members-only post | Date, title, a `MEMBERS` marker, the public teaser **if Patreon supplies one**, link out |
+| Working, public post | Date, title, a ~180-character text excerpt, `VIEW ON PATREON` |
+| Working, members-only post | Date, title, a `MEMBERS` marker, the public teaser **if Patreon supplies one**, `UNLOCK ON PATREON` |
+| Members-only post with no teaser | Date, title, `MEMBERS`, `UNLOCK ON PATREON` — and no excerpt line at all |
 | `showLockedPosts: false` | Members-only posts are dropped from the list entirely |
 
 ---

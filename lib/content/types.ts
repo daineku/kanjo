@@ -268,6 +268,12 @@ export type LoaderConfig = {
  * content Patreon itself marks public, and never for a locked post — see
  * lib/patreon/posts.ts.
  */
+/**
+ * THE PUBLIC FEED MODEL. Every field is safe for an anonymous, non-member
+ * visitor, because members-only posts ARE shown on the public site by design —
+ * as promotional previews. There is deliberately no field that could carry a
+ * locked post's body: the gate that fills this shape is lib/patreon/posts.ts.
+ */
 export type PatreonPost = {
   id: string
   title: string
@@ -276,8 +282,12 @@ export type PatreonPost = {
   /** ISO 8601. */
   publishedAt: string
   /**
-   * A short plain-text teaser. ALWAYS EMPTY for a locked post: it is only ever
-   * derived from content Patreon has marked public.
+   * A short plain-text teaser.
+   *
+   * For a PUBLIC post: derived from the post body Patreon has marked public.
+   * For a LOCKED post: Patreon's own `teaser_text` — the teaser the creator
+   * wrote for non-members — or empty. NEVER the locked body, under any
+   * combination of `is_public` / `is_paid`.
    */
   excerpt: string
   /** Patreon's `is_public`. False means members-only. */

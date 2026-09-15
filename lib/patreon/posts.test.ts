@@ -67,6 +67,36 @@ test('is_paid: false does not make a post public', () => {
   assert.equal(result?.excerpt, '')
 })
 
+test('the publishable shape carries ONLY public-safe fields, for a locked post', () => {
+  // Members-only posts are shown on the public site on purpose, as promotional
+  // previews. This test is what makes that safe to keep doing: whatever else
+  // changes, the object handed to the section — and therefore serialised into
+  // the page the browser receives — may contain these seven keys and no others.
+  // Adding `content`, `teaserRaw` or any other body-bearing field fails here.
+  const locked = toPublishablePost(
+    post({
+      is_public: false,
+      is_paid: true,
+      teaser_text: 'A look at the new suspension model.',
+      content: '<p>MEMBERS ONLY BODY</p>',
+    }),
+  )
+
+  assert.deepEqual(Object.keys(locked ?? {}).sort(), [
+    'excerpt',
+    'id',
+    'isPaid',
+    'isPublic',
+    'publishedAt',
+    'title',
+    'url',
+  ])
+
+  // And belt-and-braces: the locked body must not appear anywhere in the
+  // serialised value, which is the exact form it would reach the browser in.
+  assert.ok(!JSON.stringify(locked).includes('MEMBERS ONLY BODY'))
+})
+
 test('teaser_text IS usable on a locked post — it is Patreon own public teaser', () => {
   const result = toPublishablePost(
     post({

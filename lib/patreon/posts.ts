@@ -6,6 +6,26 @@ import type { PatreonPost } from '@/lib/content/types'
  * THIS FILE IS THE SECURITY BOUNDARY, and it is separate from the HTTP client
  * so it can be reasoned about — and tested — on its own.
  *
+ * ── THE OWNER'S DECISION, WHICH THIS FILE IMPLEMENTS ─────────────────────────
+ *
+ * MEMBERS-ONLY POSTS ARE SHOWN ON THE PUBLIC SITE, DELIBERATELY, AS PROMOTIONAL
+ * PREVIEWS. That is a product decision, not an oversight and not a gap in the
+ * gate: a locked post is advertising for the tier that unlocks it, and a devlog
+ * that lists only the free posts understates how much work is being published.
+ * `showLockedPosts` therefore ships `true`, and the section renders a locked
+ * post as title, date, a MEMBERS marker, an optional teaser and a way in.
+ *
+ * WHAT A LOCKED POST IS ALLOWED TO CARRY OFF THIS FUNCTION:
+ *
+ *   id · title · url · publishedAt · isPublic:false · isPaid · excerpt
+ *
+ * …where `excerpt` for a locked post is EITHER empty OR Patreon's own
+ * `teaser_text`. Nothing else. There is no field on the returned type that
+ * could carry a locked body, so the rest of the application — the section, the
+ * serialized RSC payload, the browser — has no locked content to mishandle.
+ *
+ * ── THE GATE ─────────────────────────────────────────────────────────────────
+ *
  * The situation it guards: the site authenticates with a CREATOR-level token,
  * which by design can read the full body of members-only posts. Patreon returns
  * that body in `content` for a paid post exactly as it does for a public one.
@@ -13,7 +33,7 @@ import type { PatreonPost } from '@/lib/content/types'
  * publish paid material to an anonymous visitor on a public web page — the
  * single worst thing this integration could do.
  *
- * So the rule here is stated once and enforced in one place:
+ * So the rule is stated once and enforced in one place:
  *
  *   AN EXCERPT IS DERIVED FROM `content` ONLY WHEN `is_public` IS EXACTLY TRUE.
  *
@@ -21,10 +41,16 @@ import type { PatreonPost } from '@/lib/content/types'
  * field that arrives null because the token lacked a scope, or a shape change in
  * a future API version all land on "not public", which fails closed.
  *
- * `teaser_text` is the one exception, and only because Patreon's own product
- * defines it as the public teaser shown on the locked post's page — it is
- * already public by construction. It is requested optionally (see client.ts) and
- * used only when present.
+ * The raw `content` of a locked post is read into memory here (it arrives in the
+ * same response as the public ones) and is then DROPPED: it is not copied onto
+ * the returned object, not logged — lib/patreon/index.ts logs only an error
+ * message, never a payload — and not returned to the caller in any form.
+ *
+ * `teaser_text` is the one field that survives the gate on a locked post, and
+ * only because Patreon's own product defines it as the public teaser shown to
+ * non-members on the locked post's page. It is public by construction, written
+ * by the creator for exactly this purpose. It is requested optionally (see
+ * client.ts) and used only when present.
  */
 
 /** A post resource as it arrives. Everything optional: v2 omits unrequested fields. */
@@ -139,11 +165,16 @@ export function toPublishablePost(raw: RawPatreonPost): PatreonPost | null {
   const isPaid = attributes.is_paid === true
 
   // `teaser_text` is Patreon's own public teaser for a locked post, so it is
-  // usable either way. `content` is usable ONLY when the post is public.
+  // usable either way. `content` is usable ONLY when the post is public — for a
+  // locked post `body` is never read from `attributes.content` at all, so the
+  // locked body has no expression on the right-hand side of anything below.
   const teaser = htmlToText(asString(attributes.teaser_text))
   const body = isPublic ? htmlToText(asString(attributes.content)) : ''
   const excerpt = truncate(teaser || body)
 
+  // The object literal IS the public feed model: every field here is safe for an
+  // anonymous, non-member visitor, and the shape is asserted key-by-key in
+  // posts.test.ts so a future field cannot be added without that test failing.
   return { id, title, url, publishedAt, excerpt, isPublic, isPaid }
 }
 

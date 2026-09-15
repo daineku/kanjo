@@ -2148,11 +2148,27 @@ html:not([data-loader='pending']) .k-social-cluster li {
 }
 
 /* A locked post says so, in the canon's accent, as a static label. Its BODY is
-   never rendered — enforced in lib/patreon/posts.ts, not here. */
+   never rendered — enforced in lib/patreon/posts.ts, not here. Members-only
+   posts ARE listed, deliberately: see the comment in PatreonSection.tsx. */
 .k-post-lock {
   color: var(--k-accent);
   border-left: var(--k-thin-width) solid var(--k-accent);
   padding-left: var(--k-space-sm);
+}
+
+/* VIEW / UNLOCK ON PATREON. The row is the link, so this is the row's label for
+   what it does rather than a second control — hence no border, no box, and the
+   same selection colour the row's own rule takes, so the two move together. */
+.k-post-action {
+  display: block;
+  color: var(--k-text-tertiary);
+  letter-spacing: 1.4px;
+  transition: color var(--k-motion-selection) var(--k-ease-out);
+}
+
+.k-post-row:hover .k-post-action,
+.k-post-row:focus-visible .k-post-action {
+  color: var(--k-accent-bright);
 }
 
 .k-post-title {

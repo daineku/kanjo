@@ -7,8 +7,14 @@ all in the repository. This is the runbook for turning them on.
 Work through A → G in order. Each step says what to click, what to copy, and
 how to tell it worked.
 
-**Nothing here requires a code change.** When the credentials are in place the
-Patreon feed and the latest YouTube video start appearing on their own.
+**Nothing here requires a code change.** When `PATREON_ACCESS_TOKEN` is in place
+the Patreon feed starts appearing on its own.
+
+**YouTube is NOT part of launch.** There is no video yet, no `YOUTUBE_API_KEY`
+is required, and the video block stays hidden until a real video is configured —
+the production credentials below do not make it appear. When there is a video,
+pinning it in `/admin` publishes it with no code change and no deploy. See
+[section D](#d-youtube-data-api--later-not-now).
 
 ---
 
@@ -22,7 +28,7 @@ Patreon feed and the latest YouTube video start appearing on their own.
 | Cloudflare | the existing account | A **separate R2 bucket**, `thekanjo-media` |
 | Patreon | The Kanjo's creator account | A creator access token |
 | TikTok | — | **Nothing.** No developer credentials are needed. |
-| Google Cloud | — | **Not needed for launch.** There is no YouTube video yet; the block hides itself. A key can be added later without a deploy. |
+| Google Cloud | — | **Not needed for launch.** There is no YouTube video yet; the block hides itself. A key is only ever needed for `latest` mode, and **adding one in Vercel requires a redeploy** to take effect. |
 | GoDaddy | the existing registrar account | Keeps the registration; nameservers point at Cloudflare |
 | Cloudflare DNS | the existing account | Authoritative DNS for `thekanjo.com` |
 
@@ -94,15 +100,48 @@ select grantee, privilege_type
 from information_schema.role_table_grants
 where table_name = 'thekanjo_site' and grantee in ('anon','authenticated','PUBLIC');
 
+-- Expect: exactly three rows — INSERT, SELECT, UPDATE.
+select grantee, privilege_type
+from information_schema.role_table_grants
+where table_schema = 'public'
+  and table_name = 'thekanjo_site'
+  and grantee = 'service_role'
+order by privilege_type;
+
 -- Expect: exactly one row, id = 'main'
 select id, jsonb_array_length(content->'sections') as sections, updated_at
 from public.thekanjo_site;
 ```
 
+**What the third query must return:**
+
+| `grantee` | `privilege_type` |
+|---|---|
+| `service_role` | `INSERT` |
+| `service_role` | `SELECT` |
+| `service_role` | `UPDATE` |
+
+**`DELETE` is deliberately not granted.** The application never deletes the
+canonical `main` row — content is edited in place — so the privilege has no
+legitimate caller, and withholding it means a compromised service key cannot
+destroy the site's content in one statement. If `DELETE` appears in that result,
+someone has widened the grant: revoke it.
+
+Fewer than three rows means the migration's grant did not apply, and the admin
+will fail to read or save. Re-run `supabase/migrations/0001_thekanjo_site.sql`;
+it is idempotent.
+
 If `pg_policies` returns anything, or `anon`/`authenticated` hold any
 privilege, **stop and fix it** before continuing. That combination is what
 makes the site's content readable by anyone holding the anon key — which is
 public by design.
+
+To summarise what this step is confirming:
+
+- RLS **on**
+- **no** policies (the service role bypasses RLS; nothing else gets in)
+- **no** `anon`, `authenticated` or `PUBLIC` grants
+- `service_role` holding **exactly** `SELECT`, `INSERT`, `UPDATE`
 
 ### B4. Copy the keys
 
@@ -193,13 +232,17 @@ no pinned video it renders nothing at all — no empty frame, no button pointing
 at an empty channel. The channel stays in the rail. Skip this section until
 there is an upload to show.
 
-When there is, either of these makes it appear with **no code change and no
-deploy of its own**:
+**Configuring production does not turn YouTube on.** The block stays hidden
+until a real video is configured, by one of these two routes:
 
 - **Pin a video** in the admin (YOUTUBE panel → mode `pinned` → paste the URL).
-  No API key needed.
+  **No API key, no code change, and no deploy** — the admin save revalidates and
+  the block appears. This is the expected route for the first video.
 - **Or** add `YOUTUBE_API_KEY` in Vercel and leave mode on `latest`, so the
-  newest public upload is resolved automatically. That resolution is:
+  newest public upload is resolved automatically. This needs no code change
+  either, but a Vercel environment variable is only read by a build: **after
+  adding it, redeploy** — a running deployment will not pick it up. The
+  resolution is:
 
 ```
 @thekanjo
@@ -223,14 +266,20 @@ by default) — about 192 units a day against a 10,000/day default quota.
    *Application restrictions* → leave as **None**: the key is used from the
    server, so an HTTP-referrer restriction would break it and an IP restriction
    is not workable on serverless.
-5. Set `YOUTUBE_API_KEY`. Server-side only — a Data API key is a quota, and a
-   key in the browser bundle is a quota anyone can spend.
+5. Set `YOUTUBE_API_KEY` in Vercel. Server-side only — a Data API key is a
+   quota, and a key in the browser bundle is a quota anyone can spend.
+6. **Redeploy.** Vercel injects environment variables at build time; the
+   deployment that is already running was built without this one and will not
+   see it.
 
-Optional: `YOUTUBE_REVALIDATE_SECONDS` (default `900`; below 60 ignored).
+Optional: `YOUTUBE_REVALIDATE_SECONDS` (default `900`; below 60 ignored). The
+same redeploy rule applies to it.
 
-**Without the key** the block renders `WATCH ON YOUTUBE` pointing at the
-channel. Nothing fake is ever shown, and adding the key later needs no deploy
-of its own.
+**Without a key and without a pinned video** the block renders **nothing** —
+that is `fallback: hide`, which is how the section ships and the correct state
+for launch. Nothing fake is ever shown. If the fallback is later changed to
+`cta` in the admin, the same unconfigured state renders `WATCH ON YOUTUBE`
+pointing at the channel instead.
 
 ---
 
@@ -243,7 +292,18 @@ Creator page: <https://www.patreon.com/cw/TheKanjo>
 2. Create a client. Copy the **Creator's Access Token**.
 3. Required scope: **`campaigns.posts`** — read access to the campaign's posts.
    It does not need, and should not be given, anything that can write.
-4. Set `PATREON_ACCESS_TOKEN`.
+4. Set `PATREON_ACCESS_TOKEN` in Vercel, then **redeploy** — environment
+   variables are injected at build time, so the running deployment will not see
+   a variable added after it was built.
+
+**Patreon goes live as soon as that token is configured and deployed.** Unlike
+YouTube, nothing further is needed: the feed is fetched server-side and the
+section switches from its CTA fallback to the post list on the next render.
+
+Members-only posts appear alongside public ones, as promotional previews —
+title, date, a `MEMBERS` marker, Patreon's own public teaser if there is one,
+and `UNLOCK ON PATREON`. **Their bodies are never rendered or sent to the
+browser**, whatever the token can read. See [PATREON.md](PATREON.md).
 
 Optional: `PATREON_CAMPAIGN_ID` (discovered automatically with one campaign;
 **do not guess a value**), `PATREON_REVALIDATE_SECONDS` (default `3600`).
@@ -351,8 +411,13 @@ Same Daineku **team**, **new Project**.
 | `PATREON_ACCESS_TOKEN` | from E — a **newly issued** token, not one that has been shared anywhere else |
 
 That is the complete Production list. `YOUTUBE_API_KEY` is deliberately
-absent — see D. Optional: `PATREON_CAMPAIGN_ID`, `PATREON_REVALIDATE_SECONDS`,
+absent — see D — and the site is fully functional without it, with the video
+block hidden. Optional: `PATREON_CAMPAIGN_ID`, `PATREON_REVALIDATE_SECONDS`,
 `YOUTUBE_REVALIDATE_SECONDS`.
+
+> **Every variable on this page is read at build time.** Adding, changing or
+> removing one in Vercel has no effect on the deployment that is already
+> serving; **redeploy** after any change.
 
 ### Preview — do NOT copy the production secrets by default
 
@@ -397,10 +462,10 @@ automatically and need no setting:
 | Check | Where | Expected |
 |---|---|---|
 | Content comes from Supabase | homepage | It renders. If the row is missing or malformed the build fails with a message naming the exact path — it does not render an empty site. |
-| The video block is hidden | homepage | No video section at all (there is no video yet). It appears the moment one is pinned or a key is added. |
+| The video block is hidden | homepage | **No video section at all — this is correct for launch.** It appears when a video is pinned in `/admin` (immediately), or when `YOUTUBE_API_KEY` is added and the site is redeployed. |
 | The legal pages render | `/privacy`, `/terms` | Both load, styled like the site, with the footer's PRIVACY / TERMS links pointing at them. |
 | The theme is red | any page | Selection, hover, focus rings and the rail are red. Nothing green anywhere. |
-| Patreon is live | homepage | Post titles and dates, not just `VIEW ON PATREON`. |
+| Patreon is live | homepage | Post titles and dates, not just the section CTA. Members-only posts appear with a `MEMBERS` marker and `UNLOCK ON PATREON`. |
 | TikTok | homepage | The creator block. If it is blocked in your region you see `FOLLOW ON TIKTOK`, which is correct. |
 | Admin | `/admin` | Redirects to `/admin/login`; a magic link to an allowlisted address signs you in; a link to any other address is refused and the session is dropped. |
 | Media upload | `/admin` → any image field | The saved `src` is an `R2_PUBLIC_BASE_URL` URL, and the image loads. |
@@ -433,8 +498,9 @@ Every failure is designed to be a **legible message**, not a blank page.
 | Build fails: `thekanjo_site has no row with id='main'` | B2 was not run. |
 | Build fails: `content.settings.… must be a string` | The stored document does not match the shape. The message names the path. |
 | `CONTENT_SOURCE=supabase requires …` | A Supabase variable is missing. |
-| Homepage renders but Patreon shows only the CTA | No token, a wrong scope, or Patreon is down. The reason is in the server log, never on the page. |
-| Homepage shows `WATCH ON YOUTUBE` | No key, the API is not enabled, the key is restricted to the wrong API, or the quota is spent. Server log. |
+| Homepage renders but Patreon shows only the CTA | No token, a token added without a redeploy, a wrong scope, or Patreon is down. The reason is in the server log, never on the page. |
+| No video block at all | Expected at launch: no pinned video and no key, with `fallback: hide`. Not a fault. |
+| Video block still missing after adding `YOUTUBE_API_KEY` | The deployment was built before the variable existed. **Redeploy.** If it is still missing: no key, the API is not enabled, the key is restricted to the wrong API, or the quota is spent. Server log. |
 | Upload fails: `R2 refused the upload (HTTP 403)` | The API token cannot write to the bucket. |
 | Upload fails: `Could not read the pixel dimensions` | The file is not actually a PNG/JPEG/GIF/WebP/SVG. Rejected on purpose. |
 | `/admin` bounces to login and back | The signed-in address is not in `THEKANJO_ADMIN_EMAILS`. An empty list authorises nobody. |
