@@ -36,7 +36,15 @@ export async function fetchPatreonFeed(): Promise<PatreonFeed> {
 
   try {
     const raw = await fetchCampaignPosts(credentials, FETCH_COUNT)
-    return { status: 'ok', posts: toFeed(raw, FETCH_COUNT) }
+    const posts = toFeed(raw, FETCH_COUNT)
+
+    // Temporary production diagnostic: counts only. No post bodies, titles,
+    // URLs, ids, campaign identifiers or credentials are logged.
+    if (process.env.VERCEL_ENV === 'production') {
+      console.warn(`[env-check] Patreon feed — raw=${raw.length}, publishable=${posts.length}`)
+    }
+
+    return { status: 'ok', posts }
   } catch (cause) {
     const detail = (cause as Error).message
     // Server-side only. The message can name an endpoint or a scope; neither
