@@ -73,14 +73,19 @@ export function PatreonSection({
 
     return (
       <Section id={id} header={header}>
-        <Reveal className="k-patreon-fallback" stagger={0.08} distance={20}>
+        <Reveal
+          className="k-patreon-fallback"
+          stagger={0.08}
+          distance={20}
+          data-feed-status={feed.status}
+        >
           {real(config.fallbackDescription) && (
-            <p className="k-body" style={{ marginTop: 0, color: 'var(--k-text-secondary)' }}>
+            <p className="k-body k-patreon-fallback-copy">
               {config.fallbackDescription}
             </p>
           )}
           {campaignUrl ? (
-            <p style={{ margin: 0 }}>
+            <p className="k-patreon-cta-row">
               <PatreonCta href={campaignUrl} label={config.ctaLabel} />
             </p>
           ) : (
@@ -93,7 +98,13 @@ export function PatreonSection({
 
   return (
     <Section id={id} header={header}>
-      <Reveal as="ul" className="k-post-list" stagger={0.09} distance={26}>
+      <Reveal
+        as="ul"
+        className="k-post-list"
+        stagger={0.09}
+        distance={26}
+        aria-label="Latest Patreon posts"
+      >
         {visible.map((post) => (
           <li key={post.id}>
             <PatreonRow post={post} />
@@ -103,7 +114,7 @@ export function PatreonSection({
 
       {campaignUrl && (
         <Reveal distance={16}>
-          <p style={{ marginTop: 'clamp(28px, 3vw, 44px)', marginBottom: 0 }}>
+          <p className="k-patreon-cta-row k-patreon-cta-row--footer">
             <PatreonCta href={campaignUrl} label={config.ctaLabel} />
           </p>
         </Reveal>
