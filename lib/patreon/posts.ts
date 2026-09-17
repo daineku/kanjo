@@ -107,7 +107,6 @@ export function htmlToText(html: string): string {
 
 /**
  * Truncates on a word boundary, with an ellipsis only when something was cut.
- *
  * The half-length floor is what stops a word boundary from being honoured at
  * any cost: a 180-character excerpt whose only space is at index 4 would
  * otherwise become four characters and an ellipsis, which says less than a
@@ -123,19 +122,27 @@ export function truncate(text: string, max = EXCERPT_MAX): string {
 /**
  * Whether the URL is a Patreon post page.
  *
- * `url` comes from the API rather than from an editor, so this is belt and
- * braces — but a link built from third-party data should still be checked
- * before it is put in an `href`, and it costs one regex.
+ * Patreon currently returns post URLs as relative paths in this feed. Relative
+ * paths are resolved against Patreon's canonical HTTPS origin, while absolute
+ * URLs are still accepted only when they remain on patreon.com. Protocol-
+ * relative values are rejected so `//example.com/...` can never escape the
+ * intended origin.
  */
 function safePostUrl(value: unknown): string | null {
   const raw = asString(value).trim()
   if (!raw) return null
+
   let parsed: URL
   try {
-    parsed = new URL(raw)
+    if (raw.startsWith('/') && !raw.startsWith('//')) {
+      parsed = new URL(raw, 'https://www.patreon.com')
+    } else {
+      parsed = new URL(raw)
+    }
   } catch {
     return null
   }
+
   if (parsed.protocol !== 'https:') return null
   if (parsed.hostname !== 'patreon.com' && !parsed.hostname.endsWith('.patreon.com')) {
     return null

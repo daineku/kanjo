@@ -101,19 +101,10 @@ export function magicLinkOrigin(): string {
  * `SUPABASE_SECRET_KEY`, which is server-only and bypasses RLS.
  */
 export function isAdminAuthConfigured(): boolean {
-  const hasUrl = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL?.trim())
-  const hasPublishableKey = Boolean(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim())
-
-  // Temporary production diagnostic: presence only, never values. This lets us
-  // distinguish Vercel scoping/name issues without exposing credentials.
-  if (process.env.VERCEL_ENV === 'production' && (!hasUrl || !hasPublishableKey)) {
-    console.warn(
-      `[env-check] admin auth — NEXT_PUBLIC_SUPABASE_URL=${hasUrl ? 'present' : 'missing'}, ` +
-        `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${hasPublishableKey ? 'present' : 'missing'}`,
-    )
-  }
-
-  return hasUrl && hasPublishableKey
+  return Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() &&
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim(),
+  )
 }
 
 /**

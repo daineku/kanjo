@@ -29,13 +29,6 @@ export type PatreonCredentials = {
  */
 export function readPatreonCredentials(): PatreonCredentials | null {
   const accessToken = process.env.PATREON_ACCESS_TOKEN?.trim()
-
-  // Temporary production diagnostic: record presence only. The token value is
-  // never printed, returned, serialised or exposed to the browser.
-  if (process.env.VERCEL_ENV === 'production') {
-    console.warn(`[env-check] PATREON_ACCESS_TOKEN=${accessToken ? 'present' : 'missing'}`)
-  }
-
   if (!accessToken) return null
 
   const campaignId = process.env.PATREON_CAMPAIGN_ID?.trim()
