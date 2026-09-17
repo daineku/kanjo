@@ -25,6 +25,30 @@ import { toFeed } from './posts'
 /** How many posts to ask for. The section shows fewer; the gate may drop some. */
 const FETCH_COUNT = 8
 
+function postShape(raw: Awaited<ReturnType<typeof fetchCampaignPosts>>[number]) {
+  const attributes = raw.attributes ?? {}
+  const rawUrl = typeof attributes.url === 'string' ? attributes.url : ''
+  let host = ''
+  if (rawUrl) {
+    try {
+      host = new URL(rawUrl).hostname
+    } catch {
+      host = rawUrl.startsWith('/') ? 'relative-url' : 'invalid-url'
+    }
+  }
+
+  const published = typeof attributes.published_at === 'string' ? attributes.published_at : ''
+
+  return {
+    id: typeof raw.id === 'string' && raw.id.length > 0,
+    title: typeof attributes.title === 'string' && attributes.title.trim().length > 0,
+    url: Boolean(rawUrl),
+    host,
+    published: Boolean(published),
+    dateValid: Boolean(published) && !Number.isNaN(Date.parse(published)),
+  }
+}
+
 export async function fetchPatreonFeed(): Promise<PatreonFeed> {
   const credentials = readPatreonCredentials()
 
@@ -38,10 +62,11 @@ export async function fetchPatreonFeed(): Promise<PatreonFeed> {
     const raw = await fetchCampaignPosts(credentials, FETCH_COUNT)
     const posts = toFeed(raw, FETCH_COUNT)
 
-    // Temporary production diagnostic: counts only. No post bodies, titles,
-    // URLs, ids, campaign identifiers or credentials are logged.
+    // Temporary production diagnostic. Only structural booleans and URL host
+    // names are logged: never titles, post text, ids, full URLs or credentials.
     if (process.env.VERCEL_ENV === 'production') {
       console.warn(`[env-check] Patreon feed — raw=${raw.length}, publishable=${posts.length}`)
+      console.warn(`[env-check] Patreon shapes — ${JSON.stringify(raw.map(postShape))}`)
     }
 
     return { status: 'ok', posts }
