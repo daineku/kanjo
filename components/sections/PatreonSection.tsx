@@ -73,12 +73,7 @@ export function PatreonSection({
 
     return (
       <Section id={id} header={header}>
-        <Reveal
-          className="k-patreon-fallback"
-          stagger={0.08}
-          distance={20}
-          data-feed-status={feed.status}
-        >
+        <Reveal className="k-patreon-fallback" stagger={0.08} distance={20}>
           {real(config.fallbackDescription) && (
             <p className="k-body k-patreon-fallback-copy">
               {config.fallbackDescription}
@@ -98,13 +93,7 @@ export function PatreonSection({
 
   return (
     <Section id={id} header={header}>
-      <Reveal
-        as="ul"
-        className="k-post-list"
-        stagger={0.09}
-        distance={26}
-        aria-label="Latest Patreon posts"
-      >
+      <Reveal as="ul" className="k-post-list" stagger={0.09} distance={26}>
         {visible.map((post) => (
           <li key={post.id}>
             <PatreonRow post={post} />
