@@ -1269,3 +1269,28 @@
     content: none;
   }
 }
+
+
+/* Homepage gameplay video
+   Same measure as the explanatory copy below it, with a deliberate breathing
+   space between media and text. */
+#game .k-intro-block--video {
+  width: min(100%, 1080px);
+  margin: 0 auto clamp(24px, 2.2vw, 34px);
+}
+
+#game .k-intro-block--video .k-frame {
+  width: 100%;
+}
+
+#game .k-intro-block-title {
+  margin: var(--k-space-sm) 0 0;
+  text-align: center;
+}
+
+@media (max-width: 767px) {
+  #game .k-intro-block--video {
+    width: 100%;
+    margin-bottom: clamp(20px, 6vw, 28px);
+  }
+}

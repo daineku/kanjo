@@ -70,8 +70,56 @@ export function IntroSection({ id, config }: { id: string; config: IntroConfig }
   const rendered = renderRichText(body)
   const blocks = config.blocks ?? []
 
+  // On the homepage's GAME intro, the first configured YouTube block is the
+  // feature media: title -> video -> explanatory copy. The admin still edits
+  // the exact same ordered block model; only its presentation is promoted here.
+  // Every other intro keeps the generic body -> blocks order.
+  const leadVideoIndex =
+    id === 'game' ? blocks.findIndex((block) => block.type === 'youtube') : -1
+
+  const renderBlock = (block: (typeof blocks)[number], index: number) => {
+    if (block.type === 'text') {
+      const text = renderRichText(
+        block.body
+          .split(/\n\s*\n/)
+          .filter((paragraph) => !isPlaceholder(paragraph))
+          .join('\n\n'),
+      )
+      return text ? (
+        <div key={index} className="k-body k-prose k-rt k-intro-block">
+          {text}
+        </div>
+      ) : null
+    }
+
+    const videoId = youTubeId(block.video)
+    if (!videoId) return null
+
+    return (
+      <div key={index} className="k-intro-block k-intro-block--video">
+        <VideoEmbed
+          ratio={block.aspectRatio?.trim() || '16 / 9'}
+          sizes="(max-width: 767px) 100vw, 1080px"
+          video={{
+            id: `${id}-block-${index}`,
+            provider: 'youtube',
+            ref: videoId,
+            title: block.title ?? 'THE KANJO gameplay',
+            poster: { src: youTubeThumbnail(videoId), alt: '', width: 480, height: 360 },
+            featured: false,
+            published: true,
+            order: index,
+          }}
+        />
+        {block.title && <p className="k-item-title k-intro-block-title">{block.title}</p>}
+      </div>
+    )
+  }
+
   return (
     <Section id={id} header={cleanHeader(config)}>
+      {leadVideoIndex >= 0 ? renderBlock(blocks[leadVideoIndex]!, leadVideoIndex) : null}
+
       {rendered ? (
         <div className="k-body k-prose k-rt">
           {id === 'game' ? (
@@ -82,44 +130,9 @@ export function IntroSection({ id, config }: { id: string; config: IntroConfig }
         </div>
       ) : null}
 
-      {/* Ordered blocks after the body: text, or a video through the same
-          click-to-load facade the main video section uses. A block whose id
-          is not a YouTube id renders nothing rather than an empty frame. */}
-      {blocks.map((block, index) => {
-        if (block.type === 'text') {
-          const text = renderRichText(
-            block.body
-              .split(/\n\s*\n/)
-              .filter((paragraph) => !isPlaceholder(paragraph))
-              .join('\n\n'),
-          )
-          return text ? (
-            <div key={index} className="k-body k-prose k-rt k-intro-block">
-              {text}
-            </div>
-          ) : null
-        }
-        const videoId = youTubeId(block.video)
-        if (!videoId) return null
-        return (
-          <div key={index} className="k-intro-block k-intro-block--video">
-            <VideoEmbed
-              ratio={block.aspectRatio?.trim() || '16 / 9'}
-              video={{
-                id: `${id}-block-${index}`,
-                provider: 'youtube',
-                ref: videoId,
-                title: block.title ?? 'Video',
-                poster: { src: youTubeThumbnail(videoId), alt: '', width: 480, height: 360 },
-                featured: false,
-                published: true,
-                order: index,
-              }}
-            />
-            {block.title && <p className="k-item-title k-intro-block-title">{block.title}</p>}
-          </div>
-        )
-      })}
+      {blocks.map((block, index) =>
+        index === leadVideoIndex ? null : renderBlock(block, index),
+      )}
     </Section>
   )
 }

@@ -480,11 +480,15 @@ function SectionPanel({
                     hint="Markdown subset."
                   />
                   <Field
-                    label="YouTube video (for a video block)"
+                    label={section.id === 'game' ? 'Homepage YouTube video' : 'YouTube video (for a video block)'}
                     name={`blocks[${key}].video`}
                     defaultValue={block?.type === 'youtube' ? block.video : ''}
                     wide
-                    hint="A bare id or any YouTube URL. Click-to-load, like the main video."
+                    hint={
+                      section.id === 'game'
+                        ? 'Shown directly below CREATE YOUR BUILD / PROVE IT ON THE LOOP. Paste any YouTube watch/share URL or an 11-character video id.'
+                        : 'A bare id or any YouTube URL. Click-to-load, like the main video.'
+                    }
                   />
                   <Field
                     label="Video caption"
