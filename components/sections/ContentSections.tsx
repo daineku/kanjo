@@ -1,5 +1,6 @@
 import Link from 'next/link'
 
+import { LocalizedParagraphCopy } from '@/components/i18n/LocalizedHomeCopy'
 import { MediaPlate } from '@/components/kanjo/MediaPlate'
 import { ScreenshotGrid } from '@/components/kanjo/ScreenshotGrid'
 import { EmptyNotice, Section } from '@/components/kanjo/Section'
@@ -71,7 +72,15 @@ export function IntroSection({ id, config }: { id: string; config: IntroConfig }
 
   return (
     <Section id={id} header={cleanHeader(config)}>
-      {rendered ? <div className="k-body k-prose k-rt">{rendered}</div> : null}
+      {rendered ? (
+        <div className="k-body k-prose k-rt">
+          {id === 'game' ? (
+            <LocalizedParagraphCopy copyKey="game-body" english={body} />
+          ) : (
+            rendered
+          )}
+        </div>
+      ) : null}
 
       {/* Ordered blocks after the body: text, or a video through the same
           click-to-load facade the main video section uses. A block whose id

@@ -4,6 +4,7 @@ import type { CSSProperties } from 'react'
 import { HeroVideo } from '@/components/kanjo/HeroVideo'
 import { WedgeCard } from '@/components/kanjo/WedgeCard'
 import { HeroMotion } from '@/components/motion/HeroMotion'
+import { LocalizedInlineCopy } from '@/components/i18n/LocalizedHomeCopy'
 import { LogoReveal } from '@/components/motion/LogoReveal'
 import { TitleReveal } from '@/components/motion/TitleReveal'
 import { isPlaceholder } from '@/lib/content/placeholder'
@@ -258,7 +259,7 @@ export function HeroSection({
                   ['--k-reveal-delay' as string]: '120ms',
                 }}
               >
-                {description}
+                <LocalizedInlineCopy copyKey="hero-description" english={description} />
               </p>
             )}
 
