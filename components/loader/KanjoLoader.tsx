@@ -47,10 +47,10 @@ import type { LoaderConfig, LoaderIntensity } from '@/lib/content/types'
  */
 
 /** Seconds. One full trade of position, out and back. */
-const CYCLE = 1.5
+const CYCLE = 1.25
 
 /** How far the cars travel, in vw. The stage is the viewport, so vw is the unit. */
-const LANE = { aStart: 7, aEnd: -6, bStart: -7, bEnd: 6.5 }
+const LANE = { aStart: 4.2, aEnd: -4.8, bStart: -4.2, bEnd: 5.2 }
 
 type Phase = 'running' | 'gone'
 
@@ -157,41 +157,10 @@ export function KanjoLoader({ config }: { config: LoaderConfig }) {
         return () => controller.abort()
       }
 
-      // ── The road ──────────────────────────────────────────────────────────
-      // A lane's dash strip is one dash-period wider than the lane, so shifting
-      // it by exactly one period puts an identical dash where the previous one
-      // was: the repeat is seamless at any viewport width, and the only animated
-      // property is a transform.
-      //
-      // The period is READ FROM THE STYLESHEET rather than duplicated here. Two
-      // copies of the same number, one in CSS and one in JS, is a seam that
-      // eventually opens — and this one would open as a visible stutter in the
-      // road at whichever breakpoint got edited alone.
-      const dashPeriod = (selector: string, fallback: number) => {
-        const node = element.querySelector(selector)
-        if (!node) return fallback
-        const value = parseFloat(getComputedStyle(node).getPropertyValue('--k-dash'))
-        return Number.isFinite(value) && value > 0 ? value : fallback
-      }
-
-      const roadSpeed = intensity === 'low' ? 1.15 : 0.85
-      loops.push(
-        gsap.to('.k-loader-dashes--near', {
-          x: -dashPeriod('.k-loader-dashes--near', 150),
-          duration: roadSpeed,
-          ease: 'none',
-          repeat: -1,
-        }),
-        // The far lane runs slower. That difference IS the parallax — there is
-        // no second scroll system and no pointer input anywhere in this loader.
-        gsap.to('.k-loader-dashes--far', {
-          x: -dashPeriod('.k-loader-dashes--far', 96),
-          duration: roadSpeed * (1 + 0.45 * policy.distance),
-          ease: 'none',
-          repeat: -1,
-        }),
-      )
-
+      // ── Motion field ───────────────────────────────────────────────────────
+      // No painted road or lane strip: the loader is just the two cars and a
+      // pair of fast light traces on black. That keeps the entrance graphic,
+      // closer to the brand mark, and makes speed come from relative motion.
       if (intensity !== 'low') {
         // Restrained light accents. Two thin streaks, low opacity, no colour
         // beyond the canon's own — this is a night highway, not a neon city.
@@ -219,10 +188,10 @@ export function KanjoLoader({ config }: { config: LoaderConfig }) {
       // than as a sequence with a seam in it.
       const race = gsap.timeline({ repeat: -1, yoyo: true, defaults: { ease: 'sine.inOut' } })
       race
-        .to('.k-loader-car--a', { x: `${LANE.aEnd}vw`, duration: CYCLE, ease: 'power1.inOut' }, 0)
+        .to('.k-loader-car--a', { x: `${LANE.aEnd}vw`, scale: 1.025, duration: CYCLE, ease: 'power1.inOut' }, 0)
         // B is quicker into the move and eases off once it is clear, which is
         // what makes the pass read as a pass rather than as two sliding shapes.
-        .to('.k-loader-car--b', { x: `${LANE.bEnd}vw`, duration: CYCLE * 0.78, ease: 'power2.inOut' }, 0)
+        .to('.k-loader-car--b', { x: `${LANE.bEnd}vw`, scale: 1.02, duration: CYCLE * 0.78, ease: 'power2.inOut' }, 0)
         .to('.k-loader-car--b', { x: `${LANE.bEnd + 1.2}vw`, duration: CYCLE * 0.22, ease: 'sine.out' }, CYCLE * 0.78)
       loops.push(race)
 
@@ -257,12 +226,9 @@ export function KanjoLoader({ config }: { config: LoaderConfig }) {
         outro
           .to('.k-loader-car--b', { x: '+=46vw', duration: 0.5, ease: 'power2.in' }, 0)
           .to('.k-loader-car--a', { x: '+=46vw', duration: 0.55, ease: 'power2.in' }, 0.05)
-          // The road surges with them rather than stopping dead under them.
-          .to(loops, { timeScale: 3.4, duration: 0.4, ease: 'power1.in' }, 0)
-          // The highway masks away along its own horizon — a vertical close
-          // rather than a fade, so the last thing on screen is the road's line.
-          .to('.k-loader-road', { scaleY: 0.02, autoAlpha: 0, duration: 0.34, ease: 'power2.inOut' }, 0.3)
-          .to('.k-loader-accent', { autoAlpha: 0, duration: 0.2 }, 0.3)
+          // The motion accelerates with the cars rather than stopping under them.
+          .to(loops, { timeScale: 3.8, duration: 0.34, ease: 'power1.in' }, 0)
+          .to('.k-loader-accent', { autoAlpha: 0, duration: 0.18 }, 0.24)
           // THE KANJO's cue fires here, so the title arrives as the loader
           // dissolves rather than after a gap.
           .to(element, { autoAlpha: 0, duration: 0.42, ease: 'power1.out', onStart: finish }, 0.44)
@@ -292,26 +258,6 @@ export function KanjoLoader({ config }: { config: LoaderConfig }) {
       aria-live="polite"
     >
       <div className="k-loader-stage" aria-hidden="true">
-        {config.road && (
-          // An optional painted plate behind the generated surface. Plain <img>:
-          // it is a full-bleed background for a component that is already on
-          // screen, so an optimizer round trip would only delay it.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img className="k-loader-plate" src={config.road.src} alt="" aria-hidden="true" />
-        )}
-
-        <div className="k-loader-road">
-          <span className="k-loader-edge k-loader-edge--top" />
-          <span className="k-loader-lane k-loader-lane--far">
-            <span className="k-loader-dashes k-loader-dashes--far" />
-          </span>
-          <span className="k-loader-divider" />
-          <span className="k-loader-lane k-loader-lane--near">
-            <span className="k-loader-dashes k-loader-dashes--near" />
-          </span>
-          <span className="k-loader-edge k-loader-edge--bottom" />
-        </div>
-
         {/* Always in the DOM, never conditionally rendered: the intensity that
             decides whether they move is a client-side measurement, and adding or
             removing nodes based on it would be a hydration mismatch. GSAP simply

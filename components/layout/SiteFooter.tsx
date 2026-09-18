@@ -32,12 +32,16 @@ export function SiteFooter({ settings }: { settings: SiteSettings }) {
     publisherName && publisherUrl ? { name: publisherName, url: publisherUrl } : undefined
 
   return (
-    <footer
-      style={{
-        borderTop: 'var(--k-thin-width) solid var(--k-divider)',
-        paddingBlock: 'clamp(32px, 4vw, 56px)',
-      }}
-    >
+    <footer className="k-site-footer">
+      <div className="k-footer-divider" aria-hidden="true">
+        <Image
+          src="/media/brand/divider.png"
+          alt=""
+          width={2136}
+          height={257}
+          sizes="(max-width: 767px) 92vw, 640px"
+        />
+      </div>
       <div
         className="k-shell"
         style={{
@@ -49,18 +53,6 @@ export function SiteFooter({ settings }: { settings: SiteSettings }) {
         }}
       >
         <div>
-          {/* The supplied micro-mark, small and at secondary opacity: the
-              footer's signature rather than a second logo. Decorative — the
-              site's name is in the line beneath it. */}
-          <Image
-            className="k-footer-mark"
-            src="/media/brand/micro-mark.png"
-            alt=""
-            width={1785}
-            height={194}
-            sizes="220px"
-            aria-hidden="true"
-          />
           {/* No © glyph. Iceland has U+00A9 but draws it as a hollow square,
               which renders as tofu at 14px; "(C)" is uglier still. The year and
               the holder are what the notice needs. */}

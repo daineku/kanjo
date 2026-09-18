@@ -1,8 +1,7 @@
+import Image from 'next/image'
 import type { ReactNode } from 'react'
 
 import type { SectionHeader } from '@/lib/content/types'
-
-import { Ornament } from './Ornament'
 
 /**
  * The one section wrapper, and the one section heading treatment.
@@ -51,8 +50,16 @@ export function Section({
       aria-label={!hasHeading && id ? id : undefined}
     >
       <div className="k-shell">
+        <div className="k-brand-separator" aria-hidden="true">
+          <Image
+            src="/media/brand/micro-mark.png"
+            alt=""
+            width={1785}
+            height={194}
+            sizes="(max-width: 767px) 44vw, 210px"
+          />
+        </div>
         <div className={width === 'reading' ? 'k-reading' : undefined}>
-          {header?.ornament && <Ornament kind={header.ornament} />}
           {(header?.eyebrow || header?.heading || header?.standfirst) && (
             <header style={{ marginBottom: 'clamp(28px, 3vw, 48px)' }}>
               {header.eyebrow && (

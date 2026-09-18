@@ -101,13 +101,6 @@ export function PatreonSection({
         ))}
       </Reveal>
 
-      {campaignUrl && (
-        <Reveal distance={16}>
-          <p className="k-patreon-cta-row k-patreon-cta-row--footer">
-            <PatreonCta href={campaignUrl} label={config.ctaLabel} />
-          </p>
-        </Reveal>
-      )}
     </Section>
   )
 }
@@ -127,7 +120,7 @@ function PatreonRow({ post }: { post: PatreonPost }) {
         <time className="k-small" dateTime={post.publishedAt}>
           {formatDate(post.publishedAt.slice(0, 10))}
         </time>
-        {!post.isPublic && <span className="k-post-lock k-small">MEMBERS</span>}
+
       </span>
 
       <span className="k-item-title k-post-title">{post.title}</span>
@@ -144,7 +137,7 @@ function PatreonRow({ post }: { post: PatreonPost }) {
           real information, and as part of the anchor's text it is also what
           gives the link an accessible name that ends in its own purpose. */}
       <span className="k-post-action k-small">
-        {post.isPublic ? 'VIEW ON PATREON' : 'UNLOCK ON PATREON'}
+        OPEN
       </span>
     </a>
   )
