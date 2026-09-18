@@ -152,8 +152,8 @@ export default async function AdminPage({
           label="Wordmark"
           name="wordmark"
           value={draft.settings.wordmark}
-          folder="og"
-          hint="Optional. Without one the header draws the title in the display face."
+          folder="brand"
+          hint="Primary site wordmark. In production uploads are stored under brand/ in R2."
         />
 
         <Toggle

@@ -142,10 +142,11 @@ export function Select({
 }
 
 /**
- * An image: upload a file, or type a path already under /public/media.
+ * An image: upload a file, or type an existing media path / public URL.
  *
- * The upload wins when both are present, and its dimensions are read from the
- * file's own bytes — the width/height inputs below are only for a hand-typed
+ * The upload wins when both are present. Locally it is filed under public/media;
+ * production uses the configured media store (R2 for the live site). Dimensions
+ * are read from the uploaded bytes — width/height are only for a hand-entered
  * path. See lib/content/local/imageSize.ts.
  */
 export function ImageField({
@@ -189,7 +190,10 @@ export function ImageField({
             name={`${name}.file`}
             accept=".png,.jpg,.jpeg,.webp,.gif,.svg"
           />
-          <span className="a-hint">Filed under /public/media/{folder}/.</span>
+          <span className="a-hint">
+            Saved under {folder}/ in the configured media store (R2 in production,
+            public/media locally).
+          </span>
         </label>
         <Field label="Path" name={`${name}.src`} defaultValue={value?.src} wide />
         <Field
