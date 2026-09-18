@@ -132,7 +132,8 @@ export function KanjoLoader({ config }: { config: LoaderConfig }) {
       // ── The still composition, in every case ──────────────────────────────
       // Both cars are placed by the same `set`, so the reduced-motion loader is
       // the identical picture with the motion removed rather than a second
-      // layout that could drift away from this one.
+      // layout that could drift away from this one. Which artwork occupies A/B
+      // is content configuration; the animation choreography stays untouched.
       gsap.set('.k-loader-car', { xPercent: -50, yPercent: -50 })
       gsap.set('.k-loader-car--a', { x: `${LANE.aStart}vw` })
       gsap.set('.k-loader-car--b', { x: `${LANE.bStart}vw` })
