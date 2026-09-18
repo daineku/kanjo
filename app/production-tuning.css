@@ -1243,3 +1243,29 @@
     white-space: pre-line;
   }
 }
+
+
+/* Reference-style gaming title reveal.
+   The start state is JS-only; these rules describe only stable layout. */
+.k-game-title-line {
+  display: inline;
+}
+
+.k-game-title-line + .k-game-title-line::before {
+  content: ' ';
+}
+
+.k-game-title-word {
+  display: inline-block;
+  backface-visibility: hidden;
+}
+
+@media (max-width: 767px) {
+  .k-game-title-line {
+    display: block;
+  }
+
+  .k-game-title-line + .k-game-title-line::before {
+    content: none;
+  }
+}

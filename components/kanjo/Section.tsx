@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import type { ReactNode } from 'react'
 
+import { GameTitleReveal } from '@/components/motion/GameTitleReveal'
 import type { SectionHeader } from '@/lib/content/types'
 
 /**
@@ -40,7 +41,6 @@ export function Section({
 }) {
   const headingId = labelledBy ?? (id ? `${id}-heading` : undefined)
   const hasHeading = Boolean(header?.heading)
-  const Heading = headingLevel === 1 ? 'h1' : 'h2'
 
   return (
     <section
@@ -68,13 +68,13 @@ export function Section({
                 </p>
               )}
               {header.heading && (
-                <Heading
+                <GameTitleReveal
                   id={headingId}
+                  level={headingLevel}
                   className="k-section-title"
                   style={{ marginTop: header.eyebrow ? 'var(--k-space-md)' : 0 }}
-                >
-                  {header.heading}
-                </Heading>
+                  text={header.heading}
+                />
               )}
               {header.standfirst && (
                 <p
