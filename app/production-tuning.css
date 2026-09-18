@@ -8,7 +8,7 @@
  */
 
 :root {
-  --k-content: 980px;
+  --k-content: 1180px;
   --k-content-wide: 1320px;
 }
 
@@ -597,6 +597,7 @@
 
 @media (max-width: 767px) {
   .k-social-cluster {
+    position: absolute;
     top: max(var(--k-space-md), env(safe-area-inset-top));
     left: max(var(--k-space-md), env(safe-area-inset-left));
     right: auto;
@@ -648,7 +649,7 @@
    There is no site-authored black stage, card or frame around it. */
 #tiktok > .k-shell > div {
   width: 100%;
-  max-width: min(1160px, 100%);
+  max-width: min(1180px, 100%);
   margin-inline: auto;
 }
 
@@ -674,8 +675,14 @@
 
 .k-tiktok .tiktok-embed > section {
   width: 100%;
-  padding: clamp(20px, 3vw, 34px);
+  padding: 0;
   text-align: center;
+  background: transparent;
+}
+
+.k-tiktok-placeholder {
+  width: 100%;
+  min-height: clamp(320px, 38vw, 480px);
   background: transparent;
 }
 
@@ -691,6 +698,15 @@
 
 /* Patreon: API data is our own presentation surface, so use a balanced editorial
    grid. Paid and free previews intentionally share one visual treatment. */
+#game > .k-shell > div:last-child,
+#watch > .k-shell > div:last-child,
+#tiktok > .k-shell > div:last-child,
+#devlog > .k-shell > div:last-child {
+  width: 100%;
+  max-width: min(100%, 1180px);
+  margin-inline: auto;
+}
+
 #devlog .k-reading {
   max-width: min(100%, 1180px);
 }
@@ -919,7 +935,11 @@
   }
 
   .k-tiktok .tiktok-embed > section {
-    padding: 18px 8px;
+    padding: 0;
+  }
+
+  .k-tiktok-placeholder {
+    min-height: clamp(300px, 92vw, 430px);
   }
 
   .k-post-list {

@@ -67,12 +67,10 @@ function injectEmbedScript(): void {
  *
  * ── THE FALLBACK IS THE INITIAL CONTENT, NOT AN ERROR STATE ─────────────────
  *
- * The `<section>` inside the blockquote is what a visitor sees until TikTok's
- * script replaces it — and what they keep seeing if TikTok is blocked, slow, or
- * unreachable. So it is not a spinner: it is the FOLLOW ON TIKTOK link, styled
- * like the rest of the site. There is no state in which this block is an empty
- * black rectangle waiting for something that is never coming. That is also the
- * official pattern — the blockquote's own content is the documented fallback.
+ * The `<section>` inside the blockquote is a silent layout placeholder until
+ * TikTok's script replaces it. The public page deliberately does not flash a
+ * temporary FOLLOW button before the creator embed appears; the surrounding
+ * REAL BUILDS section already explains what the module is.
  *
  * ── LOADING: TWO GATES, AND BOTH ARE NECESSARY ──────────────────────────────
  *
@@ -99,14 +97,12 @@ function injectEmbedScript(): void {
 export function TikTokEmbed({
   handle,
   profileUrl,
-  ctaLabel,
   waitForLoader,
 }: {
   /** Already validated server-side. `[A-Za-z0-9_.]{2,24}`, no `@`. */
   handle: string
   /** Canonical, rebuilt from the validated handle. */
   profileUrl: string
-  ctaLabel: string
   /** False when the loader is off: there is then nothing to wait for. */
   waitForLoader: boolean
 }) {
@@ -187,16 +183,7 @@ export function TikTokEmbed({
         data-embed-type="creator"
         suppressHydrationWarning
       >
-        <section>
-          <a
-            className="k-link-action"
-            href={profileUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {ctaLabel}
-          </a>
-        </section>
+        <section className="k-tiktok-placeholder" aria-hidden="true" />
       </blockquote>
     </div>
   )

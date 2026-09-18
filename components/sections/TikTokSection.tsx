@@ -70,7 +70,6 @@ export function TikTokSection({
         <TikTokEmbed
           handle={handle}
           profileUrl={profileUrl}
-          ctaLabel={config.ctaLabel}
           waitForLoader={loader.enabled}
         />
       </Reveal>
