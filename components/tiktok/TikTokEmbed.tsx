@@ -107,6 +107,7 @@ export function TikTokEmbed({
   waitForLoader: boolean
 }) {
   const root = useRef<HTMLDivElement>(null)
+  const providerResizeObserver = useRef<ResizeObserver | null>(null)
   /**
    * The one-way latch. A ref rather than state because nothing on screen
    * depends on it — asking for the script is a side effect, and making it a
@@ -164,6 +165,90 @@ export function TikTokEmbed({
       observer?.disconnect()
     }
   }, [waitForLoader])
+
+  useEffect(() => {
+    const element = root.current
+    if (!element) return
+
+    let mutationObserver: MutationObserver | null = null
+    let resizeObserver: ResizeObserver | null = null
+    let frame = 0
+
+    const fitProviderSurface = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => {
+        const host = root.current
+        if (!host) return
+
+        const iframe = host.querySelector('iframe')
+        if (!(iframe instanceof HTMLIFrameElement)) return
+
+        // TikTok's documented Creator Profile Embed is authored at a 720px
+        // maximum card width. Once embed.js has rendered it, keep that native
+        // layout width and scale the complete provider surface to our own
+        // content canvas. This preserves TikTok's proportions instead of
+        // stretching individual children.
+        const providerSurface =
+          (iframe.closest('blockquote') as HTMLElement | null) ??
+          (iframe.parentElement as HTMLElement | null)
+
+        if (!providerSurface || providerSurface === host) return
+
+        providerSurface.classList.add('k-tiktok-provider-surface')
+
+        const targetWidth = host.clientWidth
+        if (targetWidth <= 0) return
+
+        const nativeWidth = Math.min(720, targetWidth)
+        const scale = targetWidth / nativeWidth
+
+        providerSurface.style.setProperty('width', `${nativeWidth}px`, 'important')
+        providerSurface.style.setProperty('max-width', `${nativeWidth}px`, 'important')
+        providerSurface.style.setProperty('min-width', `${nativeWidth}px`, 'important')
+        providerSurface.style.setProperty('margin', '0', 'important')
+        providerSurface.style.setProperty('transform-origin', 'top left', 'important')
+        providerSurface.style.setProperty('transform', `scale(${scale})`, 'important')
+
+        iframe.style.setProperty('width', '100%', 'important')
+        iframe.style.setProperty('max-width', '100%', 'important')
+        iframe.style.setProperty('min-width', '100%', 'important')
+        iframe.style.setProperty('margin', '0', 'important')
+
+        // Transforms do not contribute their visual height to normal flow.
+        // Reserve the scaled height so the Patreon section starts exactly after
+        // the visible TikTok card instead of underlapping it.
+        const nativeHeight = providerSurface.offsetHeight
+        if (nativeHeight > 0) {
+          host.style.height = `${Math.ceil(nativeHeight * scale)}px`
+        }
+
+        providerResizeObserver.current?.disconnect()
+        if (typeof ResizeObserver === 'function') {
+          const ro = new ResizeObserver(() => fitProviderSurface())
+          ro.observe(providerSurface)
+          providerResizeObserver.current = ro
+        }
+      })
+    }
+
+    mutationObserver = new MutationObserver(() => fitProviderSurface())
+    mutationObserver.observe(element, { childList: true, subtree: true })
+
+    if (typeof ResizeObserver === 'function') {
+      resizeObserver = new ResizeObserver(() => fitProviderSurface())
+      resizeObserver.observe(element)
+    }
+
+    fitProviderSurface()
+
+    return () => {
+      cancelAnimationFrame(frame)
+      mutationObserver?.disconnect()
+      resizeObserver?.disconnect()
+      providerResizeObserver.current?.disconnect()
+      providerResizeObserver.current = null
+    }
+  }, [])
 
   return (
     <div className="k-tiktok" ref={root}>

@@ -1115,3 +1115,67 @@
     padding-bottom: clamp(26px, 7vw, 36px);
   }
 }
+
+
+/* 2026-09-18 — hero/status and final rhythm */
+
+/* The project label sits on the same horizontal level as the first item in the
+   side rail. It is removed from normal flow so the hero title keeps its own
+   composition instead of being pushed down by chrome. */
+.k-hero-status {
+  position: absolute;
+  top: max(var(--k-space-lg), env(safe-area-inset-top));
+  left: 50%;
+  z-index: 3;
+  margin: 0;
+  transform: translateX(-50%);
+}
+
+.k-hero-ui .k-shell > div {
+  padding-top: clamp(38px, 3.2vw, 48px);
+}
+
+/* One vertical rhythm value per breakpoint: the whitespace after a section is
+   exactly the same as the whitespace between the micro-mark separator and the
+   section title. */
+@media (min-width: 768px) {
+  #main > .k-section {
+    padding-bottom: clamp(18px, 1.7vw, 26px);
+  }
+
+  .k-brand-separator {
+    margin-bottom: clamp(18px, 1.7vw, 26px);
+  }
+}
+
+@media (max-width: 767px) {
+  .k-hero-status {
+    top: max(var(--k-space-md), env(safe-area-inset-top));
+  }
+
+  .k-hero-ui .k-shell > div {
+    padding-top: 42px;
+  }
+
+  #main > .k-section {
+    padding-bottom: clamp(24px, 7vw, 34px);
+  }
+
+  .k-brand-separator {
+    margin-bottom: clamp(24px, 7vw, 34px);
+  }
+}
+
+/* The official Creator Profile Embed itself is designed around a 720px card.
+   TikTok reapplies that size after embed.js runs, so CSS width alone cannot
+   keep the loaded card on our 1180px canvas. TikTokEmbed.tsx scales the loaded
+   provider surface to the width of this wrapper and reserves the scaled height. */
+.k-tiktok {
+  width: min(100%, 1180px);
+  max-width: 1180px;
+  margin-inline: auto;
+}
+
+.k-tiktok-provider-surface {
+  transform-origin: top left;
+}

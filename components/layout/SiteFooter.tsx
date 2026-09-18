@@ -21,7 +21,7 @@ import type { SiteSettings } from '@/lib/content/types'
 
 export function SiteFooter({ settings }: { settings: SiteSettings }) {
   const year = new Date().getFullYear()
-  const links = settings.footer.links
+  const links = settings.footer.links.filter((link) => link.visible && link.href !== '/updates')
   const note = real(settings.footer.note)
 
   // Both halves must be real. A publisher name with no URL is a claim with
