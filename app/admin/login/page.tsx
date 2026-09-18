@@ -1,7 +1,12 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 
-import { currentAdmin, isAdminAuthConfigured, isLocalAdminEnabled } from '@/lib/admin/auth'
+import {
+  adminAuthConfigIssue,
+  currentAdmin,
+  isAdminAuthConfigured,
+  isLocalAdminEnabled,
+} from '@/lib/admin/auth'
 
 import { sendMagicLink } from '../actions'
 
@@ -34,9 +39,13 @@ export default async function AdminLoginPage({
 }: {
   searchParams: Promise<{ sent?: string; error?: string }>
 }) {
+  // Validate configuration before constructing a Supabase client. A malformed
+  // public URL should render a useful setup message, not a server-side 500.
+  const configIssue = adminAuthConfigIssue()
+
   // Already an admin — or running the local file-backed admin, which has no
   // accounts. Either way there is nothing to sign in to.
-  if (isLocalAdminEnabled() || (await currentAdmin())) redirect('/admin')
+  if (!configIssue && (isLocalAdminEnabled() || (await currentAdmin()))) redirect('/admin')
 
   const params = await searchParams
 
@@ -46,9 +55,8 @@ export default async function AdminLoginPage({
         <header className="a-head">
           <h1>THE KANJO — CONTENT</h1>
           <p className="a-error">
-            Admin sign-in is not configured on this deployment. It needs
-            NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-            plus THEKANJO_ADMIN_EMAILS. See docs/PRODUCTION_SETUP.md.
+            {configIssue ?? 'Admin sign-in is not configured on this deployment.'}
+            {' '}THEKANJO_ADMIN_EMAILS must also contain the authorised address.
           </p>
           <p className="a-note">
             For local editing instead, run with ADMIN_ENABLED=true and no Supabase

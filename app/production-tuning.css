@@ -504,3 +504,169 @@
     align-items: center !important;
   }
 }
+
+
+/* 2026-09-18 — centred production composition */
+
+/* Keep every major section on one visual axis. Long prose remains left-aligned
+   inside the centred object; display copy and controls are centred. */
+#game > .k-shell,
+#tiktok > .k-shell,
+#devlog > .k-shell {
+  margin-inline: auto;
+}
+
+#game header,
+#tiktok header,
+#devlog header {
+  width: min(100%, 840px);
+  margin-inline: auto;
+}
+
+#game .k-prose {
+  width: min(100%, 760px);
+}
+
+/* TikTok's Creator Profile Embed owns its cross-origin white card. Make that
+   card read as an intentional third-party module by giving the entire section a
+   true-black stage instead of trying to recolour an iframe we do not own. */
+#tiktok {
+  position: relative;
+  isolation: isolate;
+  background: #000;
+  border-block: var(--k-thin-width) solid var(--k-divider);
+}
+
+#tiktok::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto auto 50%;
+  width: min(240px, 30vw);
+  height: var(--k-divider-width);
+  transform: translateX(-50%);
+  background: var(--k-accent);
+  z-index: 0;
+}
+
+#tiktok > .k-shell {
+  position: relative;
+  z-index: 1;
+}
+
+#tiktok .k-section-title,
+#tiktok .k-small {
+  position: relative;
+}
+
+.k-tiktok {
+  width: min(100%, 900px);
+  border-color: rgb(255 255 255 / 0.11);
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.018), transparent 26%),
+    #000;
+  padding: clamp(14px, 1.8vw, 24px);
+}
+
+/* Patreon is site-native API content, so it can use the full visual language.
+   Three editorial cards give the devlog a stronger, centred landing-page
+   composition than a stack of dashboard-like rows. */
+#devlog .k-reading {
+  max-width: min(100%, 1180px);
+}
+
+.k-post-list {
+  width: 100%;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(12px, 1.4vw, 18px);
+}
+
+.k-post-list > li {
+  display: flex;
+}
+
+.k-post-row {
+  width: 100%;
+  height: 100%;
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    'meta'
+    'title'
+    'excerpt'
+    'action';
+  grid-template-rows: auto auto 1fr auto;
+  row-gap: 12px;
+  column-gap: 0;
+  padding: clamp(20px, 2vw, 28px);
+  border-left-width: var(--k-thin-width);
+  border-top: var(--k-divider-width) solid var(--k-divider);
+}
+
+.k-post-row[data-locked='true'] {
+  border-top-color: var(--k-accent);
+  background:
+    linear-gradient(180deg, var(--k-accent-tint), transparent 52%),
+    rgb(255 255 255 / 0.012);
+}
+
+.k-post-meta {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  min-height: 26px;
+}
+
+.k-post-title {
+  line-height: 1.12;
+}
+
+.k-post-excerpt {
+  max-width: none;
+}
+
+.k-post-action {
+  align-self: end;
+  justify-self: start;
+  margin-top: 8px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .k-post-row:hover {
+    border-top-color: var(--k-accent);
+    border-left-color: var(--k-divider);
+    transform: translateY(-2px);
+  }
+}
+
+@media (max-width: 1024px) {
+  .k-post-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .k-post-row {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'meta'
+      'title'
+      'excerpt'
+      'action';
+  }
+}
+
+@media (max-width: 700px) {
+  #tiktok::before {
+    width: 132px;
+  }
+
+  .k-tiktok {
+    padding: 8px;
+  }
+
+  .k-post-list {
+    grid-template-columns: 1fr;
+  }
+
+  .k-post-row {
+    min-height: 0;
+    padding: 19px 18px;
+  }
+}

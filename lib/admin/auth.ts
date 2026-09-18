@@ -100,11 +100,28 @@ export function magicLinkOrigin(): string {
  * its power is bounded by RLS, which this project enables. It is separate from
  * `SUPABASE_SECRET_KEY`, which is server-only and bypasses RLS.
  */
+export function adminAuthConfigIssue(): string | null {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim()
+
+  if (!url || !key) {
+    return 'NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY must both be set.'
+  }
+
+  try {
+    const parsed = new URL(url)
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+      return 'NEXT_PUBLIC_SUPABASE_URL must be a valid HTTP or HTTPS URL.'
+    }
+  } catch {
+    return 'NEXT_PUBLIC_SUPABASE_URL must be a valid HTTP or HTTPS URL.'
+  }
+
+  return null
+}
+
 export function isAdminAuthConfigured(): boolean {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() &&
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim(),
-  )
+  return adminAuthConfigIssue() === null
 }
 
 /**
@@ -127,11 +144,9 @@ export function isLocalAdminEnabled(): boolean {
 export async function authClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim()
-  if (!url || !key) {
-    throw new AdminAuthError(
-      'unconfigured',
-      'NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY must be set for admin sign-in.',
-    )
+  const issue = adminAuthConfigIssue()
+  if (issue || !url || !key) {
+    throw new AdminAuthError('unconfigured', issue ?? 'Supabase Auth is not configured.')
   }
 
   const store = await cookies()
