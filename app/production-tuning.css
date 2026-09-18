@@ -1060,3 +1060,58 @@
     transform: none;
   }
 }
+
+
+/* 2026-09-18 — content balance pass */
+@media (min-width: 768px) {
+  /* The game copy is intentionally centred and uses most of the same 1180px
+     canvas as Patreon instead of collapsing into a narrow reading column. */
+  #game .k-prose {
+    width: min(100%, 1080px);
+    max-width: none;
+    margin-inline: auto;
+    text-align: center;
+  }
+
+  #game .k-prose p {
+    max-width: none;
+    margin-inline: auto;
+  }
+
+  /* End sections sooner. The next section already contributes its own top
+     spacing + micro-mark, so a large bottom pad was doubling the white gap. */
+  #main > .k-section {
+    padding-top: clamp(30px, 2.7vw, 44px);
+    padding-bottom: clamp(16px, 1.45vw, 24px);
+  }
+
+  /* Explicit width contract for the TikTok module. TikTok injects its own
+     iframe sizing, so every site-owned wrapper and the iframe itself are forced
+     onto the exact same 1180px canvas as Patreon. */
+  #tiktok > .k-shell > div:last-child,
+  .k-tiktok-reveal,
+  .k-tiktok,
+  .k-tiktok .tiktok-embed,
+  .k-tiktok iframe {
+    width: min(100%, 1180px) !important;
+    max-width: 1180px !important;
+  }
+
+  .k-tiktok-reveal,
+  .k-tiktok {
+    margin-inline: auto;
+  }
+
+  .k-tiktok .tiktok-embed,
+  .k-tiktok iframe {
+    min-width: 100% !important;
+  }
+}
+
+@media (max-width: 767px) {
+  /* Keep the mobile layout that already tested well, only trim the excess gap
+     after each section before the next micro-mark begins. */
+  #main > .k-section {
+    padding-bottom: clamp(26px, 7vw, 36px);
+  }
+}

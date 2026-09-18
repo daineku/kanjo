@@ -66,7 +66,7 @@ export function TikTokSection({
           that resizes itself as it loads, and animating a box whose height is
           about to change under it is how a reveal ends up fighting the thing it
           is revealing. */}
-      <Reveal distance={16}>
+      <Reveal className="k-tiktok-reveal" distance={16}>
         <TikTokEmbed
           handle={handle}
           profileUrl={profileUrl}
