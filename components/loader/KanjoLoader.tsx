@@ -108,6 +108,18 @@ export function KanjoLoader({ config }: { config: LoaderConfig }) {
       const element = root.current
       if (!element) return
 
+      // The root layout is persistent, but React/Next can remount this client
+      // island after the first hand-off (for example during an RSC refresh).
+      // The document flag is the authoritative one-way latch for this page
+      // lifetime: once the loader has handed control to the hero, a remount must
+      // render nothing rather than replay the entrance over the live page.
+      if (document.documentElement.dataset.loader === 'done') {
+        document.getElementById('app-root')?.removeAttribute('inert')
+        markStageReady()
+        setPhase('gone')
+        return
+      }
+
       const policy = readMotionPolicy()
       const controller = new AbortController()
       const { signal } = controller
@@ -197,7 +209,10 @@ export function KanjoLoader({ config }: { config: LoaderConfig }) {
       loops.push(race)
 
       /** Hands the stage over. Called once, as the overlay starts to dissolve. */
+      let handedOff = false
       function finish() {
+        if (handedOff) return
+        handedOff = true
         document.documentElement.dataset.loader = 'done'
         app?.removeAttribute('inert')
         markStageReady()
