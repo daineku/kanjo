@@ -1179,3 +1179,67 @@
 .k-tiktok-provider-surface {
   transform-origin: top left;
 }
+
+
+/* 2026-09-18 — final spacing and mobile title breaks */
+
+/* The status is optically centred, not merely box-centred. The old red spine
+   and left padding shifted the words to the right even though the element
+   itself sat at 50%. Match the first social item's text line, not just the
+   cluster container's outer edge. */
+.k-hero-status {
+  width: max-content;
+  max-width: calc(100vw - 48px);
+  left: 50%;
+  right: auto;
+  border-left: 0;
+  padding-left: 0;
+  text-align: center;
+  justify-content: center;
+  transform: translateX(-50%);
+}
+
+@media (min-width: 768px) {
+  .k-hero-status {
+    top: calc(max(var(--k-space-lg), env(safe-area-inset-top)) + var(--k-space-xs));
+  }
+
+  /* One rhythm unit:
+       end of content -> next separator
+       separator -> title
+     Previously both section bottom padding and next section top padding were
+     contributing, which doubled the apparent end gap. */
+  #main > .k-section {
+    padding-top: clamp(18px, 1.7vw, 26px);
+    padding-bottom: 0;
+  }
+
+  .k-brand-separator {
+    margin-bottom: clamp(18px, 1.7vw, 26px);
+  }
+
+  .k-section-title {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 767px) {
+  .k-hero-status {
+    top: calc(max(var(--k-space-md), env(safe-area-inset-top)) + var(--k-space-xs));
+  }
+
+  #main > .k-section {
+    padding-top: clamp(24px, 7vw, 34px);
+    padding-bottom: 0;
+  }
+
+  .k-brand-separator {
+    margin-bottom: clamp(24px, 7vw, 34px);
+  }
+
+  /* Only the two headings that contain an intentional newline break on mobile.
+     Desktop collapses the same newline as normal whitespace. */
+  .k-section-title {
+    white-space: pre-line;
+  }
+}
