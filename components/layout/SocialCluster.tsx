@@ -1,3 +1,6 @@
+'use client'
+
+import { useEffect, useState } from 'react'
 import type { SocialLink } from '@/lib/content/types'
 
 /**
@@ -36,10 +39,31 @@ import type { SocialLink } from '@/lib/content/types'
 
 export function SocialCluster({ links }: { links: SocialLink[] }) {
   const live = links.filter((link) => link.url.trim() !== '')
+  const [heroVisible, setHeroVisible] = useState(true)
+
+  useEffect(() => {
+    const hero = document.querySelector('.k-hero')
+    if (!hero || typeof IntersectionObserver !== 'function') return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setHeroVisible(Boolean(entry?.isIntersecting))
+      },
+      { threshold: 0.02 },
+    )
+
+    observer.observe(hero)
+    return () => observer.disconnect()
+  }, [])
+
   if (live.length === 0) return null
 
   return (
-    <nav className="k-social-cluster" aria-label="Channels">
+    <nav
+      className="k-social-cluster"
+      aria-label="Channels"
+      data-hero-visible={heroVisible ? 'true' : 'false'}
+    >
       <ul>
         {live.map((link, index) => {
           const newTab = link.openInNewTab ?? true

@@ -57,7 +57,7 @@ export function SiteFooter({ settings }: { settings: SiteSettings }) {
               which renders as tofu at 14px; "(C)" is uglier still. The year and
               the holder are what the notice needs. */}
           <p className="k-small" style={{ color: 'var(--k-text-secondary)' }}>
-            {year} {settings.footer.copyrightHolder} — {settings.title}
+            {year} {settings.title}
           </p>
 
           {/*
