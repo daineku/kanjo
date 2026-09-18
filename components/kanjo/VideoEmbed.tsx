@@ -32,16 +32,16 @@ import { Frame, PendingSlot } from './Frame'
 const YOUTUBE_ID = /^[\w-]{6,20}$/
 const VIMEO_ID = /^\d{6,12}$/
 
-function embedUrl(video: Video): string | null {
+function embedUrl(video: Video, autoplay = true): string | null {
   switch (video.provider) {
     case 'youtube':
       if (!YOUTUBE_ID.test(video.ref)) return null
       // youtube-nocookie, autoplay once the visitor has asked, no related
       // videos from other channels, and the JS API left off.
-      return `https://www.youtube-nocookie.com/embed/${video.ref}?autoplay=1&rel=0&modestbranding=1`
+      return `https://www.youtube-nocookie.com/embed/${video.ref}?${autoplay ? 'autoplay=1&' : ''}rel=0&modestbranding=1`
     case 'vimeo':
       if (!VIMEO_ID.test(video.ref)) return null
-      return `https://player.vimeo.com/video/${video.ref}?autoplay=1&dnt=1`
+      return `https://player.vimeo.com/video/${video.ref}?${autoplay ? 'autoplay=1&' : ''}dnt=1`
     case 'file':
       // Validated by localSources() instead: a local clip may offer several
       // encodings, so there is no single URL to return.
@@ -69,6 +69,7 @@ export function VideoEmbed({
   priority = false,
   ratio = '16 / 9',
   sizes = '(max-width: 930px) 100vw, 930px',
+  embedImmediately = false,
 }: {
   video: Video
   /** Only ever true for a single above-the-fold poster. */
@@ -81,9 +82,15 @@ export function VideoEmbed({
    * small for it, which on a full-width still is visibly soft.
    */
   sizes?: string
+  /**
+   * Mount the provider player immediately instead of showing the poster/PLAY
+   * facade. Used for the homepage feature video, where the YouTube player
+   * itself is part of the composition.
+   */
+  embedImmediately?: boolean
 }) {
   const [playing, setPlaying] = useState(false)
-  const url = embedUrl(video)
+  const url = embedUrl(video, !embedImmediately)
 
   if (!url) {
     return (
@@ -92,6 +99,21 @@ export function VideoEmbed({
         label="VIDEO UNAVAILABLE"
         detail={`"${video.ref}" is not a valid ${video.provider} id`}
       />
+    )
+  }
+
+  if (embedImmediately && video.provider !== 'file') {
+    return (
+      <Frame ratio={ratio}>
+        <iframe
+          src={url}
+          title={video.title}
+          loading="lazy"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
+        />
+      </Frame>
     )
   }
 

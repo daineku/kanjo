@@ -100,6 +100,7 @@ export function IntroSection({ id, config }: { id: string; config: IntroConfig }
         <VideoEmbed
           ratio={block.aspectRatio?.trim() || '16 / 9'}
           sizes="(max-width: 767px) 100vw, 1080px"
+          embedImmediately
           video={{
             id: `${id}-block-${index}`,
             provider: 'youtube',
