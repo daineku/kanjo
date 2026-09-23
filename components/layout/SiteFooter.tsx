@@ -37,9 +37,9 @@ export function SiteFooter({ settings }: { settings: SiteSettings }) {
         <Image
           src="/media/brand/divider.png"
           alt=""
-          width={2136}
-          height={257}
-          sizes="(max-width: 767px) 92vw, 640px"
+          width={1254}
+          height={1254}
+          sizes="(max-width: 767px) 96px, 118px"
         />
       </div>
       <div

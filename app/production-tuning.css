@@ -1294,3 +1294,18 @@
     margin-bottom: clamp(20px, 6vw, 28px);
   }
 }
+
+
+/* 2026-09-24 — square TK footer mark
+   divider.png is now the supplied square TK icon rather than a horizontal
+   divider artwork, so keep it as a compact signature instead of letting the
+   old 640px rule create a huge square footer block. */
+.k-footer-divider img {
+  width: min(118px, 24vw);
+}
+
+@media (max-width: 767px) {
+  .k-footer-divider img {
+    width: min(96px, 26vw);
+  }
+}
