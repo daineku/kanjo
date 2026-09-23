@@ -1309,3 +1309,29 @@
     width: min(96px, 26vw);
   }
 }
+
+
+/* 2026-09-24 — preserve original hero logo visual height
+   The previous hero artwork was 1703×562 (aspect ≈ 3.03:1). The new supplied
+   mark is square, so keeping the old width rules made it roughly three times
+   taller. Size the square mark by the HEIGHT the old artwork actually occupied
+   at each breakpoint, while leaving the rest of the hero composition intact. */
+.k-hero-logo {
+  width: auto;
+  max-width: none;
+  height: min(20.46vw, 205px);
+}
+
+@media (max-width: 1024px) and (min-width: 768px) {
+  .k-hero-logo {
+    width: auto;
+    height: min(23.76vw, 198px);
+  }
+}
+
+@media (max-width: 767px) {
+  .k-hero-logo {
+    width: auto;
+    height: min(28.38vw, 165px);
+  }
+}

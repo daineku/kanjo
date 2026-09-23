@@ -107,7 +107,7 @@ export function LogoReveal({
         // The identity is the first thing on the page and it is above the fold
         // at every width; it should not wait behind anything.
         priority
-        sizes="(max-width: 767px) 86vw, 560px"
+        sizes="(max-width: 767px) 29vw, (max-width: 1024px) 24vw, 205px"
       />
     </h1>
   )
