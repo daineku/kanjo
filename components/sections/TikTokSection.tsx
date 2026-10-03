@@ -59,6 +59,7 @@ export function TikTokSection({
   }
 
   const profileUrl = tikTokProfileUrl(handle)
+  const ctaLabel = real(config.ctaLabel) ?? 'OPEN ON TIKTOK'
 
   return (
     <Section id={id} header={header} width="wide">
@@ -67,11 +68,32 @@ export function TikTokSection({
           about to change under it is how a reveal ends up fighting the thing it
           is revealing. */}
       <Reveal className="k-tiktok-reveal" distance={16}>
-        <TikTokEmbed
-          handle={handle}
-          profileUrl={profileUrl}
-          waitForLoader={loader.enabled}
-        />
+        <div className="k-tiktok-stack">
+          <TikTokEmbed
+            handle={handle}
+            profileUrl={profileUrl}
+            waitForLoader={loader.enabled}
+          />
+
+          {/*
+            Creator Profile Embed errors such as "overload-protect triggered"
+            happen inside TikTok's cross-origin iframe. The host page cannot
+            inspect that error text reliably, so the direct profile action is
+            deliberately always available below the provider surface. When the
+            embed works it is a secondary CTA; when TikTok fails it becomes the
+            graceful escape hatch instead of leaving a dead error panel.
+          */}
+          <p className="k-tiktok-direct-cta">
+            <a
+              className="k-link-action k-tiktok-direct-link"
+              href={profileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {ctaLabel}
+            </a>
+          </p>
+        </div>
       </Reveal>
     </Section>
   )

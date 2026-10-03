@@ -1335,3 +1335,33 @@
     height: min(28.38vw, 165px);
   }
 }
+
+
+/* TikTok provider-failure escape hatch
+   Creator Profile errors are rendered inside a cross-origin iframe, so the
+   parent page cannot reliably detect TikTok's "overload-protect triggered"
+   response. Keep one polished direct action available under the provider at
+   all times: secondary when the embed works, essential when it does not. */
+.k-tiktok-stack {
+  width: min(100%, 1180px);
+  margin-inline: auto;
+}
+
+.k-tiktok-direct-cta {
+  margin: clamp(18px, 1.8vw, 26px) 0 0;
+  text-align: center;
+}
+
+.k-tiktok-direct-link {
+  min-width: clamp(210px, 26vw, 320px);
+}
+
+@media (max-width: 767px) {
+  .k-tiktok-direct-cta {
+    margin-top: 18px;
+  }
+
+  .k-tiktok-direct-link {
+    width: min(100%, 310px);
+  }
+}
