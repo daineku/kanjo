@@ -6,41 +6,52 @@ import { whenStageReady } from '@/lib/motion/stage'
 
 const EMBED_SRC = 'https://www.tiktok.com/embed.js'
 
-/**
- * Injects TikTok's embed script, and guarantees there is never more than one.
- *
- * ── WHY THIS IS NOT `next/script` ───────────────────────────────────────────
- *
- * It was, and the behaviour was measured: `next/script` REMOVES its script
- * element when the component unmounts and re-adds it on remount. A client-side
- * navigation to /updates and back therefore produced two `embed.js` requests
- * and, more importantly, took the decision out of our hands.
- *
- * ── AND WHY RE-RUNNING IT ON A REMOUNT IS CORRECT, NOT A BUG ────────────────
- *
- * `embed.js` scans for `.tiktok-embed` elements once, when it executes. After a
- * client-side navigation React has mounted a BRAND NEW blockquote, and a script
- * that already ran will never look at it — so a visitor returning to the
- * homepage would see the CTA where the embed used to be. Re-executing is the
- * only mechanism TikTok offers for a re-scan; there is no documented public
- * re-init function.
- *
- * So the invariants this function actually holds are the ones that matter:
- *
- *   - AT MOST ONE script tag exists in the document at any moment. The previous
- *     one is removed before the new one is appended, so tags never stack.
- *   - ONE fetch per mount that needs processing. Not per scroll, not per
- *     render, not on hover, and never on a timer.
- *   - The second fetch is the same URL, so the browser serves it from cache.
- *
- * What it deliberately does NOT do is re-inject while the section is still
- * mounted — that would be the initialisation loop the brief rules out, and the
- * caller's one-way latch is what prevents it.
- */
-function injectEmbedScript(): void {
-  for (const previous of document.querySelectorAll('script[data-tiktok-embed]')) {
-    previous.remove()
+type TikTokEmbedRuntime = {
+  lib?: {
+    render?: (embeds: Element[]) => void
   }
+}
+
+function tikTokRuntime(): TikTokEmbedRuntime | undefined {
+  return (window as Window & { tiktokEmbed?: TikTokEmbedRuntime }).tiktokEmbed
+}
+
+/**
+ * Initializes exactly one TikTok embed without re-downloading/re-executing
+ * embed.js on every client-side remount.
+ *
+ * TikTok's script installs a global `tiktokEmbed.lib.render()` runtime. It is
+ * not documented in the public Creator Embed guide, so this path is guarded:
+ * if the runtime exists, we ask it to render only this blockquote; if it does
+ * not exist yet, we append embed.js once and let its normal first-load scan do
+ * the work.
+ *
+ * This matters for TikTok's "overload-protect triggered" failure. That message
+ * is returned by TikTok's own anonymous web ingress, not by this application.
+ * We cannot control TikTok's server-side protection, but repeatedly deleting
+ * and re-executing embed.js on SPA remounts creates avoidable provider traffic.
+ * Keeping the script resident removes that amplification.
+ */
+function initializeEmbed(element: HTMLElement): void {
+  const blockquote = element.querySelector('blockquote.tiktok-embed')
+  if (!(blockquote instanceof HTMLElement)) return
+
+  const render = tikTokRuntime()?.lib?.render
+  if (typeof render === 'function') {
+    try {
+      render([blockquote])
+    } catch {
+      // Do not respond to a provider-runtime failure by re-injecting the script:
+      // that is exactly the retry storm this integration must avoid.
+    }
+    return
+  }
+
+  const existing = document.querySelector<HTMLScriptElement>(
+    `script[src="${EMBED_SRC}"], script[data-tiktok-embed]`,
+  )
+  if (existing) return
+
   const script = document.createElement('script')
   script.src = EMBED_SRC
   script.async = true
@@ -88,10 +99,9 @@ function injectEmbedScript(): void {
  *   2. THE SECTION IS NEAR THE VIEWPORT. One IntersectionObserver, disconnected
  *      the moment it fires. No polling, no scroll listener, no hover trigger.
  *
- * It is injected AT MOST ONCE PER MOUNT, by `injectEmbedScript` above, which
- * also guarantees only one script tag exists at a time. `loaded` is a one-way
- * latch, so no amount of scrolling, re-rendering or resizing can ask for it
- * twice while the section stays mounted.
+ * It is requested AT MOST ONCE PER MOUNT. embed.js itself stays resident for
+ * the page lifetime; a later client-side remount uses TikTok's existing runtime
+ * instead of deleting and re-executing the provider script.
  */
 
 export function TikTokEmbed({
@@ -124,7 +134,7 @@ export function TikTokEmbed({
     const request = () => {
       if (requested.current) return
       requested.current = true
-      injectEmbedScript()
+      initializeEmbed(element)
     }
 
     // GATE 1. `whenStageReady` always resolves — immediately when there is no
@@ -151,10 +161,10 @@ export function TikTokEmbed({
           observer?.disconnect()
           request()
         },
-        // Half a screen of lead time. Enough that the embed is usually ready by
-        // the time the section is read, and not so much that it counts as
-        // "on load" on a short page.
-        { rootMargin: '400px 0px' },
+        // Load only when the section is actually close to view. The Creator
+        // Profile widget can request up to ten recent videos, so a large preload
+        // margin needlessly hits TikTok for visitors who never reach this part.
+        { rootMargin: '120px 0px' },
       )
       observer.observe(element)
     })
@@ -219,6 +229,7 @@ export function TikTokEmbed({
         iframe.style.setProperty('max-width', '100%', 'important')
         iframe.style.setProperty('min-width', '100%', 'important')
         iframe.style.setProperty('margin', '0', 'important')
+        iframe.loading = 'lazy'
 
         const nativeHeight = providerSurface.offsetHeight
         if (nativeHeight > 0) {
@@ -285,6 +296,7 @@ export function TikTokEmbed({
         cite={profileUrl}
         data-unique-id={handle}
         data-embed-type="creator"
+        data-embed-from="oembed"
         suppressHydrationWarning
       >
         <section className="k-tiktok-placeholder" aria-hidden="true" />
