@@ -107,7 +107,6 @@ export function TikTokEmbed({
   waitForLoader: boolean
 }) {
   const root = useRef<HTMLDivElement>(null)
-  const providerResizeObserver = useRef<ResizeObserver | null>(null)
   /**
    * The one-way latch. A ref rather than state because nothing on screen
    * depends on it — asking for the script is a side effect, and making it a
@@ -171,8 +170,11 @@ export function TikTokEmbed({
     if (!element) return
 
     let mutationObserver: MutationObserver | null = null
-    let resizeObserver: ResizeObserver | null = null
+    let hostResizeObserver: ResizeObserver | null = null
+    let providerResizeObserver: ResizeObserver | null = null
+    let observedProvider: HTMLElement | null = null
     let frame = 0
+    let lastHostWidth = 0
 
     const fitProviderSurface = () => {
       cancelAnimationFrame(frame)
@@ -183,11 +185,6 @@ export function TikTokEmbed({
         const iframe = host.querySelector('iframe')
         if (!(iframe instanceof HTMLIFrameElement)) return
 
-        // TikTok's documented Creator Profile Embed is authored at a 720px
-        // maximum card width. Once embed.js has rendered it, keep that native
-        // layout width and scale the complete provider surface to our own
-        // content canvas. This preserves TikTok's proportions instead of
-        // stretching individual children.
         const providerSurface =
           (iframe.closest('blockquote') as HTMLElement | null) ??
           (iframe.parentElement as HTMLElement | null)
@@ -201,32 +198,48 @@ export function TikTokEmbed({
 
         const nativeWidth = Math.min(720, targetWidth)
         const scale = targetWidth / nativeWidth
+        const nativeWidthPx = `${nativeWidth}px`
+        const scaleValue = `scale(${scale})`
 
-        providerSurface.style.setProperty('width', `${nativeWidth}px`, 'important')
-        providerSurface.style.setProperty('max-width', `${nativeWidth}px`, 'important')
-        providerSurface.style.setProperty('min-width', `${nativeWidth}px`, 'important')
+        // Avoid rewriting the same inline styles on every observer delivery.
+        // TikTok's own iframe can resize as its profile data/videos settle, so
+        // this function may legitimately run more than once.
+        if (providerSurface.style.width !== nativeWidthPx) {
+          providerSurface.style.setProperty('width', nativeWidthPx, 'important')
+          providerSurface.style.setProperty('max-width', nativeWidthPx, 'important')
+          providerSurface.style.setProperty('min-width', nativeWidthPx, 'important')
+        }
         providerSurface.style.setProperty('margin', '0', 'important')
         providerSurface.style.setProperty('transform-origin', 'top left', 'important')
-        providerSurface.style.setProperty('transform', `scale(${scale})`, 'important')
+        if (providerSurface.style.transform !== scaleValue) {
+          providerSurface.style.setProperty('transform', scaleValue, 'important')
+        }
 
         iframe.style.setProperty('width', '100%', 'important')
         iframe.style.setProperty('max-width', '100%', 'important')
         iframe.style.setProperty('min-width', '100%', 'important')
         iframe.style.setProperty('margin', '0', 'important')
 
-        // Transforms do not contribute their visual height to normal flow.
-        // Reserve the scaled height so the Patreon section starts exactly after
-        // the visible TikTok card instead of underlapping it.
         const nativeHeight = providerSurface.offsetHeight
         if (nativeHeight > 0) {
-          host.style.height = `${Math.ceil(nativeHeight * scale)}px`
+          const nextHeight = `${Math.ceil(nativeHeight * scale)}px`
+          if (host.style.height !== nextHeight) host.style.height = nextHeight
         }
 
-        providerResizeObserver.current?.disconnect()
-        if (typeof ResizeObserver === 'function') {
-          const ro = new ResizeObserver(() => fitProviderSurface())
-          ro.observe(providerSurface)
-          providerResizeObserver.current = ro
+        // IMPORTANT: observe the provider with ONE persistent observer.
+        // The previous implementation disconnected and created a brand-new
+        // ResizeObserver on every fit. Per the ResizeObserver spec, observing a
+        // rendered non-zero element itself schedules a notification, so that
+        // pattern could self-trigger forever: fit -> observe -> callback -> fit.
+        // Keeping one observer removes that loop while still responding when
+        // TikTok genuinely changes the card's native height.
+        if (typeof ResizeObserver === 'function' && observedProvider !== providerSurface) {
+          if (!providerResizeObserver) {
+            providerResizeObserver = new ResizeObserver(() => fitProviderSurface())
+          }
+          if (observedProvider) providerResizeObserver.unobserve(observedProvider)
+          observedProvider = providerSurface
+          providerResizeObserver.observe(providerSurface)
         }
       })
     }
@@ -235,8 +248,15 @@ export function TikTokEmbed({
     mutationObserver.observe(element, { childList: true, subtree: true })
 
     if (typeof ResizeObserver === 'function') {
-      resizeObserver = new ResizeObserver(() => fitProviderSurface())
-      resizeObserver.observe(element)
+      hostResizeObserver = new ResizeObserver((entries) => {
+        const width = entries[0]?.contentRect.width ?? element.clientWidth
+        // Our own reserved-height write should not schedule another fit.
+        if (Math.abs(width - lastHostWidth) < 0.5) return
+        lastHostWidth = width
+        fitProviderSurface()
+      })
+      lastHostWidth = element.clientWidth
+      hostResizeObserver.observe(element)
     }
 
     fitProviderSurface()
@@ -244,9 +264,8 @@ export function TikTokEmbed({
     return () => {
       cancelAnimationFrame(frame)
       mutationObserver?.disconnect()
-      resizeObserver?.disconnect()
-      providerResizeObserver.current?.disconnect()
-      providerResizeObserver.current = null
+      hostResizeObserver?.disconnect()
+      providerResizeObserver?.disconnect()
     }
   }, [])
 
