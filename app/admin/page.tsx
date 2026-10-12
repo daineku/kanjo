@@ -581,16 +581,36 @@ function SectionPanel({
             wide
             hint="e.g. https://www.tiktok.com/@the_kanjo. Validated before it is stored — the handle is interpolated into the official embed, so an invalid one is refused here."
           />
-          <Field label="CTA label" name="ctaLabel" defaultValue={section.config.ctaLabel} />
+          <Field
+            label="CTA label"
+            name="ctaLabel"
+            defaultValue={section.config.ctaLabel}
+            hint="The profile link on the preview, and under the live feed. e.g. EXPLORE THE KANJO ON TIKTOK"
+          />
+          <Select
+            label="Official embed loading"
+            name="embedLoading"
+            options={['auto', 'manual'] as const}
+            defaultValue={section.config.embedLoading ?? 'auto'}
+            hint="'auto' asks TikTok once, quietly, when the block nears the viewport and reveals the feed only once TikTok reports it rendered. 'manual' never contacts TikTok until a visitor asks — use it if the provider keeps rate-limiting."
+          />
           <Select
             label="With no profile configured"
             name="fallback"
             options={['cta', 'hide'] as const}
             defaultValue={section.config.fallback}
-            hint="TikTok being blocked or slow is handled inside the embed — it shows the CTA as its own initial content."
+            hint="Only for an unreadable profile URL. TikTok being blocked, slow or rate-limited is handled by the block itself: the preview below stays on screen and the provider's error is never shown."
+          />
+          <ImageField
+            label="Preview artwork"
+            name="preview"
+            value={section.config.preview}
+            folder="social"
+            hint="What visitors see until the official embed has proven it rendered, and what stays if it never does. An authorised snapshot of the real profile works well here. Leave empty to use the site's default social image."
           />
         </>
       )}
+
 
       {section.type === 'patreon' && (
         <>

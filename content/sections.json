@@ -136,9 +136,19 @@
       "embed.js is loaded once, only when the section approaches the viewport, so",
       "it never competes with the loader or the hero.",
       "",
-      "If TikTok is blocked or slow the block shows FOLLOW ON TIKTOK instead —",
-      "that link is the embed's own initial content, not an error state.",
+      "THE BLOCK NEVER DEPENDS ON TIKTOK ANSWERING. It renders a site-owned",
+      "preview first — the artwork in `preview`, or the site's default social",
+      "image when that is empty — with the real handle and the real profile link.",
+      "The official embed is asked for underneath it, invisibly, and is revealed",
+      "ONLY once TikTok's own library reports that it rendered. TikTok blocked,",
+      "slow, or answering 'overload-protect triggered' leaves the preview on",
+      "screen; the provider's error is never shown. See docs/TIKTOK.md.",
       "",
+      "embedLoading 'auto' asks once, automatically; 'manual' asks only when a",
+      "visitor presses VIEW THE LIVE FEED — the setting to use if TikTok keeps",
+      "rate-limiting. Either way the ask is bounded: never a loop, never a timer.",
+      "",
+
       "The upgrade path to custom The Kanjo-styled cards is the TikTok Display",
       "API (user.info.basic + video.list) and is NOT needed for V1. See",
       "docs/TIKTOK.md."
@@ -152,9 +162,11 @@
       "heading": "RECENT CLIPS",
       "profileUrl": "https://www.tiktok.com/@the_kanjo",
       "mode": "creator-embed",
-      "ctaLabel": "FOLLOW ON TIKTOK",
-      "fallback": "cta"
+      "ctaLabel": "EXPLORE THE KANJO ON TIKTOK",
+      "fallback": "cta",
+      "embedLoading": "auto"
     }
+
   },
   {
     "_comment": [

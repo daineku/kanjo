@@ -8,6 +8,9 @@
  *   cd /tmp && npm init -y && npm i playwright && npx playwright install chromium --only-shell
  *   BASE=http://localhost:3000 node <path-to>/check-integrations.mjs
  *
+ * Set SHOTS=<dir> to also write screenshots of the TikTok module in every
+ * tested state and width.
+ *
  * WHAT IT IS LOOKING FOR, and why each one is here:
  *
  *  1. EVERY BLOCK IS STRUCTURALLY COMPLETE WITHOUT ITS PROVIDER. With no
@@ -16,11 +19,12 @@
  *     than an empty frame, a spinner or an error. This is the property that
  *     makes the site deployable before any API key exists.
  *
- *  2. THE TIKTOK SCRIPT LOADS EXACTLY ONCE. A duplicated embed.js is the
+ *  2. THE TIKTOK SCRIPT LOADS EXACTLY ONCE, EVER. A duplicated embed.js is the
  *     characteristic failure of third-party embeds in a client-routed app: two
  *     copies race, initialise the same blockquote twice, and can leave two
  *     iframes stacked. Checked across a full-page scroll AND a client-side
- *     navigation round trip.
+ *     navigation round trip, where the resident runtime must be reused rather
+ *     than the script re-fetched.
  *
  *  3. IT DOES NOT LOAD DURING THE LOADER. The embed is heavier than the rest of
  *     the page put together; if it is fetched while the highway is still
@@ -32,11 +36,32 @@
  *
  *  5. THE REAL CHANNEL URLS ARE THE ONES ON THE PAGE, and no placeholder or
  *     invented Steam URL has crept in.
+ *
+ *  6. THE PROVIDER'S FAILURES ARE NEVER ON SCREEN. TikTok's embed ingress
+ *     answers `503 overload-protect triggered` under load, and the iframe
+ *     "loads" that document exactly as it loads a profile. Each failure below
+ *     is simulated at the network layer — blocked, 403, 429, 503, a timeout,
+ *     and a 200 whose body is an error — and in every one the site-owned
+ *     preview must be what the visitor sees, the iframe must not be, and the
+ *     module must settle rather than retry on its own. Success is simulated
+ *     too, with a document that posts the same render signal TikTok's own
+ *     library sizes the iframe from, so the reveal path is exercised without
+ *     depending on TikTok's mood at test time.
+ *
+ * ON THE IFRAME: its interior is cross-origin and is NEVER inspected here.
+ * "Not on screen" is measured from the outside — the module's state, the
+ * provider wrapper's computed style, and which element is under the pointer
+ * at the module's centre.
  */
+
+import fs from 'node:fs'
+import path from 'node:path'
 
 import { chromium } from 'playwright'
 
 const BASE = process.env.BASE ?? 'http://localhost:3517'
+const SHOTS = process.env.SHOTS ?? ''
+if (SHOTS) fs.mkdirSync(SHOTS, { recursive: true })
 
 const EXPECTED = {
   tiktok: 'https://www.tiktok.com/@the_kanjo',
@@ -60,7 +85,87 @@ async function settled(page) {
     .catch(() => {})
 }
 
+/** Scrolls the TikTok section into view, which is the module's own trigger. */
+async function reachTikTok(page) {
+  await page.evaluate(() => document.querySelector('#tiktok')?.scrollIntoView({ block: 'start' }))
+}
+
+/** Waits for the module to leave `loading`, or for the ceiling plus a margin. */
+async function moduleSettled(page, timeout = 16000) {
+  await page
+    .waitForFunction(
+      () => {
+        const state = document.querySelector('.k-tiktok')?.getAttribute('data-state')
+        return state === 'live' || state === 'unavailable'
+      },
+      null,
+      { timeout },
+    )
+    .catch(() => {})
+}
+
+/**
+ * Everything the outside of the module can say about what is on screen.
+ * Nothing here reads the iframe's document.
+ */
+async function moduleReport(page) {
+  return page.evaluate(() => {
+    const module = document.querySelector('.k-tiktok')
+    if (!module) return null
+    const preview = module.querySelector('.k-tiktok-preview')
+    const provider = module.querySelector('.k-tiktok-provider')
+    const iframe = module.querySelector('iframe')
+    // Live: the preview's link is hidden by design and the path moves under
+    // the embed, so the report follows it there.
+    const cta =
+      module.getAttribute('data-state') === 'live'
+        ? module.querySelector('.k-tiktok-direct a[href*="tiktok.com"]')
+        : module.querySelector('.k-tiktok-preview a[href*="tiktok.com"]')
+    const rect = module.getBoundingClientRect()
+    const visible = (node) => {
+      if (!node) return false
+      const style = getComputedStyle(node)
+      const box = node.getBoundingClientRect()
+      return (
+        style.display !== 'none' &&
+        style.visibility !== 'hidden' &&
+        Number(style.opacity) > 0.01 &&
+        box.width > 0 &&
+        box.height > 0
+      )
+    }
+    // What is actually under the pointer at the module's centre.
+    const cx = rect.left + rect.width / 2
+    const cy = rect.top + Math.min(rect.height / 2, window.innerHeight / 2)
+    const hit = document.elementFromPoint(cx, cy)
+    return {
+      state: module.getAttribute('data-state'),
+      height: Math.round(rect.height),
+      previewVisible: visible(preview),
+      providerVisible: visible(provider) && Boolean(iframe) && visible(iframe),
+      iframes: module.querySelectorAll('iframe').length,
+      hitIsPreview: Boolean(hit?.closest('.k-tiktok-preview')),
+      hitIsIframe: hit?.tagName === 'IFRAME',
+      cta: cta
+        ? { href: cta.getAttribute('href'), visible: visible(cta), text: cta.textContent.trim() }
+        : null,
+      retry: Boolean(module.querySelector('.k-tiktok-text-action')),
+      status: module.querySelector('.k-tiktok-status')?.textContent.trim() ?? null,
+      bodyText: document.body.innerText,
+    }
+  })
+}
+
+async function shoot(page, name) {
+  if (!SHOTS) return
+  await page
+    .locator('#tiktok')
+    .screenshot({ path: path.join(SHOTS, `${name}.png`) })
+    .catch(() => {})
+}
+
 const EMBED_JS = /tiktok\.com\/embed\.js/
+const EMBED_DOC = /^https:\/\/www\.tiktok\.com\/embed\/@/
 
 // ── 1. The unconfigured state is complete and clickable ──────────────────────
 {
@@ -94,6 +199,10 @@ const EMBED_JS = /tiktok\.com\/embed\.js/
     // sensor to a third party to silence a warning would be a worse trade than
     // the warning. The embed is unaffected.
     if (/Permissions policy violation: accelerometer/.test(m.text())) return
+    // The provider's own 503 is reported by the browser as a failed resource
+    // load on the top document. It is the very thing the module exists to
+    // contain, not an error in our page.
+    if (/tiktok\.com\/embed\/@.*(503|Service Unavailable)/i.test(m.text())) return
     errors.push(m.text().slice(0, 200))
   })
 
@@ -180,8 +289,10 @@ const EMBED_JS = /tiktok\.com\/embed\.js/
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   const page = await context.newPage()
   const embedRequests = []
+  const documentRequests = []
   page.on('request', (r) => {
     if (EMBED_JS.test(r.url())) embedRequests.push({ url: r.url(), at: Date.now() })
+    if (EMBED_DOC.test(r.url())) documentRequests.push(r.url())
   })
 
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
@@ -192,7 +303,16 @@ const EMBED_JS = /tiktok\.com\/embed\.js/
   check('TikTok embed.js is NOT fetched during the loader', duringLoader === 0, `${duringLoader}`)
 
   await settled(page)
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+
+  // Before the section is reached: the preview is already the finished block.
+  const before = await moduleReport(page)
+  check(
+    'before the section is reached, the module is the preview and nothing has been asked',
+    before?.state === 'preview' && embedRequests.length === 0 && before.cta?.href === EXPECTED.tiktok,
+    JSON.stringify({ state: before?.state, requests: embedRequests.length }),
+  )
+
+  await reachTikTok(page)
   await page.waitForTimeout(3000)
 
   check(
@@ -212,8 +332,9 @@ const EMBED_JS = /tiktok\.com\/embed\.js/
    * This is the real "no initialisation loop" check. The IntersectionObserver
    * is disconnected the moment it fires and the request is behind a one-way
    * latch, so moving the section in and out of view any number of times must
-   * add exactly zero requests.
+   * add exactly zero requests — of the script AND of the embed document.
    */
+  const documentsAfterFirstAsk = documentRequests.length
   for (let i = 0; i < 4; i += 1) {
     await page.evaluate(() => window.scrollTo(0, 0))
     await page.waitForTimeout(150)
@@ -223,36 +344,40 @@ const EMBED_JS = /tiktok\.com\/embed\.js/
   await page.waitForTimeout(1000)
   check(
     'scrolling past the section repeatedly asks for nothing more',
-    embedRequests.length === 1,
-    `${embedRequests.length} request(s) after 4 passes`,
+    embedRequests.length === 1 && documentRequests.length === documentsAfterFirstAsk,
+    `${embedRequests.length} script, ${documentRequests.length} document request(s) after 4 passes`,
   )
 
   /**
-   * A CLIENT-SIDE ROUND TRIP RE-RUNS THE SCRIPT, AND THAT IS CORRECT.
+   * A CLIENT-SIDE ROUND TRIP REUSES THE RESIDENT RUNTIME.
    *
    * `embed.js` scans for `.tiktok-embed` elements once, when it executes. After
    * navigating away and back, React has mounted a BRAND NEW blockquote that an
-   * already-executed script will never look at — so without a re-run the
-   * returning visitor would see the CTA where the embed used to be. There is no
-   * documented public re-init function; re-executing is the only mechanism
-   * TikTok offers.
-   *
-   * So what is asserted is the invariant that matters: ONE fetch per mount,
-   * never more, and never more than one script tag or one iframe in the
-   * document. A second identical-URL fetch is served from the browser cache.
+   * already-executed script will never look at. The module asks the runtime
+   * TikTok's script installed (`tiktokEmbed.lib.render`) to render the new
+   * blockquote, which costs no script fetch at all: the invariant is ONE
+   * embed.js request for the page's life, one script tag, and one new embed
+   * document for the new blockquote.
    */
-  await page.click('footer a[href="/updates"]')
-  await page.waitForURL('**/updates', { timeout: 10000 })
+  await moduleSettled(page)
+  await page.click('footer a[href="/privacy"]')
+  await page.waitForURL('**/privacy', { timeout: 10000 })
   await page.waitForTimeout(400)
   await page.goBack()
   await page.waitForTimeout(1500)
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+  await settled(page)
+  await reachTikTok(page)
   await page.waitForTimeout(3000)
 
   check(
-    'a round trip costs exactly one more fetch, not two or a loop',
-    embedRequests.length === 2,
+    'a round trip fetches embed.js zero more times — the resident runtime is reused',
+    embedRequests.length === 1,
     `${embedRequests.length} request(s) after one round trip`,
+  )
+  check(
+    'a round trip asks the provider for the new blockquote exactly once',
+    documentRequests.length === documentsAfterFirstAsk + 1,
+    `${documentRequests.length} document request(s)`,
   )
 
   const afterNav = await page.evaluate(() => ({
@@ -260,96 +385,291 @@ const EMBED_JS = /tiktok\.com\/embed\.js/
     blockquotes: document.querySelectorAll('.tiktok-embed').length,
     iframes: document.querySelectorAll('.k-tiktok iframe').length,
   }))
-  check(
-    'script tags never stack — the previous one is removed first',
-    afterNav.scripts === 1,
-    `${afterNav.scripts} tag(s)`,
-  )
+  check('script tags never stack', afterNav.scripts === 1, `${afterNav.scripts} tag(s)`)
   check('exactly one TikTok embed element', afterNav.blockquotes === 1, `${afterNav.blockquotes}`)
   check(
-    'the embed still renders after navigating back',
+    'the module asks again after navigating back — one iframe, not two',
     afterNav.iframes === 1,
     `${afterNav.iframes} iframe(s)`,
   )
   await context.close()
 }
 
-// ── 3. Phone widths: the embed must not widen the page ───────────────────────
-for (const width of [430, 390, 360]) {
-  const context = await browser.newContext({
-    viewport: { width, height: 844 },
-    hasTouch: true,
-    isMobile: true,
-  })
-  const page = await context.newPage()
-  await page.goto(BASE, { waitUntil: 'domcontentloaded' })
-  await settled(page)
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
-  await page.waitForTimeout(3500)
+// ── 3. The provider's failures, one by one ───────────────────────────────────
+/**
+ * Each scenario routes TikTok's embed DOCUMENT (the iframe's URL) to a
+ * controlled answer and leaves everything else — embed.js, the library, the
+ * stylesheet — to the real network, so the full lifecycle up to the iframe is
+ * TikTok's own. 'blocked' aborts every TikTok host instead, which is the ad
+ * blocker / blocked-region case.
+ */
+const FAILURES = [
+  {
+    name: 'blocked',
+    route: async (page) => page.route('**://*.tiktok.com/**', (r) => r.abort()),
+    settle: 6000,
+  },
+  {
+    name: '503 overload-protect',
+    route: async (page) =>
+      page.route(EMBED_DOC, (r) =>
+        r.fulfill({ status: 503, contentType: 'text/plain', body: 'overload-protect triggered' }),
+      ),
+    settle: 12000,
+  },
+  {
+    name: '403',
+    route: async (page) =>
+      page.route(EMBED_DOC, (r) => r.fulfill({ status: 403, contentType: 'text/plain', body: 'Forbidden' })),
+    settle: 12000,
+  },
+  {
+    name: '429',
+    route: async (page) =>
+      page.route(EMBED_DOC, (r) =>
+        r.fulfill({ status: 429, contentType: 'text/plain', body: 'Too Many Requests' }),
+      ),
+    settle: 12000,
+  },
+  {
+    name: '200 with an error body',
+    route: async (page) =>
+      page.route(EMBED_DOC, (r) =>
+        r.fulfill({
+          status: 200,
+          contentType: 'text/html',
+          body: '<!doctype html><html><body><p>overload-protect triggered</p></body></html>',
+        }),
+      ),
+    settle: 12000,
+  },
+  {
+    name: 'timeout',
+    // Never answered. The module's own ceiling (12s) is what ends the wait.
+    route: async (page) => page.route(EMBED_DOC, () => {}),
+    settle: 17000,
+  },
+]
 
-  const metrics = await page.evaluate(() => ({
-    scroll: document.documentElement.scrollWidth,
-    inner: window.innerWidth,
-    embedWidth: Math.round(
-      document.querySelector('.k-tiktok')?.getBoundingClientRect().width ?? 0,
-    ),
-    ctaVisible: Boolean(document.querySelector('.k-tiktok a[href*="tiktok.com"]')),
-  }))
-  check(
-    `${width}: no horizontal overflow with the TikTok embed`,
-    metrics.scroll <= metrics.inner + 1,
-    `${metrics.scroll} vs ${metrics.inner}`,
-  )
-  check(
-    `${width}: the TikTok block fits its column`,
-    metrics.embedWidth > 0 && metrics.embedWidth <= metrics.inner,
-    `${metrics.embedWidth}px`,
-  )
-  await context.close()
-}
-
-// ── 4. TikTok blocked: the block is still a usable link, not a black box ─────
-{
+for (const failure of FAILURES) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   const page = await context.newPage()
-  // Simulate the network conditions of a visitor in a region where TikTok is
-  // blocked, or simply an ad blocker.
-  await page.route('**://*.tiktok.com/**', (route) => route.abort())
-
+  const documentRequests = []
+  page.on('request', (r) => {
+    if (EMBED_DOC.test(r.url())) documentRequests.push(r.url())
+  })
   const errors = []
   page.on('pageerror', (e) => errors.push(String(e).slice(0, 200)))
+  await failure.route(page)
 
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
   await settled(page)
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
-  await page.waitForTimeout(2500)
+  await reachTikTok(page)
+  await moduleSettled(page, failure.settle)
+  await page.waitForTimeout(600)
 
-  const fallback = await page.evaluate(() => {
-    const link = document.querySelector('.k-tiktok a[href*="tiktok.com"]')
-    if (!link) return null
-    const rect = link.getBoundingClientRect()
-    return {
-      text: link.textContent.trim(),
-      href: link.getAttribute('href'),
-      visible: rect.width > 0 && rect.height > 0,
-    }
-  })
+  const report = await moduleReport(page)
+  const label = `TikTok ${failure.name}`
   check(
-    'TikTok blocked: the CTA is still rendered and visible',
-    Boolean(fallback?.visible) && fallback?.href === EXPECTED.tiktok,
-    JSON.stringify(fallback),
+    `${label}: the module settles on unavailable, by itself`,
+    report?.state === 'unavailable',
+    `state=${report?.state}`,
   )
-  check('TikTok blocked: no page error', errors.length === 0, errors.slice(0, 2).join(' | '))
+  check(
+    `${label}: the preview is what is on screen`,
+    Boolean(report?.previewVisible) && Boolean(report?.hitIsPreview),
+    JSON.stringify({ previewVisible: report?.previewVisible, hitIsPreview: report?.hitIsPreview }),
+  )
+  check(
+    `${label}: the provider iframe is not on screen`,
+    !report?.providerVisible && !report?.hitIsIframe,
+    JSON.stringify({ providerVisible: report?.providerVisible, iframes: report?.iframes }),
+  )
+  check(
+    `${label}: the direct profile link is visible and real`,
+    report?.cta?.visible === true && report?.cta?.href === EXPECTED.tiktok,
+    JSON.stringify(report?.cta),
+  )
+  check(
+    `${label}: no provider wording leaks into the page's own text`,
+    !/overload-protect/i.test(report?.bodyText ?? ''),
+  )
+  check(`${label}: no page error`, errors.length === 0, errors.slice(0, 2).join(' | '))
+  check(
+    `${label}: the module asked once and did not retry on its own`,
+    documentRequests.length <= 1,
+    `${documentRequests.length} document request(s)`,
+  )
+  await shoot(page, `tiktok-${failure.name.replace(/\W+/g, '-')}-1440`)
+
+  // The explicit retry: offered once, bounded, user-initiated.
+  check(`${label}: one explicit retry is offered`, report?.retry === true)
+  if (report?.retry) {
+    await page.click('.k-tiktok-text-action')
+    await page.waitForTimeout(400)
+    const during = await moduleReport(page)
+    // A blocked script fails instantly, so the retry may already have settled.
+    check(
+      `${label}: the retry keeps the preview on screen while it waits`,
+      (during?.state === 'loading' || during?.state === 'unavailable') &&
+        during.previewVisible &&
+        during.hitIsPreview,
+      `state=${during?.state}`,
+    )
+    await moduleSettled(page, failure.settle)
+    await page.waitForTimeout(600)
+    const after = await moduleReport(page)
+    check(
+      `${label}: after the retry the module settles again, with no further retry on offer`,
+      after?.state === 'unavailable' && after.retry === false && after.previewVisible,
+      JSON.stringify({ state: after?.state, retry: after?.retry }),
+    )
+    check(
+      `${label}: two asks in total, never a loop`,
+      documentRequests.length <= 2,
+      `${documentRequests.length} document request(s)`,
+    )
+  }
 
   const overflow = await page.evaluate(() => ({
     scroll: document.documentElement.scrollWidth,
     inner: window.innerWidth,
   }))
   check(
-    'TikTok blocked: no horizontal overflow',
+    `${label}: no horizontal overflow`,
     overflow.scroll <= overflow.inner + 1,
     `${overflow.scroll} vs ${overflow.inner}`,
   )
+  await context.close()
+}
+
+// ── 4. The provider's success, simulated ─────────────────────────────────────
+/**
+ * The embed document is replaced by one that behaves as TikTok's application
+ * does when it has rendered: it posts the height message TikTok's own library
+ * sizes the iframe from, addressed by the iframe's `name`, which that library
+ * set to `__tt_embed__<blockquote id>`. The parent-side reveal path is thereby
+ * exercised end to end without depending on TikTok's ingress at test time.
+ */
+{
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  const page = await context.newPage()
+  await page.route(EMBED_DOC, (r) =>
+    r.fulfill({
+      status: 200,
+      contentType: 'text/html',
+      body:
+        '<!doctype html><html><body style="margin:0;background:#fff;color:#111;font:16px sans-serif">' +
+        '<div style="height:640px;padding:24px">simulated creator profile</div>' +
+        // Posted after load, as TikTok's application does.
+        '<script>addEventListener("load", () => parent.postMessage(JSON.stringify({signalSource: window.name, height: 640}), "*"))</script>' +
+        '</body></html>',
+    }),
+  )
+
+  await page.goto(BASE, { waitUntil: 'domcontentloaded' })
+  await settled(page)
+  await reachTikTok(page)
+  await moduleSettled(page, 14000)
+  await page.waitForTimeout(900)
+
+  const report = await moduleReport(page)
+  check('TikTok rendered: the module goes live on the render signal', report?.state === 'live', `state=${report?.state}`)
+  check(
+    'TikTok rendered: the embed is on screen and the preview is not',
+    Boolean(report?.providerVisible) && !report?.previewVisible && Boolean(report?.hitIsIframe),
+    JSON.stringify({
+      providerVisible: report?.providerVisible,
+      previewVisible: report?.previewVisible,
+      hitIsIframe: report?.hitIsIframe,
+    }),
+  )
+  check(
+    'TikTok rendered: the module took the reported height',
+    (report?.height ?? 0) >= 600,
+    `${report?.height}px`,
+  )
+  check(
+    'TikTok rendered: the direct profile link is still offered, under the embed',
+    report?.cta?.visible === true && report?.cta?.href === EXPECTED.tiktok,
+    JSON.stringify(report?.cta),
+  )
+  await shoot(page, 'tiktok-live-simulated-1440')
+  await context.close()
+}
+
+// ── 5. Without JavaScript ────────────────────────────────────────────────────
+{
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    javaScriptEnabled: false,
+  })
+  const page = await context.newPage()
+  await page.goto(BASE, { waitUntil: 'domcontentloaded' })
+  const report = await moduleReport(page)
+  check(
+    'no JavaScript: the preview and the real link are in the HTML, and no iframe',
+    report?.state === 'preview' &&
+      report.previewVisible &&
+      report.cta?.href === EXPECTED.tiktok &&
+      report.iframes === 0,
+    JSON.stringify({ state: report?.state, cta: report?.cta?.href, iframes: report?.iframes }),
+  )
+  await context.close()
+}
+
+// ── 6. Every width: the fallback fits, and nothing widens the page ──────────
+for (const width of [1920, 1440, 768, 430, 390, 360]) {
+  const phone = width < 768
+  const context = await browser.newContext({
+    viewport: { width, height: phone ? 844 : 1000 },
+    deviceScaleFactor: phone ? 3 : 2,
+    hasTouch: phone,
+    isMobile: phone,
+  })
+  const page = await context.newPage()
+  await page.route(EMBED_DOC, (r) =>
+    r.fulfill({ status: 503, contentType: 'text/plain', body: 'overload-protect triggered' }),
+  )
+  await page.goto(BASE, { waitUntil: 'domcontentloaded' })
+  await settled(page)
+  await reachTikTok(page)
+  await moduleSettled(page, 12000)
+  await page.waitForTimeout(600)
+
+  const metrics = await page.evaluate(() => {
+    const module = document.querySelector('.k-tiktok')
+    const preview = module?.querySelector('.k-tiktok-preview')
+    const cta = module?.querySelector('a[href*="tiktok.com"]')
+    const rect = module?.getBoundingClientRect()
+    const box = cta?.getBoundingClientRect()
+    return {
+      scroll: document.documentElement.scrollWidth,
+      inner: window.innerWidth,
+      width: Math.round(rect?.width ?? 0),
+      height: Math.round(rect?.height ?? 0),
+      previewHeight: Math.round(preview?.getBoundingClientRect().height ?? 0),
+      ctaHeight: Math.round(box?.height ?? 0),
+      ctaInside: Boolean(box && rect && box.right <= rect.right + 1 && box.left >= rect.left - 1),
+      state: module?.getAttribute('data-state'),
+    }
+  })
+  check(
+    `${width}: no horizontal overflow with the TikTok module`,
+    metrics.scroll <= metrics.inner + 1,
+    `${metrics.scroll} vs ${metrics.inner}`,
+  )
+  check(
+    `${width}: the module fits its column and reserves a real footprint`,
+    metrics.width > 0 && metrics.width <= metrics.inner && metrics.previewHeight >= 240,
+    `${metrics.width}x${metrics.height}px (preview ${metrics.previewHeight}px)`,
+  )
+  check(
+    `${width}: the profile action is a full touch target inside the plate`,
+    metrics.ctaHeight >= 44 && metrics.ctaInside,
+    `${metrics.ctaHeight}px tall, inside=${metrics.ctaInside}`,
+  )
+  await shoot(page, `tiktok-unavailable-${width}`)
   await context.close()
 }
 

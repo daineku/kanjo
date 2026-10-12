@@ -65,7 +65,9 @@ export function renderSection(section: Section, content: LandingContent) {
           id={section.id}
           config={section.config}
           loader={content.loader}
+          settings={content.settings}
         />
+
       )
 
     case 'patreon':

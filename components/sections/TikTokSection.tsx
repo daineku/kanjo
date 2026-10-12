@@ -2,18 +2,26 @@ import { Reveal } from '@/components/motion/Reveal'
 import { EmptyNotice, Section } from '@/components/kanjo/Section'
 import { TikTokEmbed } from '@/components/tiktok/TikTokEmbed'
 import { real } from '@/lib/content/placeholder'
-import type { LoaderConfig, TikTokConfig } from '@/lib/content/types'
+import type { ImageRef, LoaderConfig, SiteSettings, TikTokConfig } from '@/lib/content/types'
 import { tikTokHandle, tikTokProfileUrl } from '@/lib/tiktok/profile'
 
 /**
- * Recent TikTok videos, via the official Creator Profile Embed.
+ * Recent TikTok videos, via the official Creator Profile Embed — behind a
+ * site-owned preview that does not depend on TikTok answering.
  *
- * ── THE SERVER'S ONLY JOB HERE IS VALIDATION ────────────────────────────────
+ * ── THE SERVER'S JOB: VALIDATE, AND CHOOSE THE PREVIEW ──────────────────────
  *
  * It reduces the configured profile URL to a handle, rebuilds the canonical
- * URL from that handle, and hands both to the client island. Nothing else
- * crosses the boundary — see components/tiktok/TikTokEmbed.tsx for why that
- * matters and what the embed does with them.
+ * URL from that handle, picks the preview artwork, and hands all of it to the
+ * client island. Nothing else crosses the boundary — see
+ * components/tiktok/TikTokEmbed.tsx for why that matters and what the module
+ * does with it.
+ *
+ * The preview is content: `config.preview` when the owner has uploaded one
+ * (an authorised snapshot of the real profile, say), otherwise the site's
+ * default social image — genuine artwork that already exists for the same
+ * purpose. There is no hardcoded path, and nothing is fabricated: the block
+ * says "official profile" and links to it; it never pretends to be a feed.
  *
  * ── NO CREDENTIALS, BY DESIGN ───────────────────────────────────────────────
  *
@@ -30,6 +38,7 @@ export function TikTokSection({
   id,
   config,
   loader,
+  settings,
 }: {
   id: string
   config: TikTokConfig
@@ -39,6 +48,8 @@ export function TikTokSection({
    * whether there is a loader to wait for.
    */
   loader: LoaderConfig
+  /** For the default preview artwork, when the section has none of its own. */
+  settings: SiteSettings
 }) {
   const header = {
     eyebrow: real(config.eyebrow),
@@ -59,41 +70,41 @@ export function TikTokSection({
   }
 
   const profileUrl = tikTokProfileUrl(handle)
-  const ctaLabel = real(config.ctaLabel) ?? 'OPEN ON TIKTOK'
+  const ctaLabel = real(config.ctaLabel) ?? 'EXPLORE THE KANJO ON TIKTOK'
+  const preview: ImageRef | undefined = config.preview ?? settings.seo.defaultSocialImage
+
+  if (!preview) {
+    // No artwork anywhere in the content layer: the module cannot be the
+    // finished block it is meant to be, so it says what is missing rather than
+    // drawing an empty plate — and still offers the real profile.
+    if (config.fallback === 'hide') return null
+    return (
+      <Section id={id} header={header} width="wide">
+        <EmptyNotice>NO TIKTOK PREVIEW ARTWORK CONFIGURED</EmptyNotice>
+        <p style={{ marginTop: 'var(--k-space-lg)', marginBottom: 0 }}>
+          <a className="k-link-action" href={profileUrl} target="_blank" rel="noopener noreferrer">
+            {ctaLabel}
+          </a>
+        </p>
+      </Section>
+    )
+  }
 
   return (
     <Section id={id} header={header} width="wide">
-      {/* A small travel distance and no clip: the embed is a third-party iframe
-          that resizes itself as it loads, and animating a box whose height is
-          about to change under it is how a reveal ends up fighting the thing it
-          is revealing. */}
+      {/* A small travel distance and no clip: the module's height changes
+          when the embed is revealed, and animating a box whose height is about
+          to change under it is how a reveal ends up fighting the thing it is
+          revealing. */}
       <Reveal className="k-tiktok-reveal" distance={16}>
-        <div className="k-tiktok-stack">
-          <TikTokEmbed
-            handle={handle}
-            profileUrl={profileUrl}
-            waitForLoader={loader.enabled}
-          />
-
-          {/*
-            Creator Profile Embed errors such as "overload-protect triggered"
-            happen inside TikTok's cross-origin iframe. The host page cannot
-            inspect that error text reliably, so the direct profile action is
-            deliberately always available below the provider surface. When the
-            embed works it is a secondary CTA; when TikTok fails it becomes the
-            graceful escape hatch instead of leaving a dead error panel.
-          */}
-          <p className="k-tiktok-direct-cta">
-            <a
-              className="k-link-action k-tiktok-direct-link"
-              href={profileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {ctaLabel}
-            </a>
-          </p>
-        </div>
+        <TikTokEmbed
+          handle={handle}
+          profileUrl={profileUrl}
+          ctaLabel={ctaLabel}
+          preview={preview}
+          embedLoading={config.embedLoading ?? 'auto'}
+          waitForLoader={loader.enabled}
+        />
       </Reveal>
     </Section>
   )

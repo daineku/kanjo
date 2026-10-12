@@ -1,6 +1,8 @@
 'use client'
 
+import Image from 'next/image'
 import { useRef, useState } from 'react'
+
 
 import { gsap, useGSAP } from '@/lib/motion/gsap'
 import { readMotionPolicy } from '@/lib/motion/policy'
@@ -53,6 +55,22 @@ const CYCLE = 1.25
 const LANE = { aStart: 4.2, aEnd: -4.8, bStart: -4.2, bEnd: 5.2 }
 
 type Phase = 'running' | 'gone'
+
+/**
+ * The cars' rendered widths, for the optimizer's `sizes`. Mirrors the
+ * `--k-car-a-w` / `--k-car-b-w` clamps in app/production-tuning.css (desktop
+ * and phone); overstating slightly costs a few kB, understating costs
+ * sharpness, so these sit at the upper end of each clamp.
+ */
+const CAR_SIZES = {
+  a: '(max-width: 767px) 49vw, 17vw',
+  b: '(max-width: 767px) 41vw, 15vw',
+}
+
+function isSvg(src: string): boolean {
+  return /\.svg(\?|#|$)/i.test(src)
+}
+
 
 /** The policy downgrade: a phone runs one intensity step below what is configured. */
 function effectiveIntensity(
@@ -281,26 +299,46 @@ export function KanjoLoader({ config }: { config: LoaderConfig }) {
         <span className="k-loader-accent k-loader-accent--1" />
         <span className="k-loader-accent k-loader-accent--2" />
 
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        {/*
+          THE CARS GO THROUGH THE OPTIMIZER, AND THAT IS A MEASURED DECISION.
+
+          They were plain <img>, on the reasoning that an optimizer round trip
+          would delay a loader that is already on screen. Measured in
+          production: the two sources are 554 kB and 699 kB of PNG, fetched at
+          high priority before anything else on the site — 1.25 MB on the
+          critical path of the entrance, for artwork drawn at most ~300px wide.
+          Through next/image they are served as AVIF/WebP at the width they are
+          drawn (~50 kB the pair), the optimizer's result is cached at the edge
+          after the first request, and `priority` preloads them from <head>, so
+          they still arrive before the first frame.
+
+          SVG is the one format the optimizer refuses (next.config.ts,
+          dangerouslyAllowSVG: false), so an SVG source is passed through
+          untouched rather than failing the loader.
+        */}
+        <Image
           className="k-loader-car k-loader-car--b"
           src={config.carB.src}
           alt=""
           width={config.carB.width}
           height={config.carB.height}
-          decoding="async"
-          fetchPriority="high"
+          priority
+          sizes={CAR_SIZES.b}
+          quality={85}
+          unoptimized={isSvg(config.carB.src)}
         />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           className="k-loader-car k-loader-car--a"
           src={config.carA.src}
           alt=""
           width={config.carA.width}
           height={config.carA.height}
-          decoding="async"
-          fetchPriority="high"
+          priority
+          sizes={CAR_SIZES.a}
+          quality={85}
+          unoptimized={isSvg(config.carA.src)}
         />
+
       </div>
     </div>
   )

@@ -155,52 +155,6 @@
 }
 
 /* -------------------------------------------------------------------------
-   TikTok
-
-   The Creator Profile Embed is a cross-origin iframe, so its internal light
-   surface belongs to TikTok. The site owns the surrounding stage only: keep it
-   black, contained and aligned with the rest of the landing page.
-   ------------------------------------------------------------------------- */
-
-#tiktok > .k-shell > div {
-  width: 100%;
-  max-width: var(--k-content);
-  margin-inline: auto;
-}
-
-.k-tiktok {
-  width: min(100%, 860px);
-  min-height: 0;
-  margin-inline: auto;
-  overflow: hidden;
-  display: flex;
-  justify-content: center;
-  background: #000;
-  border: var(--k-thin-width) solid var(--k-divider);
-  padding: clamp(12px, 1.8vw, 22px);
-}
-
-.k-tiktok .tiktok-embed {
-  margin: 0 auto !important;
-  background: #000 !important;
-  max-width: 100% !important;
-}
-
-.k-tiktok .tiktok-embed > section {
-  width: 100%;
-  background: #000;
-  padding: clamp(18px, 2vw, 28px);
-  text-align: center;
-}
-
-.k-tiktok iframe {
-  display: block;
-  max-width: 100% !important;
-  margin-inline: auto !important;
-  background: #000 !important;
-}
-
-/* -------------------------------------------------------------------------
    Patreon / development log
    ------------------------------------------------------------------------- */
 
@@ -460,15 +414,6 @@
     max-width: 32ch !important;
   }
 
-  .k-tiktok {
-    width: 100%;
-    padding: 8px;
-  }
-
-  .k-tiktok .tiktok-embed > section {
-    padding: 18px 12px;
-  }
-
   .k-patreon-fallback {
     gap: 18px;
     padding: 22px 18px;
@@ -651,49 +596,6 @@
   width: 100%;
   max-width: min(1180px, 100%);
   margin-inline: auto;
-}
-
-.k-tiktok {
-  width: 100%;
-  max-width: 100%;
-  min-height: 0;
-  margin-inline: auto;
-  overflow: visible;
-  display: block;
-  padding: 0;
-  border: 0;
-  background: transparent;
-}
-
-.k-tiktok .tiktok-embed {
-  width: 100% !important;
-  max-width: none !important;
-  min-width: 0 !important;
-  margin: 0 auto !important;
-  background: transparent !important;
-}
-
-.k-tiktok .tiktok-embed > section {
-  width: 100%;
-  padding: 0;
-  text-align: center;
-  background: transparent;
-}
-
-.k-tiktok-placeholder {
-  width: 100%;
-  min-height: clamp(320px, 38vw, 480px);
-  background: transparent;
-}
-
-.k-tiktok iframe {
-  display: block;
-  width: 100% !important;
-  max-width: none !important;
-  min-width: 0 !important;
-  margin: 0 auto !important;
-  border: 0 !important;
-  background: #fff !important;
 }
 
 /* Patreon: API data is our own presentation surface, so use a balanced editorial
@@ -930,18 +832,6 @@
     line-height: 1.58;
   }
 
-  .k-tiktok {
-    width: 100%;
-  }
-
-  .k-tiktok .tiktok-embed > section {
-    padding: 0;
-  }
-
-  .k-tiktok-placeholder {
-    min-height: clamp(300px, 92vw, 430px);
-  }
-
   .k-post-list {
     grid-template-columns: 1fr;
     gap: 12px;
@@ -1085,27 +975,6 @@
     padding-bottom: clamp(16px, 1.45vw, 24px);
   }
 
-  /* Explicit width contract for the TikTok module. TikTok injects its own
-     iframe sizing, so every site-owned wrapper and the iframe itself are forced
-     onto the exact same 1180px canvas as Patreon. */
-  #tiktok > .k-shell > div:last-child,
-  .k-tiktok-reveal,
-  .k-tiktok,
-  .k-tiktok .tiktok-embed,
-  .k-tiktok iframe {
-    width: min(100%, 1180px) !important;
-    max-width: 1180px !important;
-  }
-
-  .k-tiktok-reveal,
-  .k-tiktok {
-    margin-inline: auto;
-  }
-
-  .k-tiktok .tiktok-embed,
-  .k-tiktok iframe {
-    min-width: 100% !important;
-  }
 }
 
 @media (max-width: 767px) {
@@ -1164,20 +1033,6 @@
   .k-brand-separator {
     margin-bottom: clamp(24px, 7vw, 34px);
   }
-}
-
-/* The official Creator Profile Embed itself is designed around a 720px card.
-   TikTok reapplies that size after embed.js runs, so CSS width alone cannot
-   keep the loaded card on our 1180px canvas. TikTokEmbed.tsx scales the loaded
-   provider surface to the width of this wrapper and reserves the scaled height. */
-.k-tiktok {
-  width: min(100%, 1180px);
-  max-width: 1180px;
-  margin-inline: auto;
-}
-
-.k-tiktok-provider-surface {
-  transform-origin: top left;
 }
 
 
@@ -1333,35 +1188,5 @@
   .k-hero-logo {
     width: auto;
     height: min(28.38vw, 165px);
-  }
-}
-
-
-/* TikTok provider-failure escape hatch
-   Creator Profile errors are rendered inside a cross-origin iframe, so the
-   parent page cannot reliably detect TikTok's "overload-protect triggered"
-   response. Keep one polished direct action available under the provider at
-   all times: secondary when the embed works, essential when it does not. */
-.k-tiktok-stack {
-  width: min(100%, 1180px);
-  margin-inline: auto;
-}
-
-.k-tiktok-direct-cta {
-  margin: clamp(18px, 1.8vw, 26px) 0 0;
-  text-align: center;
-}
-
-.k-tiktok-direct-link {
-  min-width: clamp(210px, 26vw, 320px);
-}
-
-@media (max-width: 767px) {
-  .k-tiktok-direct-cta {
-    margin-top: 18px;
-  }
-
-  .k-tiktok-direct-link {
-    width: min(100%, 310px);
   }
 }
