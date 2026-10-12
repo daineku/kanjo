@@ -425,7 +425,13 @@ for (const width of WIDTHS) {
     [...thirdParty].every((host) => !/google|youtube|ytimg|ggpht/i.test(host)),
     [...thirdParty].filter((h) => /google|youtube|ytimg|ggpht/i.test(h)).join(', '),
   )
-  const carRequests = [...asked.keys()].filter((u) => u.includes('/media/loader/')).length
+  // The cars are served through next/image (`/_next/image?url=%2Fmedia%2Floader…`),
+  // so the path is matched decoded. One request per car: the srcset resolves to
+  // a single width, and a second width for the same car would be a duplicate.
+  const carRequests = [...asked.keys()].filter((u) =>
+    decodeURIComponent(u).includes('/media/loader/'),
+  ).length
+
   check('both loader vehicles are fetched exactly once each', carRequests === 2, `${carRequests} request(s)`)
   await context.close()
 }

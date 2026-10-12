@@ -2553,3 +2553,10 @@ html:not([data-loader='pending']) .k-social-cluster li {
 .k-video-meta > p {
   margin: 0;
 }
+
+/* The CTA plate is an inline grid (production-tuning.css), which would put the
+   label and the arrow on separate rows. One row, a small gap. */
+.k-tiktok .k-link-action {
+  grid-auto-flow: column;
+  column-gap: 0.4em;
+}

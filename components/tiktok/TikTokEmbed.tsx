@@ -424,7 +424,6 @@ export function TikTokEmbed({
             >
               {ctaLabel}
               <span className="k-tiktok-preview-arrow" aria-hidden="true">
-                {' '}
                 ↗
               </span>
             </a>
@@ -483,7 +482,6 @@ export function TikTokEmbed({
           <a className="k-link-action" href={profileUrl} target="_blank" rel="noopener noreferrer">
             {ctaLabel}
             <span className="k-tiktok-preview-arrow" aria-hidden="true">
-              {' '}
               ↗
             </span>
           </a>
