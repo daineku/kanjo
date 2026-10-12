@@ -105,6 +105,7 @@ async function moduleReport(page) {
     const link = block.querySelector('a.k-tiktok-link')
     const rect = block.getBoundingClientRect()
     const surfaceBox = surface?.getBoundingClientRect()
+    const iframeBox = iframe?.getBoundingClientRect()
     const visible = (node) => {
       if (!node) return false
       let el = node
@@ -145,6 +146,11 @@ async function moduleReport(page) {
           (surfaceBox.left + surfaceBox.right) / 2 - (rect.left + rect.right) / 2,
         ),
         withinColumn: surfaceBox.left >= rect.left - 2 && surfaceBox.right <= rect.right + 2,
+      } : null,
+      iframeGeometry: iframeBox ? {
+        renderedWidth: iframeBox.width,
+        centreOffset: Math.abs((iframeBox.left + iframeBox.right) / 2 - (rect.left + rect.right) / 2),
+        withinColumn: iframeBox.left >= rect.left - 2 && iframeBox.right <= rect.right + 2,
       } : null,
       iframes: block.querySelectorAll('iframe').length,
       iframeVisible: visible(iframe),
@@ -563,6 +569,13 @@ for (const width of [1920, 1440, 768, 390, 360]) {
     `${label}: desktop never enlarges the profile and mobile scales it down`,
     Math.abs((report?.surface?.renderedWidth ?? 0) - Math.min(720, report?.width ?? 0)) <= 2,
     `visible=${Math.round(report?.surface?.renderedWidth ?? 0)}px section=${report?.width}px`,
+  )
+  check(
+    `${label}: iframe itself is centred, not clipped or wider than the visible card`,
+    (report?.iframeGeometry?.centreOffset ?? 9999) <= 2 &&
+      report?.iframeGeometry?.withinColumn === true &&
+      Math.abs((report?.iframeGeometry?.renderedWidth ?? 0) - (report?.surface?.renderedWidth ?? 9999)) <= 2,
+    JSON.stringify(report?.iframeGeometry),
   )
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
   check(`${label}: no horizontal overflow`, overflow <= 1, `${overflow}px`)
