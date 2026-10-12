@@ -601,18 +601,10 @@ export async function saveSection(form: FormData): Promise<void> {
             mode: 'creator-embed',
             ctaLabel: str(form, 'ctaLabel', current.config.ctaLabel),
             fallback: oneOf(form, 'fallback', ['cta', 'hide'] as const, current.config.fallback),
-            embedLoading: oneOf(
-              form,
-              'embedLoading',
-              ['auto', 'manual'] as const,
-              current.config.embedLoading ?? 'auto',
-            ),
-            preview: await imageField(form, 'preview', 'social', current.config.preview),
           },
         }
         break
       }
-
 
       case 'patreon':
         next = {

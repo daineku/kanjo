@@ -2197,178 +2197,80 @@ html:not([data-loader='pending']) .k-social-cluster li {
 }
 
 /* ============================================================================
-   TIKTOK — the official Creator Profile Embed, inside a module the site owns
+   TIKTOK — the official Creator Profile Embed, or one link to the profile
    ----------------------------------------------------------------------------
-   Four states on one DOM, driven by `data-state` on .k-tiktok and documented in
-   components/tiktok/TikTokEmbed.tsx:
+   Three states on `data-state`, documented in components/tiktok/TikTokEmbed.tsx:
 
-     preview      the site-owned preview, in flow, the only thing on screen
-     loading      the same, with the provider rendering INVISIBLY underneath
-     live         the provider in flow and visible; the preview faded under it
-     unavailable  the preview; the provider dropped from layout
+     loading   the link; the provider invisible underneath, clipped to its box
+     live      the provider in flow and visible; no link
+     fallback  the link; the provider removed from the DOM
 
-   The preview is a media plate in the page's own language: night artwork, the
-   canon's left rule, the real handle and the real link. The provider wrapper is
-   never visible in any state but live, so whatever TikTok puts in its iframe —
-   a profile or a one-line rate-limit error — is never on screen unproven.
+   Nothing here styles a frame around the link: on failure the block is the
+   heading and one text action, and its height is the link's own.
    ========================================================================== */
 
 .k-tiktok {
   position: relative;
   width: 100%;
-  margin-inline: auto;
+  /* Sections carry no bottom padding (production-tuning.css), and the next
+     one paints over anything past this box: room for the focus ring. */
+  padding-bottom: 8px;
+  text-align: center;
 }
 
-/* ── The preview ──────────────────────────────────────────────────────────── */
-
-.k-tiktok-preview {
-  position: relative;
-  display: block;
-  width: 100%;
-  /* The plate's footprint, which is also what reserves the module's space:
-     the only layout change the module ever makes is the reveal of a proven
-     embed. The ratio is the artwork's own neighbourhood (the OG frame is
-     1730x909), trimmed slightly so the plate reads as a stage, not a banner. */
-  aspect-ratio: 1180 / 560;
-  overflow: hidden;
-  background: var(--k-background);
-  color: #fff;
-  transition: opacity 420ms var(--k-ease-out);
-}
-
-.k-tiktok-preview-img {
-  object-fit: cover;
-  object-position: center 42%;
-}
-
-/* Legibility for the lower band only. The top of the frame stays as rendered;
-   the gradient starts where the text does. */
-.k-tiktok-preview-scrim {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgb(0 0 3 / 0.06) 0%,
-    rgb(0 0 3 / 0) 38%,
-    rgb(0 0 3 / 0.58) 74%,
-    rgb(0 0 3 / 0.82) 100%
-  );
-}
-
-.k-tiktok-preview-ui {
-  position: absolute;
-  inset: auto 0 0 0;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--k-space-lg) var(--k-space-xl);
-  padding: clamp(18px, 2.4vw, 32px);
-}
-
-.k-tiktok-preview-identity {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--k-space-sm) var(--k-space-md);
-  margin: 0;
-  /* The canon's left rule, in the accent: the same mark the page uses for a
-     selected row. */
-  border-left: var(--k-divider-width) solid var(--k-accent);
-  padding-left: var(--k-space-md);
-}
-
-.k-tiktok-glyph {
-  width: 16px;
-  height: 18px;
-  color: #fff;
-  flex: 0 0 auto;
-}
-
-.k-tiktok-preview-handle {
-  color: #fff;
-  letter-spacing: 1.4px;
-}
-
-.k-tiktok-preview-kicker {
-  color: rgb(255 255 255 / 0.56);
-  letter-spacing: 1.4px;
-}
-
-.k-tiktok-preview-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: var(--k-space-md);
-}
-
-.k-tiktok-preview-arrow {
-  display: inline-block;
-  /* The arrow is a glyph, not a letter: a touch smaller so it does not read as
-     part of the word. */
-  font-size: 0.86em;
-}
-
-/* The quiet status line while the provider is being asked. A pulse on the dot
-   only; nothing else moves. Collapses to a static mark under reduced motion
-   through the global rule. */
-.k-tiktok-status {
+/* A text action in the display face, at its content width. Its own class, so
+   the badge-plate `.k-link-action` rules in production-tuning.css never apply. */
+.k-tiktok-link {
   display: inline-flex;
   align-items: center;
-  gap: var(--k-space-sm);
-  color: rgb(255 255 255 / 0.62);
-  letter-spacing: 1.4px;
-}
-
-.k-tiktok-status::before {
-  content: '';
-  width: 6px;
-  height: 6px;
-  background: var(--k-accent);
-  animation: k-tiktok-pulse 1.4s ease-in-out infinite;
-}
-
-@keyframes k-tiktok-pulse {
-  0%,
-  100% {
-    opacity: 0.3;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-/* The explicit, bounded ask for the live feed: a text action, deliberately
-   quieter than the profile link beside it. */
-.k-tiktok-text-action {
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: rgb(255 255 255 / 0.78);
-  font: inherit;
-  letter-spacing: 1.4px;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-  text-decoration-color: rgb(255 255 255 / 0.4);
-  cursor: pointer;
+  gap: 0.4em;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 6px 2px;
+  color: var(--k-text-primary);
+  font-family: var(--k-font-display);
+  font-size: clamp(20px, 0.35vw + 18.6px, 24px);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  text-decoration: none;
   transition: color var(--k-motion-focus) var(--k-ease-out);
 }
 
-.k-tiktok-text-action:hover,
-.k-tiktok-text-action:focus-visible {
-  color: #fff;
+/* The underline is the label's alone; under a flex row the arrow would get a
+   second, separate one. */
+.k-tiktok-link-label {
+  text-decoration: underline;
   text-decoration-color: var(--k-accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 6px;
 }
 
-.k-tiktok-text-action:focus-visible {
+.k-tiktok-link-arrow {
+  color: var(--k-accent);
+  font-size: 0.86em;
+  transition: transform var(--k-motion-focus) var(--k-ease-out);
+}
+
+.k-tiktok-link:hover,
+.k-tiktok-link:focus-visible {
+  color: var(--k-accent);
+}
+
+.k-tiktok-link:hover .k-tiktok-link-arrow,
+.k-tiktok-link:focus-visible .k-tiktok-link-arrow {
+  transform: translate(2px, -2px);
+}
+
+.k-tiktok-link:focus-visible {
   outline: 2px solid var(--k-accent);
   outline-offset: 4px;
 }
 
-/* ── The provider wrapper ─────────────────────────────────────────────────── */
-
-/* Under the preview: in layout (so the embed lays out at its real width and
-   reports a real height), but invisible and inert. */
+/* While loading: in layout (so the card lays out at the module's real width
+   and reports a real height) but clipped to the link's box, invisible and
+   inert. Whatever TikTok puts in the iframe is never on screen unproven. */
 .k-tiktok-provider {
   position: absolute;
   inset: 0;
@@ -2377,29 +2279,12 @@ html:not([data-loader='pending']) .k-social-cluster li {
   pointer-events: none;
 }
 
-.k-tiktok[data-state='unavailable'] .k-tiktok-provider {
-  display: none;
-}
-
-/* Live: the provider takes the flow, the preview fades under it and is then
-   removed from the accessibility tree and the tab order by `visibility`. */
 .k-tiktok[data-state='live'] .k-tiktok-provider {
   position: relative;
   inset: auto;
   opacity: 1;
   pointer-events: auto;
   transition: opacity 420ms var(--k-ease-out);
-}
-
-.k-tiktok[data-state='live'] .k-tiktok-preview {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition:
-    opacity 420ms var(--k-ease-out),
-    visibility 0s linear 420ms;
 }
 
 /* TikTok's own stylesheet arrives at runtime, later in the cascade, with an
@@ -2419,41 +2304,6 @@ html:not([data-loader='pending']) .k-social-cluster li {
 .k-tiktok .tiktok-embed iframe {
   display: block;
   border: 0;
-}
-
-/* The direct path under a live embed. */
-.k-tiktok-direct {
-  margin: clamp(18px, 1.8vw, 26px) 0 0;
-  text-align: center;
-}
-
-@media (max-width: 767px) {
-  .k-tiktok-preview {
-    /* A phone gets a taller plate: the artwork is cropped to its middle third
-       either way, and a wide strip at 390px is a letterbox with no room for
-       the identity and the action. */
-    aspect-ratio: 4 / 5;
-  }
-
-  .k-tiktok-preview-img {
-    object-position: 58% 50%;
-  }
-
-  .k-tiktok-preview-ui {
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--k-space-lg);
-    padding: clamp(16px, 5vw, 22px);
-  }
-
-  .k-tiktok-preview-actions {
-    align-items: stretch;
-    text-align: center;
-  }
-
-  .k-tiktok-preview-cta {
-    width: 100%;
-  }
 }
 
 /* The publisher attribution in the footer. Underlined, because colour alone
@@ -2552,11 +2402,4 @@ html:not([data-loader='pending']) .k-social-cluster li {
 
 .k-video-meta > p {
   margin: 0;
-}
-
-/* The CTA plate is an inline grid (production-tuning.css), which would put the
-   label and the arrow on separate rows. One row, a small gap. */
-.k-tiktok .k-link-action {
-  grid-auto-flow: column;
-  column-gap: 0.4em;
 }

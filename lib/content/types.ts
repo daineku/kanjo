@@ -707,39 +707,23 @@ export type TikTokConfig = SectionHeader & {
    */
   profileUrl: string
   mode: TikTokMode
+  /**
+   * Kept for stored content only; not displayed. The block's one link reads
+   * "Open @TheKanjo on TikTok ↗" whatever is stored here — see
+   * components/tiktok/TikTokEmbed.tsx.
+   */
   ctaLabel: string
   /**
    * What the block does when the profile is unreadable. 'cta' keeps the
-   * section and a FOLLOW ON TIKTOK button; 'hide' renders nothing.
+   * section with a notice; 'hide' renders nothing.
    *
    * Note that this does NOT cover TikTok being blocked, slow or rate-limited
-   * in the visitor's browser — that is handled by the module itself, which
-   * shows the site-owned preview below until TikTok's embed has proven it
-   * rendered, and keeps showing it if that proof never comes. There is no
-   * state in which this block is an empty rectangle or a provider error.
+   * in the visitor's browser — that is handled by the embed module, which
+   * shows the profile link until TikTok's embed has proven it rendered, and
+   * only the link if it never does.
    */
   fallback: 'cta' | 'hide'
-  /**
-   * The site-owned preview: what the block shows BEFORE the official embed has
-   * proven it rendered, and what it keeps showing if TikTok is blocked, slow,
-   * rate-limited ("overload-protect triggered") or otherwise unavailable.
-   *
-   * Editable media, so the owner can upload an authorised snapshot of the real
-   * profile from the admin. When absent, the section falls back to the site's
-   * default social image — genuine artwork, never a fabricated feed.
-   */
-  preview?: ImageRef
-  /**
-   * When the official embed is asked for.
-   *
-   * 'auto' (the default) requests it quietly once the loader has finished and
-   * the section is near the viewport, and reveals it only on TikTok's own
-   * render signal. 'manual' never contacts TikTok until a visitor asks for the
-   * live feed — the choice to make if the provider keeps rate-limiting.
-   */
-  embedLoading?: 'auto' | 'manual'
 }
-
 
 /**
  * The development-log block, fed by the Patreon API.

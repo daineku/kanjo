@@ -2,7 +2,7 @@
  * Regression tests for the TikTok render-signal reader.
  *
  * Run with `npm run test:tiktok`. The reader decides whether the official
- * embed is REVEALED over the site's own preview, so the negative cases lead:
+ * embed is REVEALED instead of the profile link, so the negative cases lead:
  * anything that is not a height message from TikTok's own origin must be
  * refused, because revealing on a false positive is how a visitor ends up
  * looking at "overload-protect triggered".

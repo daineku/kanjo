@@ -1,8 +1,9 @@
 # TikTok
 
 The homepage shows recent clips from <https://www.tiktok.com/@the_kanjo> using
-TikTok's **official Creator Profile Embed** — inside a module the site owns, so
-the page never depends on TikTok answering.
+TikTok's **official Creator Profile Embed** — or, whenever TikTok does not
+prove it rendered, one link: **Open @TheKanjo on TikTok ↗**. Those are the
+only two things a visitor can see in this block.
 
 **No TikTok developer credentials are required**, and none are configured.
 
@@ -57,10 +58,14 @@ height required and positive — and nothing else. It is the closest thing to
 "it rendered" that exists on the parent side, and the module treats it as the
 **only** reveal condition.
 
+The module also requires the message to come **from our iframe's own window**
+(`event.source === iframe.contentWindow`), so a message from any other frame —
+or a frame left over from an earlier mount — is not success.
+
 **This is a heuristic, and it is a safe one.** The protocol is what TikTok's
 library does today, not something in their public documentation. If it changes,
-the failure is in the safe direction: no signal arrives, the preview stays, and
-the visitor sees a finished block with a working link. Nothing here claims the
+the failure is in the safe direction: no signal arrives, the block falls back,
+and the visitor sees the heading and a working link. Nothing here claims the
 problem has been fixed at TikTok's end — it has not, and it cannot be from this
 side.
 
@@ -68,74 +73,48 @@ side.
 
 ## The module's states
 
-`components/tiktok/TikTokEmbed.tsx`. One DOM, four states on `data-state`:
+`components/tiktok/TikTokEmbed.tsx`. Three states on `data-state`:
 
 | State | What is on screen | What is underneath |
 |---|---|---|
-| `preview` | The site-owned preview: artwork, the real handle, the profile link. **Server-rendered.** | The blockquote, in a wrapper that is in layout but invisible and inert. Nothing asked. |
-| `loading` | The same preview, with a quiet CONNECTING TO TIKTOK line. | The official embed, rendering into the invisible wrapper. |
-| `live` | The official embed, revealed on the render signal, with the profile link under it. | The preview, faded and `visibility: hidden`. |
-| `unavailable` | The preview, with one explicit TRY THE LIVE FEED AGAIN. | The wrapper, dropped from layout. |
+| `loading` | The link, nothing else. **Server-rendered.** | The official embed, in a wrapper clipped to the link's box, `opacity: 0`, `inert`, `aria-hidden`. |
+| `live` | The official embed, revealed on the render signal. No link. | — |
+| `fallback` | The link, nothing else. | Nothing: the provider wrapper and its iframe are removed from the DOM. |
 
 The wrapper is in layout while loading **on purpose**: the card lays itself out
-at the module's real width and reports a real height. It is `opacity: 0`,
-`pointer-events: none`, `inert` and `aria-hidden`, so whatever TikTok puts in
+at the module's real width and reports a real height. Whatever TikTok puts in
 the iframe is never on screen, never focusable and never read out until it has
-proven itself.
+proven itself — and after a failure it no longer exists.
 
 A crawler, a visitor without JavaScript, a visitor whose extension blocks
 TikTok and a visitor TikTok has rate-limited all see the same thing: the
-preview.
-
-### The preview is content, not a hardcoded image
-
-`TikTokConfig.preview` is an editable `ImageRef` (admin: **Preview artwork**,
-filed under `social/`). The intended use is an **authorised snapshot of the
-real profile**. When it is empty the section falls back to the site's default
-social image — genuine artwork that already exists for the same purpose. The
-block says "official profile" and links to it; it never pretends to be a live
-feed, and it fabricates no thumbnails, counts or captions.
+section heading and the link. There is nothing to configure: no artwork, no
+snapshot, no admin setting beyond the profile URL.
 
 ---
 
 ## Loading policy
 
-`TikTokConfig.embedLoading`:
+The embed is asked for **once per mount**, after both gates: the loader has
+finished (`whenStageReady`) and the section is within 120px of the viewport
+(one `IntersectionObserver`, disconnected the moment it fires). No scroll
+listener, no polling, no retry — automatic or offered.
 
-- **`auto`** (default). The embed is asked for **once**, after both gates: the
-  loader has finished (`whenStageReady`) and the section is within 120px of the
-  viewport (one `IntersectionObserver`, disconnected the moment it fires). No
-  scroll listener, no polling, no timer-driven retry.
-- **`manual`**. TikTok is never contacted until a visitor presses VIEW THE LIVE
-  FEED. The setting to choose if the provider keeps rate-limiting.
+The wait is bounded:
 
-Either way the wait is bounded:
-
-- **12 s ceiling** from the ask. Past it the module settles on `unavailable`
-  and stops listening — a feed appearing under a visitor who has moved on is a
-  layout shift, not an enhancement.
-- **4 s of silence after the iframe's `load`.** A real profile posts its
-  height almost at once; the 503 never does. This is what makes a rate-limited
-  visit settle in about five seconds rather than twelve.
-- A script that fails to load (blocked) or a runtime that throws settles at
+- **8 s ceiling** from the ask.
+- **3.5 s of silence after the iframe's `load`.** A real profile posts its
+  height almost at once; the 503 never does.
+- A script that fails to load (blocked) or a runtime that throws falls back at
   once.
-
-**At most two asks per mount, ever**: one automatic plus one the visitor makes
-explicitly (or two explicit, in manual mode). A retry mounts a fresh blockquote
-— TikTok's library appends an iframe to whatever it rendered into, and asking
-it to render into the same node again would stack a second iframe under the
-first.
 
 ### The script: once, resident, reused
 
 `embed.js` is appended **once per page life** and left resident. On a
 client-side navigation back to the homepage the module asks the runtime the
 script installed — `tiktokEmbed.lib.render([blockquote])` — to render the new
-blockquote. That is the only re-scan mechanism TikTok offers and it costs no
-network request. A script tag that *failed* is removed before a retry appends a
-new one; one that loaded is never touched. Verified by
-`scripts/check-integrations.mjs`: one `embed.js` request across a scroll pass
-and a navigation round trip, one script tag, one iframe.
+blockquote. That costs no network request. A script that failed stays failed
+for the page's life: a later mount falls back without asking again.
 
 ---
 
@@ -193,17 +172,19 @@ on width only, so the module's own height writes cannot schedule another fit.
 and the render-signal reader.
 
 `scripts/check-integrations.mjs`, against a production build, simulates each
-failure **at the network layer** and leaves everything else to the real
-network: TikTok blocked; the embed document answered with 503, 403, 429; a 200
-whose body is an error; and a request never answered. In every case it asserts,
-from the outside, that the module settles on `unavailable` by itself, that the
-preview is the element under the pointer at the module's centre, that the
-iframe is not visible, that the real profile link is, that the words
-"overload-protect" do not appear in the page's own text, that exactly one
-explicit retry is offered and that no more than two asks are made. Success is
-simulated with a document that posts the render signal, so the reveal path is
-exercised without depending on TikTok at test time. Six widths, 360 to 1920,
-with screenshots under `SHOTS=<dir>`.
+failure **at the network layer**: TikTok blocked; embed.js never answered; the
+embed document answered with 503 `overload-protect triggered`, 403, 429; a 200
+whose body is an error page; and a document never answered. In every case it
+asserts, from the outside, that the module reaches `fallback` within the
+ceiling, that no iframe remains, that the link is the element under the pointer
+and points at the real profile, that the block is no taller than the link,
+that the link keeps its content width and is centred, that no button or second
+link exists, and that TikTok was asked once. It does **not** rely on
+`document.body.innerText` to prove the error is hidden: text inside a
+cross-origin frame is not in it, which is why the iframe's removal is asserted
+instead. Success is simulated with a document that posts the render signal; a
+forged signal posted from the wrong window is checked not to reveal anything.
+Six widths, 360 to 1920, with screenshots under `SHOTS=<dir>`.
 
 ---
 
@@ -251,7 +232,7 @@ the route is the **TikTok Display API**:
 
 The content model anticipates it: `TikTokConfig.mode` exists for exactly this,
 and `'display-api'` would be the second value. The section component chooses
-the renderer; the preview and the loading policy stay as they are.
+the renderer; the fallback link and the loading policy stay as they are.
 
 **It is not needed for V1**, and the type does not pretend it is implemented.
 
@@ -260,10 +241,11 @@ the renderer; the preview and the loading policy stay as they are.
 ## Remaining limitations, stated plainly
 
 - The rate limit is TikTok's. When their ingress answers 503, no visitor sees
-  the live feed; they see the preview. The module makes that invisible, not
+  the live feed; they see the link. The module makes the failure clean, not
   impossible.
 - The render signal is observed, not documented. A change on TikTok's side
-  degrades to "preview always", never to "error on screen".
-- Revealing a proven embed changes the module's height once, from the
-  preview's footprint to the card's. That is the one layout change the module
-  makes, and it happens only on success.
+  degrades to "link always", never to "error on screen".
+- A slow but healthy embed that takes longer than the bounds above falls back
+  to the link for that visit.
+- Revealing a proven embed changes the block's height once, from the link to
+  the card. That happens only on success.

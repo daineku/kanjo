@@ -25,7 +25,7 @@
  *
  * The protocol is not in TikTok's public embed documentation; it is what their
  * library does today. The failure mode of it changing is the SAFE direction:
- * no signal arrives, the module keeps its own preview, and the visitor sees a
+ * no signal arrives, the module falls back to its profile link, and the visitor sees a
  * finished block with a working link rather than a provider error. Nothing
  * here claims the problem has been fixed at TikTok's end — it has not, and it
  * cannot be from this side.

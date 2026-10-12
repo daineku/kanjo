@@ -51,7 +51,6 @@ to run them:
 
 - `scripts/check-motion.mjs` — the loader, the reveals, reduced motion, the escape path
 - `scripts/check-integrations.mjs` — YouTube, TikTok and Patreon states, including every TikTok failure (blocked, 403, 429, 503 `overload-protect`, timeout, error body) and a simulated success
-
 - `scripts/check-rendering.mjs` — overflow, keyboard, console errors
 
 ## Editing content in a browser
