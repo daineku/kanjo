@@ -197,22 +197,25 @@ export function TikTokEmbed({
     }
 
     /**
-     * Keeps TikTok's 720px card on the module's canvas: the blockquote is held
-     * at the native width and scaled with a transform, and the wrapper's
-     * height is set to the scaled result, because a transform does not change
-     * layout. Writes only on change, so a ResizeObserver delivery cannot
-     * schedule another one.
+     * TikTok's creator iframe lays out its content at 720px. Keep that native
+     * width at every breakpoint: scale DOWN on narrow viewports, never UP on
+     * desktop. Previously min(720, hostWidth) changed the native width on
+     * phones and made the 720px card grow across the desktop column. Combined
+     * with the blockquote's auto margin and top-left transform origin, that
+     * displaced the visible embed to the right of the section heading.
+     * The wrapper is centred independently at max 720px in CSS; we reserve
+     * the scaled height here because transforms do not affect layout.
      */
     const fit = () => {
       cancelAnimationFrame(frame)
       frame = requestAnimationFrame(() => {
         if (!iframe || !iframe.isConnected) return
-        const targetWidth = host.clientWidth
-        if (targetWidth <= 0) return
+        const availableWidth = host.clientWidth
+        if (availableWidth <= 0) return
 
-        const nativeWidth = Math.min(PROVIDER_NATIVE_WIDTH, targetWidth)
-        const scale = targetWidth / nativeWidth
-        const widthPx = `${nativeWidth}px`
+        const displayWidth = Math.min(availableWidth, PROVIDER_NATIVE_WIDTH)
+        const scale = displayWidth / PROVIDER_NATIVE_WIDTH
+        const widthPx = `${PROVIDER_NATIVE_WIDTH}px`
         const transform = scale === 1 ? '' : `scale(${scale})`
 
         blockquote.classList.add('k-tiktok-provider-surface')
