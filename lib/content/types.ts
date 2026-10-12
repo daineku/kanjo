@@ -707,16 +707,20 @@ export type TikTokConfig = SectionHeader & {
    */
   profileUrl: string
   mode: TikTokMode
+  /**
+   * Kept for stored content only; not displayed. The block's one link reads
+   * "Open @TheKanjo on TikTok ↗" whatever is stored here — see
+   * components/tiktok/TikTokEmbed.tsx.
+   */
   ctaLabel: string
   /**
    * What the block does when the profile is unreadable. 'cta' keeps the
-   * section and a FOLLOW ON TIKTOK button; 'hide' renders nothing.
+   * section with a notice; 'hide' renders nothing.
    *
-   * Note that this does NOT cover TikTok being blocked or slow in the
-   * visitor's browser — that is handled in the embed itself, which renders the
-   * CTA as its own fallback content and lets TikTok replace it only if the
-   * script actually loads. There is no state in which this block is an empty
-   * black rectangle.
+   * Note that this does NOT cover TikTok being blocked, slow or rate-limited
+   * in the visitor's browser — that is handled by the embed module, which
+   * shows the profile link until TikTok's embed has proven it rendered, and
+   * only the link if it never does.
    */
   fallback: 'cta' | 'hide'
 }

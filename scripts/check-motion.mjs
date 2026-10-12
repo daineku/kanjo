@@ -100,9 +100,21 @@ const INVISIBLE_PROBE = () => {
   const stuck = []
   for (const selector of selectors) {
     for (const element of document.querySelectorAll(selector)) {
+      // On a phone the channel rail is fixed over the hero and withdraws, by
+      // design, once the hero has scrolled away (`data-hero-visible="false"`
+      // in production-tuning.css). That is the rail doing its job, not a
+      // reveal that failed, so it is excluded only in that state — a rail
+      // hidden while the hero IS visible would still be reported.
+      if (
+        selector === '.k-social-link' &&
+        element.closest('.k-social-cluster')?.getAttribute('data-hero-visible') === 'false'
+      ) {
+        continue
+      }
       const style = getComputedStyle(element)
       const rect = element.getBoundingClientRect()
       if (Number(style.opacity) < 0.95 || style.visibility === 'hidden') {
+
         stuck.push({
           selector,
           opacity: style.opacity,
@@ -326,8 +338,11 @@ for (const width of WIDTHS) {
   const before = await scrollCost()
 
   for (let i = 0; i < 3; i += 1) {
-    await page.click('footer a[href="/updates"]')
-    await page.waitForURL('**/updates', { timeout: 10000 })
+    // The footer's in-site links are the legal pages; /updates left the footer
+    // when the homepage's development log became the Patreon block.
+    await page.click('footer a[href="/privacy"]')
+    await page.waitForURL('**/privacy', { timeout: 10000 })
+
     await page.waitForTimeout(300)
     await page.goBack()
     await page.waitForURL(BASE + '/', { timeout: 10000 })
@@ -410,7 +425,13 @@ for (const width of WIDTHS) {
     [...thirdParty].every((host) => !/google|youtube|ytimg|ggpht/i.test(host)),
     [...thirdParty].filter((h) => /google|youtube|ytimg|ggpht/i.test(h)).join(', '),
   )
-  const carRequests = [...asked.keys()].filter((u) => u.includes('/media/loader/')).length
+  // The cars are served through next/image (`/_next/image?url=%2Fmedia%2Floader…`),
+  // so the path is matched decoded. One request per car: the srcset resolves to
+  // a single width, and a second width for the same car would be a duplicate.
+  const carRequests = [...asked.keys()].filter((u) =>
+    decodeURIComponent(u).includes('/media/loader/'),
+  ).length
+
   check('both loader vehicles are fetched exactly once each', carRequests === 2, `${carRequests} request(s)`)
   await context.close()
 }

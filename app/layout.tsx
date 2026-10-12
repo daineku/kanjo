@@ -66,7 +66,28 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="en" data-loader={loaderActive ? 'pending' : undefined}>
+      <head>
+        {/* The two faces on every first screen — the display family for the
+            title and headings, the technical face for every label — fetched
+            alongside the stylesheet rather than after it. Iceberg is not
+            preloaded: it is the alternate face and has no above-the-fold use. */}
+        <link
+          rel="preload"
+          href="/fonts/BigShouldersDisplay-VF.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href="/fonts/Iceland-Regular.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body>
+
         {loaderActive && (
           <noscript>
             <style>

@@ -85,7 +85,8 @@ so.
 | **Hero** | Title (always the H1), **visible identity — logo artwork or set type**, the logo image, background still, **desktop crop** and **mobile crop** (`object-position`), treatment |
 | **Intro** | Eyebrow, heading, body, and **ordered blocks** — text or a click-to-load YouTube clip — with add, remove and reorder |
 | **YouTube** | Channel, **latest-from-channel or pinned-video mode**, optional caption/description/poster, fallback (hide or CTA). With no video and no key the block hides itself. |
-| **Each other section** | Published and order, plus type-specific fields for TikTok and Patreon |
+| **TikTok** | Profile URL (validated before it is stored) and the with-no-profile behaviour. Nothing else to prepare: the block shows the official embed when TikTok proves it rendered, and otherwise one link, **Open @TheKanjo on TikTok ↗**. See [TIKTOK.md](TIKTOK.md). |
+| **Each other section** | Published and order, plus type-specific fields for Patreon |
 
 Every image field takes an **upload** or a typed path. Blocks the V1 page does
 not use (features, status, screenshots, the local-video block, the links panel)

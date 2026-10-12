@@ -1,14 +1,39 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { whenStageReady } from '@/lib/motion/stage'
+import { readTikTokRenderSignal } from '@/lib/tiktok/signal'
 
 const EMBED_SRC = 'https://www.tiktok.com/embed.js'
 
+/** The block's one link. Fixed copy: it names the account, not a feature. */
+const PROFILE_LINK_LABEL = 'Open @TheKanjo on TikTok'
+
+/**
+ * The ceiling on waiting for TikTok, from the moment the embed is asked for.
+ * Past it the module settles on the link and stops listening: a feed that
+ * appears under a visitor who has moved on is a layout shift, not an
+ * enhancement.
+ */
+const RENDER_TIMEOUT_MS = 8_000
+
+/**
+ * How long a loaded iframe gets to prove it rendered. The embedded application
+ * posts its height within a moment of running; the one-line provider error
+ * ("overload-protect triggered") runs nothing, so after its `load` the silence
+ * is the answer.
+ */
+const SILENCE_AFTER_LOAD_MS = 3_500
+
+/** The creator card is laid out at this width inside TikTok's own application. */
+const PROVIDER_NATIVE_WIDTH = 720
+
+type Phase = 'loading' | 'live' | 'fallback'
+
 type TikTokEmbedRuntime = {
   lib?: {
-    render?: (embeds: Element[]) => void
+    render?: (embeds: Element[]) => unknown
   }
 }
 
@@ -17,93 +42,86 @@ function tikTokRuntime(): TikTokEmbedRuntime | undefined {
 }
 
 /**
- * Initializes exactly one TikTok embed without re-downloading/re-executing
- * embed.js on every client-side remount.
+ * Asks TikTok to render ONE blockquote, without re-downloading or re-executing
+ * `embed.js` when its runtime is already resident.
  *
- * TikTok's script installs a global `tiktokEmbed.lib.render()` runtime. It is
- * not documented in the public Creator Embed guide, so this path is guarded:
- * if the runtime exists, we ask it to render only this blockquote; if it does
- * not exist yet, we append embed.js once and let its normal first-load scan do
- * the work.
+ * `embed.js` is a bootstrap: it loads TikTok's library and installs a global
+ * `tiktokEmbed.lib.render()`. On the first mount the script is appended and
+ * its own first-run scan finds the blockquote. On a later mount — a client-side
+ * navigation back to the homepage — the runtime is asked to render the new
+ * blockquote directly, which costs no network request at all.
  *
- * This matters for TikTok's "overload-protect triggered" failure. That message
- * is returned by TikTok's own anonymous web ingress, not by this application.
- * We cannot control TikTok's server-side protection, but repeatedly deleting
- * and re-executing embed.js on SPA remounts creates avoidable provider traffic.
- * Keeping the script resident removes that amplification.
+ * Resolves to false when nothing could be asked: the script failed to load
+ * (blocked, offline) or the runtime threw. The caller falls back at once.
  */
-function initializeEmbed(element: HTMLElement): void {
-  const blockquote = element.querySelector('blockquote.tiktok-embed')
-  if (!(blockquote instanceof HTMLElement)) return
-
-  const render = tikTokRuntime()?.lib?.render
-  if (typeof render === 'function') {
+function askProviderToRender(blockquote: HTMLElement): Promise<boolean> {
+  const lib = tikTokRuntime()?.lib
+  if (lib && typeof lib.render === 'function') {
     try {
-      render([blockquote])
+      // Called AS A METHOD: `render` is async and reaches for `this` on a
+      // later tick, so a detached reference throws inside the promise.
+      return Promise.resolve(lib.render([blockquote]))
+        .then(() => true)
+        .catch(() => false)
     } catch {
-      // Do not respond to a provider-runtime failure by re-injecting the script:
-      // that is exactly the retry storm this integration must avoid.
+      return Promise.resolve(false)
     }
-    return
   }
 
-  const existing = document.querySelector<HTMLScriptElement>(
-    `script[src="${EMBED_SRC}"], script[data-tiktok-embed]`,
-  )
-  if (existing) return
+  // At most one script tag per page life. One that failed stays failed for
+  // that life: a later mount falls back without asking TikTok again.
+  const existing = document.querySelector<HTMLScriptElement>('script[data-tiktok-embed]')
+  if (existing) return Promise.resolve(existing.dataset.tiktokEmbed !== 'failed')
 
-  const script = document.createElement('script')
-  script.src = EMBED_SRC
-  script.async = true
-  script.dataset.tiktokEmbed = 'true'
-  document.head.appendChild(script)
+  return new Promise((resolve) => {
+    const script = document.createElement('script')
+    script.src = EMBED_SRC
+    script.async = true
+    script.dataset.tiktokEmbed = 'loading'
+    script.onload = () => {
+      script.dataset.tiktokEmbed = 'loaded'
+      resolve(true)
+    }
+    script.onerror = () => {
+      script.dataset.tiktokEmbed = 'failed'
+      resolve(false)
+    }
+    document.head.appendChild(script)
+  })
 }
 
 /**
- * TikTok's official Creator Profile Embed.
+ * TikTok's official Creator Profile Embed, with exactly two visible outcomes:
+ * the real embed, or one link to the real profile.
  *
- * ── THE MARKUP IS BUILT HERE, FROM A VALIDATED HANDLE ───────────────────────
+ * The embed is a cross-origin iframe on `https://www.tiktok.com`. TikTok's
+ * anonymous embed ingress rate-limits and answers `503 overload-protect
+ * triggered` as a one-line document; the iframe's `load` event fires for it
+ * exactly as for a real profile, TikTok's library reveals the iframe on that
+ * `load`, and the parent page cannot read the iframe's status or text. So
+ * `load` is NOT a success condition here. See lib/tiktok/signal.ts for what
+ * the parent page CAN observe, and why it is a heuristic.
  *
- * TikTok's documented embed is a `<blockquote class="tiktok-embed">` carrying
- * `cite` and `data-unique-id`, which their `embed.js` finds and replaces with an
- * iframe. Both attributes derive from the profile handle, and the handle comes
- * from ADMIN-EDITABLE CONTENT — so it is validated by
- * `lib/tiktok/profile.ts#tikTokHandle` on the server (2–24 characters of
- * `[A-Za-z0-9_.]`) and this component receives only that.
+ *   loading   Server-rendered. On screen: the profile link, nothing else.
+ *             Underneath, clipped to the link's own box: the official embed,
+ *             invisible, inert and out of the tab order.
+ *   live      TikTok's application posted its render signal, from OUR iframe,
+ *             naming OUR blockquote. The embed is revealed; the link goes.
+ *   fallback  Script blocked, runtime threw, silence after `load`, or the
+ *             ceiling passed. The provider is removed from the DOM; the link
+ *             stays. No retry, automatic or otherwise.
  *
- * There is NO `dangerouslySetInnerHTML` anywhere in this file, and no HTML from
- * any API is inserted into the page. An admin cannot introduce a script tag
- * through this route, because there is no route: the only thing that crosses
- * the boundary is a handle matching that character class.
+ * A crawler, a visitor without JavaScript and a visitor TikTok has
+ * rate-limited all see the same complete block: the heading and the link.
  *
- * ── THE FALLBACK IS THE INITIAL CONTENT, NOT AN ERROR STATE ─────────────────
+ * The embed is asked for once per mount, after the loader has finished and
+ * when the section is within 120px of the viewport. One observer,
+ * disconnected the moment it fires; no polling, no timer-driven retry.
  *
- * The `<section>` inside the blockquote is a silent layout placeholder until
- * TikTok's script replaces it. The public page deliberately does not flash a
- * temporary FOLLOW button before the creator embed appears; the surrounding
- * REAL BUILDS section already explains what the module is.
- *
- * ── LOADING: TWO GATES, AND BOTH ARE NECESSARY ──────────────────────────────
- *
- * `embed.js` pulls in more bytes than the rest of this page put together, so
- * it waits for both of these:
- *
- *   1. THE LOADER HAS FINISHED. Measured without this gate: the section sits
- *      within the observer's margin of the viewport on a 1440x900 screen, so
- *      the observer fired on mount and embed.js was requested WHILE the
- *      highway was still animating — competing for bandwidth and main thread
- *      with the one animation the visitor is actually looking at. An
- *      IntersectionObserver answers "is it near the viewport", which is not the
- *      same question as "is the page ready for it".
- *
- *   2. THE SECTION IS NEAR THE VIEWPORT. One IntersectionObserver, disconnected
- *      the moment it fires. No polling, no scroll listener, no hover trigger.
- *
- * It is requested AT MOST ONCE PER MOUNT. embed.js itself stays resident for
- * the page lifetime; a later client-side remount uses TikTok's existing runtime
- * instead of deleting and re-executing the provider script.
+ * The blockquote's `cite` and `data-unique-id` derive from a handle validated
+ * on the server by `lib/tiktok/profile.ts#tikTokHandle`. There is no
+ * `dangerouslySetInnerHTML` here and no HTML from any API.
  */
-
 export function TikTokEmbed({
   handle,
   profileUrl,
@@ -117,13 +135,11 @@ export function TikTokEmbed({
   waitForLoader: boolean
 }) {
   const root = useRef<HTMLDivElement>(null)
-  /**
-   * The one-way latch. A ref rather than state because nothing on screen
-   * depends on it — asking for the script is a side effect, and making it a
-   * state update would re-render the section for no visual reason.
-   */
-  const requested = useRef(false)
+  const providerRef = useRef<HTMLDivElement>(null)
+  const [phase, setPhase] = useState<Phase>('loading')
+  const [asked, setAsked] = useState(false)
 
+  // ── When to ask: after the loader, near the viewport, once ────────────────
   useEffect(() => {
     const element = root.current
     if (!element) return
@@ -131,39 +147,20 @@ export function TikTokEmbed({
     let observer: IntersectionObserver | null = null
     let cancelled = false
 
-    const request = () => {
-      if (requested.current) return
-      requested.current = true
-      initializeEmbed(element)
-    }
-
-    // GATE 1. `whenStageReady` always resolves — immediately when there is no
-    // loader, and on its own backstop if the loader never reports — so the
-    // embed can never be stranded behind a loader that failed.
     void whenStageReady(waitForLoader).then(() => {
       if (cancelled) return
-
-      // No IntersectionObserver (an old browser, a test harness): load it
-      // rather than leaving the block permanently inert. The CTA is already
-      // visible, so the embed is the only thing that could be missing.
       if (typeof IntersectionObserver !== 'function') {
-        request()
+        setAsked(true)
         return
       }
-
-      // GATE 2.
       observer = new IntersectionObserver(
         (entries) => {
           if (!entries.some((entry) => entry.isIntersecting)) return
-          // Disconnect FIRST. The latch is idempotent, but an observer left
-          // attached to a section this tall would keep firing for the rest of
-          // the page's life for no reason.
           observer?.disconnect()
-          request()
+          setAsked(true)
         },
-        // Load only when the section is actually close to view. The Creator
-        // Profile widget can request up to ten recent videos, so a large preload
-        // margin needlessly hits TikTok for visitors who never reach this part.
+        // Close to view only: the creator card pulls a page of thumbnails,
+        // and a generous margin hits TikTok for visitors who never get here.
         { rootMargin: '120px 0px' },
       )
       observer.observe(element)
@@ -175,132 +172,183 @@ export function TikTokEmbed({
     }
   }, [waitForLoader])
 
+  // ── The one attempt: ask, listen, bound the wait, fit the result ──────────
   useEffect(() => {
-    const element = root.current
-    if (!element) return
+    if (!asked) return
+    const host = root.current
+    const provider = providerRef.current
+    const blockquote = provider?.querySelector<HTMLElement>('blockquote.tiktok-embed')
+    if (!host || !provider || !blockquote) return
 
-    let mutationObserver: MutationObserver | null = null
-    let hostResizeObserver: ResizeObserver | null = null
-    let providerResizeObserver: ResizeObserver | null = null
-    let observedProvider: HTMLElement | null = null
+    let settled = false
+    let ceiling: ReturnType<typeof setTimeout> | null = null
+    let silence: ReturnType<typeof setTimeout> | null = null
     let frame = 0
-    let lastHostWidth = 0
+    let iframe: HTMLIFrameElement | null = null
+    let lastHostWidth = host.clientWidth
+    let reportedHeight = 0
+    let hostResize: ResizeObserver | null = null
 
-    const fitProviderSurface = () => {
+    const clearTimers = () => {
+      if (ceiling) clearTimeout(ceiling)
+      if (silence) clearTimeout(silence)
+      ceiling = null
+      silence = null
+    }
+
+    /**
+     * Keeps TikTok's 720px card on the module's canvas: the blockquote is held
+     * at the native width and scaled with a transform, and the wrapper's
+     * height is set to the scaled result, because a transform does not change
+     * layout. Writes only on change, so a ResizeObserver delivery cannot
+     * schedule another one.
+     */
+    const fit = () => {
       cancelAnimationFrame(frame)
       frame = requestAnimationFrame(() => {
-        const host = root.current
-        if (!host) return
-
-        const iframe = host.querySelector('iframe')
-        if (!(iframe instanceof HTMLIFrameElement)) return
-
-        const providerSurface =
-          (iframe.closest('blockquote') as HTMLElement | null) ??
-          (iframe.parentElement as HTMLElement | null)
-
-        if (!providerSurface || providerSurface === host) return
-
-        providerSurface.classList.add('k-tiktok-provider-surface')
-
+        if (!iframe || !iframe.isConnected) return
         const targetWidth = host.clientWidth
         if (targetWidth <= 0) return
 
-        const nativeWidth = Math.min(720, targetWidth)
+        const nativeWidth = Math.min(PROVIDER_NATIVE_WIDTH, targetWidth)
         const scale = targetWidth / nativeWidth
-        const nativeWidthPx = `${nativeWidth}px`
-        const scaleValue = `scale(${scale})`
+        const widthPx = `${nativeWidth}px`
+        const transform = scale === 1 ? '' : `scale(${scale})`
 
-        // Avoid rewriting the same inline styles on every observer delivery.
-        // TikTok's own iframe can resize as its profile data/videos settle, so
-        // this function may legitimately run more than once.
-        if (providerSurface.style.width !== nativeWidthPx) {
-          providerSurface.style.setProperty('width', nativeWidthPx, 'important')
-          providerSurface.style.setProperty('max-width', nativeWidthPx, 'important')
-          providerSurface.style.setProperty('min-width', nativeWidthPx, 'important')
+        blockquote.classList.add('k-tiktok-provider-surface')
+        if (blockquote.style.width !== widthPx) {
+          blockquote.style.setProperty('width', widthPx, 'important')
+          blockquote.style.setProperty('max-width', widthPx, 'important')
+          blockquote.style.setProperty('min-width', widthPx, 'important')
         }
-        providerSurface.style.setProperty('margin', '0', 'important')
-        providerSurface.style.setProperty('transform-origin', 'top left', 'important')
-        if (providerSurface.style.transform !== scaleValue) {
-          providerSurface.style.setProperty('transform', scaleValue, 'important')
+        if (blockquote.style.transform !== transform) blockquote.style.transform = transform
+        if (reportedHeight > 0) {
+          const heightPx = `${Math.ceil(reportedHeight)}px`
+          if (iframe.style.height !== heightPx) iframe.style.height = heightPx
         }
 
-        iframe.style.setProperty('width', '100%', 'important')
-        iframe.style.setProperty('max-width', '100%', 'important')
-        iframe.style.setProperty('min-width', '100%', 'important')
-        iframe.style.setProperty('margin', '0', 'important')
-        iframe.loading = 'lazy'
-
-        const nativeHeight = providerSurface.offsetHeight
-        if (nativeHeight > 0) {
-          const nextHeight = `${Math.ceil(nativeHeight * scale)}px`
-          if (host.style.height !== nextHeight) host.style.height = nextHeight
-        }
-
-        // IMPORTANT: observe the provider with ONE persistent observer.
-        // The previous implementation disconnected and created a brand-new
-        // ResizeObserver on every fit. Per the ResizeObserver spec, observing a
-        // rendered non-zero element itself schedules a notification, so that
-        // pattern could self-trigger forever: fit -> observe -> callback -> fit.
-        // Keeping one observer removes that loop while still responding when
-        // TikTok genuinely changes the card's native height.
-        if (typeof ResizeObserver === 'function' && observedProvider !== providerSurface) {
-          if (!providerResizeObserver) {
-            providerResizeObserver = new ResizeObserver(() => fitProviderSurface())
-          }
-          if (observedProvider) providerResizeObserver.unobserve(observedProvider)
-          observedProvider = providerSurface
-          providerResizeObserver.observe(providerSurface)
-        }
+        const nativeHeight = blockquote.offsetHeight
+        const nextHeight = nativeHeight > 0 ? `${Math.ceil(nativeHeight * scale)}px` : ''
+        if (provider.style.height !== nextHeight) provider.style.height = nextHeight
       })
     }
 
-    mutationObserver = new MutationObserver(() => fitProviderSurface())
-    mutationObserver.observe(element, { childList: true, subtree: true })
+    const onMessage = (event: MessageEvent) => {
+      // From OUR iframe's window, naming OUR blockquote. An unrelated message,
+      // or one from a frame left over by an earlier mount, is not success.
+      if (!iframe || event.source !== iframe.contentWindow) return
+      const signal = readTikTokRenderSignal(event.origin, event.data)
+      if (!signal || !blockquote.id || signal.id !== blockquote.id) return
+      if (!settled) {
+        settled = true
+        clearTimers()
+        setPhase('live')
+      }
+      // TikTok's own listener sizes the iframe too, but its `onload` resets
+      // the height if the signal arrived first; applied here as well.
+      reportedHeight = signal.height
+      fit()
+    }
+
+    const onIframeLoad = () => {
+      // Loaded is not rendered: from here, silence means the provider error.
+      if (settled) return
+      if (silence) clearTimeout(silence)
+      silence = setTimeout(fallBack, SILENCE_AFTER_LOAD_MS)
+    }
+
+    // The library appends the iframe when it renders; watch for it so the
+    // load listener, the source check and the fit attach to the real element.
+    const mutations = new MutationObserver(() => {
+      const found = blockquote.querySelector('iframe')
+      if (!(found instanceof HTMLIFrameElement) || found === iframe) return
+      iframe?.removeEventListener('load', onIframeLoad)
+      iframe = found
+      iframe.addEventListener('load', onIframeLoad)
+      fit()
+    })
+    mutations.observe(blockquote, { childList: true, subtree: true })
 
     if (typeof ResizeObserver === 'function') {
-      hostResizeObserver = new ResizeObserver((entries) => {
-        const width = entries[0]?.contentRect.width ?? element.clientWidth
-        // Our own reserved-height write should not schedule another fit.
+      hostResize = new ResizeObserver((entries) => {
+        const width = entries[0]?.contentRect.width ?? host.clientWidth
         if (Math.abs(width - lastHostWidth) < 0.5) return
         lastHostWidth = width
-        fitProviderSurface()
+        fit()
       })
-      lastHostWidth = element.clientWidth
-      hostResizeObserver.observe(element)
+      hostResize.observe(host)
     }
 
-    fitProviderSurface()
+    const teardown = () => {
+      clearTimers()
+      cancelAnimationFrame(frame)
+      window.removeEventListener('message', onMessage)
+      iframe?.removeEventListener('load', onIframeLoad)
+      mutations.disconnect()
+      hostResize?.disconnect()
+    }
+
+    function fallBack() {
+      if (settled) return
+      settled = true
+      teardown()
+      setPhase('fallback')
+    }
+
+    window.addEventListener('message', onMessage)
+    ceiling = setTimeout(fallBack, RENDER_TIMEOUT_MS)
+
+    void askProviderToRender(blockquote).then((ok) => {
+      if (!ok) fallBack()
+    })
 
     return () => {
-      cancelAnimationFrame(frame)
-      mutationObserver?.disconnect()
-      hostResizeObserver?.disconnect()
-      providerResizeObserver?.disconnect()
+      settled = true
+      teardown()
     }
-  }, [])
+  }, [asked])
+
+  const live = phase === 'live'
 
   return (
-    <div className="k-tiktok" ref={root}>
-      {/*
-        The documented TikTok creator embed. `data-embed-type="creator"` is what
-        selects the profile block rather than a single video.
+    <div className="k-tiktok" data-state={phase} ref={root}>
+      {!live && (
+        <a className="k-tiktok-link" href={profileUrl} target="_blank" rel="noopener noreferrer">
+          <span className="k-tiktok-link-label">{PROFILE_LINK_LABEL}</span>
+          <span className="k-tiktok-link-arrow" aria-hidden="true">
+            ↗
+          </span>
+        </a>
+      )}
 
-        `suppressHydrationWarning` is on the blockquote because TikTok's script
-        mutates this subtree — it is the one place in this codebase where the
-        DOM is expected to diverge from React's idea of it, and saying so here
-        is better than a console warning nobody can act on.
+      {/*
+        The provider. Clipped to the link's box, invisible and inert until
+        TikTok has proven it rendered; in flow once live; removed from the DOM
+        on fallback, so nothing of it — not its size, not its focusable frame —
+        survives a failure.
+
+        `suppressHydrationWarning` on the blockquote: TikTok's script mutates
+        this subtree, the one place the DOM is expected to diverge from React.
       */}
-      <blockquote
-        className="tiktok-embed"
-        cite={profileUrl}
-        data-unique-id={handle}
-        data-embed-type="creator"
-        data-embed-from="oembed"
-        suppressHydrationWarning
-      >
-        <section className="k-tiktok-placeholder" aria-hidden="true" />
-      </blockquote>
+      {phase !== 'fallback' && (
+        <div
+          className="k-tiktok-provider"
+          ref={providerRef}
+          aria-hidden={!live || undefined}
+          inert={!live || undefined}
+        >
+          <blockquote
+            className="tiktok-embed"
+            cite={profileUrl}
+            data-unique-id={handle}
+            data-embed-type="creator"
+            data-embed-from="oembed"
+            suppressHydrationWarning
+          >
+            <section aria-hidden="true" />
+          </blockquote>
+        </div>
+      )}
     </div>
   )
 }

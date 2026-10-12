@@ -581,13 +581,12 @@ function SectionPanel({
             wide
             hint="e.g. https://www.tiktok.com/@the_kanjo. Validated before it is stored — the handle is interpolated into the official embed, so an invalid one is refused here."
           />
-          <Field label="CTA label" name="ctaLabel" defaultValue={section.config.ctaLabel} />
           <Select
             label="With no profile configured"
             name="fallback"
             options={['cta', 'hide'] as const}
             defaultValue={section.config.fallback}
-            hint="TikTok being blocked or slow is handled inside the embed — it shows the CTA as its own initial content."
+            hint="Only for an unreadable profile URL. TikTok being blocked, slow or rate-limited is handled by the block itself: it shows Open @TheKanjo on TikTok ↗ and never the provider's error."
           />
         </>
       )}
