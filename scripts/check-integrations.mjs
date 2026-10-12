@@ -101,8 +101,11 @@ async function moduleReport(page) {
     if (!block) return null
     const provider = block.querySelector('.k-tiktok-provider')
     const iframe = block.querySelector('iframe')
+    const surface = block.querySelector('blockquote.tiktok-embed')
     const link = block.querySelector('a.k-tiktok-link')
     const rect = block.getBoundingClientRect()
+    const surfaceBox = surface?.getBoundingClientRect()
+    const iframeBox = iframe?.getBoundingClientRect()
     const visible = (node) => {
       if (!node) return false
       let el = node
@@ -136,6 +139,19 @@ async function moduleReport(page) {
       width: Math.round(rect.width),
       height: Math.round(rect.height),
       providerPresent: Boolean(provider),
+      surface: surfaceBox ? {
+        nativeWidth: surface.offsetWidth,
+        renderedWidth: surfaceBox.width,
+        centreOffset: Math.abs(
+          (surfaceBox.left + surfaceBox.right) / 2 - (rect.left + rect.right) / 2,
+        ),
+        withinColumn: surfaceBox.left >= rect.left - 2 && surfaceBox.right <= rect.right + 2,
+      } : null,
+      iframeGeometry: iframeBox ? {
+        renderedWidth: iframeBox.width,
+        centreOffset: Math.abs((iframeBox.left + iframeBox.right) / 2 - (rect.left + rect.right) / 2),
+        withinColumn: iframeBox.left >= rect.left - 2 && iframeBox.right <= rect.right + 2,
+      } : null,
       iframes: block.querySelectorAll('iframe').length,
       iframeVisible: visible(iframe),
       iframeFocusable: focusable(iframe),
@@ -507,7 +523,7 @@ for (const failure of FAILURES) {
 }
 
 // ── 4. The provider's success, simulated ─────────────────────────────────────
-for (const width of [1440, 390]) {
+for (const width of [1920, 1440, 768, 390, 360]) {
   const phone = width < 768
   const context = await browser.newContext({
     viewport: { width, height: phone ? 844 : 900 },
@@ -536,6 +552,31 @@ for (const width of [1440, 390]) {
     }),
   )
   check(`${label}: the module took the reported height`, (report?.height ?? 0) >= 300, `${report?.height}px`)
+  // Regression: a successful TikTok iframe must stay at its native 720px
+  // layout width, centred like the section heading. Desktop never upscales;
+  // mobile scales the original card DOWN without shifting it horizontally.
+  check(
+    `${label}: native creator-card layout width is always 720px`,
+    Math.abs((report?.surface?.nativeWidth ?? 0) - 720) <= 2,
+    `${report?.surface?.nativeWidth}px`,
+  )
+  check(
+    `${label}: visible card is centred and fully within the section`,
+    (report?.surface?.centreOffset ?? 9999) <= 2 && report?.surface?.withinColumn === true,
+    JSON.stringify(report?.surface),
+  )
+  check(
+    `${label}: desktop never enlarges the profile and mobile scales it down`,
+    Math.abs((report?.surface?.renderedWidth ?? 0) - Math.min(720, report?.width ?? 0)) <= 2,
+    `visible=${Math.round(report?.surface?.renderedWidth ?? 0)}px section=${report?.width}px`,
+  )
+  check(
+    `${label}: iframe itself is centred, not clipped or wider than the visible card`,
+    (report?.iframeGeometry?.centreOffset ?? 9999) <= 2 &&
+      report?.iframeGeometry?.withinColumn === true &&
+      Math.abs((report?.iframeGeometry?.renderedWidth ?? 0) - (report?.surface?.renderedWidth ?? 9999)) <= 2,
+    JSON.stringify(report?.iframeGeometry),
+  )
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
   check(`${label}: no horizontal overflow`, overflow <= 1, `${overflow}px`)
   await shoot(page, `live-simulated-${width}`)
