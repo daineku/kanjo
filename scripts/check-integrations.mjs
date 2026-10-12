@@ -110,18 +110,18 @@ async function moduleSettled(page, timeout = 16000) {
  */
 async function moduleReport(page) {
   return page.evaluate(() => {
-    const module = document.querySelector('.k-tiktok')
-    if (!module) return null
-    const preview = module.querySelector('.k-tiktok-preview')
-    const provider = module.querySelector('.k-tiktok-provider')
-    const iframe = module.querySelector('iframe')
+    const block = document.querySelector('.k-tiktok')
+    if (!block) return null
+    const preview = block.querySelector('.k-tiktok-preview')
+    const provider = block.querySelector('.k-tiktok-provider')
+    const iframe = block.querySelector('iframe')
     // Live: the preview's link is hidden by design and the path moves under
     // the embed, so the report follows it there.
     const cta =
-      module.getAttribute('data-state') === 'live'
-        ? module.querySelector('.k-tiktok-direct a[href*="tiktok.com"]')
-        : module.querySelector('.k-tiktok-preview a[href*="tiktok.com"]')
-    const rect = module.getBoundingClientRect()
+      block.getAttribute('data-state') === 'live'
+        ? block.querySelector('.k-tiktok-direct a[href*="tiktok.com"]')
+        : block.querySelector('.k-tiktok-preview a[href*="tiktok.com"]')
+    const rect = block.getBoundingClientRect()
     const visible = (node) => {
       if (!node) return false
       const style = getComputedStyle(node)
@@ -139,18 +139,18 @@ async function moduleReport(page) {
     const cy = rect.top + Math.min(rect.height / 2, window.innerHeight / 2)
     const hit = document.elementFromPoint(cx, cy)
     return {
-      state: module.getAttribute('data-state'),
+      state: block.getAttribute('data-state'),
       height: Math.round(rect.height),
       previewVisible: visible(preview),
       providerVisible: visible(provider) && Boolean(iframe) && visible(iframe),
-      iframes: module.querySelectorAll('iframe').length,
+      iframes: block.querySelectorAll('iframe').length,
       hitIsPreview: Boolean(hit?.closest('.k-tiktok-preview')),
       hitIsIframe: hit?.tagName === 'IFRAME',
       cta: cta
         ? { href: cta.getAttribute('href'), visible: visible(cta), text: cta.textContent.trim() }
         : null,
-      retry: Boolean(module.querySelector('.k-tiktok-text-action')),
-      status: module.querySelector('.k-tiktok-status')?.textContent.trim() ?? null,
+      retry: Boolean(block.querySelector('.k-tiktok-text-action')),
+      status: block.querySelector('.k-tiktok-status')?.textContent.trim() ?? null,
       bodyText: document.body.innerText,
     }
   })
@@ -638,10 +638,10 @@ for (const width of [1920, 1440, 768, 430, 390, 360]) {
   await page.waitForTimeout(600)
 
   const metrics = await page.evaluate(() => {
-    const module = document.querySelector('.k-tiktok')
-    const preview = module?.querySelector('.k-tiktok-preview')
-    const cta = module?.querySelector('a[href*="tiktok.com"]')
-    const rect = module?.getBoundingClientRect()
+    const block = document.querySelector('.k-tiktok')
+    const preview = block?.querySelector('.k-tiktok-preview')
+    const cta = block?.querySelector('a[href*="tiktok.com"]')
+    const rect = block?.getBoundingClientRect()
     const box = cta?.getBoundingClientRect()
     return {
       scroll: document.documentElement.scrollWidth,
@@ -651,7 +651,7 @@ for (const width of [1920, 1440, 768, 430, 390, 360]) {
       previewHeight: Math.round(preview?.getBoundingClientRect().height ?? 0),
       ctaHeight: Math.round(box?.height ?? 0),
       ctaInside: Boolean(box && rect && box.right <= rect.right + 1 && box.left >= rect.left - 1),
-      state: module?.getAttribute('data-state'),
+      state: block?.getAttribute('data-state'),
     }
   })
   check(
