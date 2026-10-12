@@ -2282,18 +2282,22 @@ html:not([data-loader='pending']) .k-social-cluster li {
 .k-tiktok[data-state='live'] .k-tiktok-provider {
   position: relative;
   inset: auto;
+  /* The native creator card is 720px wide. Centre that card in the section;
+     never stretch it to the much wider desktop shell. On phones the wrapper
+     fills the available width and the 720px child is scaled down in JS. */
+  width: min(100%, 720px);
+  margin-inline: auto;
   opacity: 1;
   pointer-events: auto;
   transition: opacity 420ms var(--k-ease-out);
 }
 
-/* TikTok's own stylesheet arrives at runtime, later in the cascade, with an
-   18px auto margin on the blockquote; the !important is what holds the card on
-   the module's canvas against it. Width and transform are written inline by
-   the component — see `fit` in TikTokEmbed.tsx. */
+/* Keep the 720px source surface at its physical native width before any
+   transform. Its parent is itself centred; the blockquote must start at its
+   LEFT edge rather than taking an extra auto-margin prior to scaling. On
+   narrow screens the transform scales that fixed surface to fit the parent. */
 .k-tiktok .tiktok-embed {
-  margin: 0 auto !important;
-  max-width: 100% !important;
+  margin: 0 !important;
   background: transparent !important;
 }
 
