@@ -33,6 +33,7 @@ import process from 'node:process'
 
 import { parseDocument, slugFromFilename, toArticle } from '../lib/content/local/parse.ts'
 import { isLocalAsset } from '../lib/media.ts'
+import { MOBILE_HERO_VIDEO } from '../lib/media/mobileHeroVideo.ts'
 
 const ROOT = process.cwd()
 const PUBLIC_DIR = path.join(ROOT, 'public')
@@ -150,6 +151,14 @@ for (const section of sectionsRaw) {
     note(where, `videoSources[${i}]`, src, usesVideo)
   }
 }
+
+// The phone hero's footage is declared in code rather than content (see
+// lib/media/mobileHeroVideo.ts for why), so it is checked here by the same
+// rule: every path it names must be a file in public/.
+for (const [i, src] of MOBILE_HERO_VIDEO.sources.entries()) {
+  note('lib/media/mobileHeroVideo.ts', `sources[${i}]`, src, true)
+}
+note('lib/media/mobileHeroVideo.ts', 'poster.src', MOBILE_HERO_VIDEO.poster.src, true)
 
 // Articles: covers, social images, and every image inside a body. Parsed with
 // the site's own parser, so a cover that the site would reject is rejected here

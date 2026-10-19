@@ -101,6 +101,32 @@ then.
 
 ---
 
+## Phone hero footage
+
+Below 768px the hero is the real Civic on the night highway, and the UI group
+flows below it as the introduction. This footage is **not content**: it is
+declared in `lib/media/mobileHeroVideo.ts` and shipped in `public/media/hero/`
+(`mobile-loop.mp4`, `mobile-poster.webp`). The header of that file records the
+source's characteristics and the exact ffmpeg commands that produced both files.
+
+| | What ships |
+|---|---|
+| Frame | 720 × 1260, the source's own — no scaling, no crop |
+| Encode | H.264 High, CRF 23, preset slow, 30 fps, no audio, faststart; 3.15 MB for 16.8 s |
+| Loop | The last 0.5 s dissolves into the first 0.5 s; duration unchanged |
+| Poster | Frame 0, WebP q85 (21 KB), served through the optimizer |
+
+**What the site does with it:** the still is one `<picture>` (components/kanjo/
+HeroStill.tsx) — desktop frame or phone poster, only the matching one requested,
+each with its own media-conditioned preload. The loop (components/kanjo/
+HeroVideo.tsx) mounts only below the breakpoint and only without
+`prefers-reduced-motion`, is transparent until its first frame is playing,
+pauses when the hero leaves the viewport, and removes itself if autoplay is
+refused — the poster is the hero in every one of those cases. A content
+`mobileImage` on the hero takes precedence over the footage.
+
+---
+
 ## Hero video
 
 `kind: "video"`, `videoSources`, `poster`.

@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import type { CSSProperties } from 'react'
 
+import { HeroStill } from '@/components/kanjo/HeroStill'
 import { HeroVideo } from '@/components/kanjo/HeroVideo'
 import { WedgeCard } from '@/components/kanjo/WedgeCard'
 import { HeroMotion } from '@/components/motion/HeroMotion'
@@ -9,6 +10,7 @@ import { LogoReveal } from '@/components/motion/LogoReveal'
 import { TitleReveal } from '@/components/motion/TitleReveal'
 import { isPlaceholder } from '@/lib/content/placeholder'
 import type { HeroConfig, LinkBlock, LoaderConfig, SiteSettings } from '@/lib/content/types'
+import { MOBILE_HERO_MEDIA_QUERY, MOBILE_HERO_VIDEO } from '@/lib/media/mobileHeroVideo'
 
 /**
  * The hero: media, treatment, UI. The canon's own composition.
@@ -36,6 +38,23 @@ import type { HeroConfig, LinkBlock, LoaderConfig, SiteSettings } from '@/lib/co
  * see HeroVideo, which explains why that needs a matchMedia gate rather than a
  * CSS media query. The poster is a server-rendered layer of its own, so the
  * reduced-motion hero is complete and issues no video request.
+ *
+ * ── THE PHONE HERO IS THE FOOTAGE, THEN THE INTRODUCTION ────────────────────
+ *
+ * Below 768px the composition changes without the markup changing. The media
+ * layer becomes the whole first screen — the real Civic, shot on the highway at
+ * night (lib/media/mobileHeroVideo.ts), with nothing over it but the channel
+ * rail — and the UI group that overlays the lower third on desktop flows BELOW
+ * it instead, on the site's black, as the introduction: the subtitle set as
+ * the headline, then the description. One section, one set of copy, no
+ * duplicated text for a crawler to weigh twice; the stylesheet decides where
+ * it sits (app/production-tuning.css, "Phone hero"). The H1 stays in the
+ * document throughout — it is the page's name — and only the logo leaves the
+ * phone's first screen.
+ *
+ * The loop applies whenever the hero has a desktop still and no content-
+ * configured `mobileImage`: a phone still set in the content is the owner's
+ * explicit framing choice and keeps precedence over the shipped footage.
  */
 
 export function HeroSection({
@@ -96,8 +115,19 @@ export function HeroSection({
     (background.kind === 'image' && Boolean(background.image)) ||
     (background.kind === 'video' && videoSources.length > 0)
 
+  // The phone footage. See the header comment and lib/media/mobileHeroVideo.ts.
+  const mobileVideo =
+    background.kind === 'image' && background.image && !background.mobileImage
+      ? MOBILE_HERO_VIDEO
+      : undefined
+
   return (
-    <section className="k-hero" data-media={hasMedia} aria-labelledby="hero-title">
+    <section
+      className="k-hero"
+      data-media={hasMedia}
+      data-mobile-video={mobileVideo ? 'true' : undefined}
+      aria-labelledby="hero-title"
+    >
       {/* ── Layer 0: world media ─────────────────────────────────────────── */}
       <div
         className="k-hero-media"
@@ -106,12 +136,16 @@ export function HeroSection({
         // breakpoint. `object-position` is the whole of the crop control: the
         // hero is the one surface that crops media to an arbitrary box, and a
         // capture with the car framed low needs 'center 70%' rather than a
-        // centre crop that cuts it off.
+        // centre crop that cuts it off. With the phone footage in place the
+        // phone value frames THAT, not the desktop still.
         style={
           {
             '--k-hero-object-position': background.objectPosition ?? 'center',
             '--k-hero-object-position-mobile':
-              background.mobileObjectPosition ?? background.objectPosition ?? 'center',
+              mobileVideo?.objectPosition ??
+              background.mobileObjectPosition ??
+              background.objectPosition ??
+              'center',
           } as CSSProperties
         }
       >
@@ -120,27 +154,49 @@ export function HeroSection({
           // itself is still a server-rendered, priority next/image — the
           // island adds motion around it and nothing to how it loads.
           <HeroMotion waitForLoader={loader.enabled}>
-            <Image
-              className={background.mobileImage ? 'k-hero-img k-hero-img--desktop' : 'k-hero-img'}
-              src={background.image.src}
-              alt=""
-              fill
-              priority
-              sizes="100vw"
-              // The source is 6336px wide. Asking the optimizer for a good
-              // quality at the largest device width keeps the tail lights
-              // clean; below that the default is fine.
-              quality={82}
-            />
-            {background.mobileImage && (
-              <Image
-                className="k-hero-img k-hero-img--mobile"
-                src={background.mobileImage.src}
-                alt=""
-                fill
-                priority
-                sizes="100vw"
-              />
+            {mobileVideo ? (
+              <>
+                {/* One <picture>: the desktop still, or the footage's own
+                    first frame below the breakpoint. Only the chosen one is
+                    requested — see HeroStill. */}
+                <HeroStill desktop={background.image} mobile={mobileVideo.poster} quality={82} />
+                {/* Mounted only below the breakpoint and only when motion is
+                    welcome; transparent until it is actually playing, so the
+                    poster above is the first paint and the fallback. */}
+                <HeroVideo
+                  sources={mobileVideo.sources}
+                  poster={mobileVideo.poster.src}
+                  media={MOBILE_HERO_MEDIA_QUERY}
+                  waitForLoader={loader.enabled}
+                />
+              </>
+            ) : (
+              <>
+                <Image
+                  className={
+                    background.mobileImage ? 'k-hero-img k-hero-img--desktop' : 'k-hero-img'
+                  }
+                  src={background.image.src}
+                  alt=""
+                  fill
+                  priority
+                  sizes="100vw"
+                  // The source is 6336px wide. Asking the optimizer for a good
+                  // quality at the largest device width keeps the tail lights
+                  // clean; below that the default is fine.
+                  quality={82}
+                />
+                {background.mobileImage && (
+                  <Image
+                    className="k-hero-img k-hero-img--mobile"
+                    src={background.mobileImage.src}
+                    alt=""
+                    fill
+                    priority
+                    sizes="100vw"
+                  />
+                )}
+              </>
             )}
           </HeroMotion>
         )}
@@ -238,7 +294,10 @@ export function HeroSection({
 
             {subtitle && (
               <p
-                className="k-nav-title k-reveal"
+                // `k-hero-subtitle` carries no desktop styling. It is the hook
+                // the phone layout uses to set this line as the headline of
+                // the introduction below the footage.
+                className="k-nav-title k-hero-subtitle k-reveal"
                 style={{
                   marginTop: 'var(--k-space-md)',
                   color: 'var(--k-text-secondary)',
@@ -251,7 +310,7 @@ export function HeroSection({
 
             {description && (
               <p
-                className="k-body k-reveal"
+                className="k-body k-hero-description k-reveal"
                 style={{
                   marginTop: 'var(--k-space-lg)',
                   marginBottom: 0,

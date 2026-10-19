@@ -17,3 +17,7 @@ next-env.d.ts
 # repository named like the seed is a file somebody will eventually paste into
 # a SQL editor by mistake, and this one replaces the live site content.
 supabase/seed/*.reset.sql
+
+# The original phone footage the mobile hero loop is encoded from. It is a
+# 7 MB source file, not a web asset; the encoded loop lives in public/media/hero.
+/VIDEOS

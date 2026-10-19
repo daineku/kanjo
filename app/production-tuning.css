@@ -1190,3 +1190,116 @@
     height: min(28.38vw, 165px);
   }
 }
+
+
+/* ============================================================================
+   PHONE HERO — the footage, then the introduction
+   ----------------------------------------------------------------------------
+   Below 768px the hero is two screens made from the one section the server
+   already renders (components/sections/HeroSection.tsx):
+
+     1. The media layer becomes the whole first screen: the real Civic on the
+        night highway, with nothing over it but the channel rail. No logo, no
+        title, no copy, no treatment gradient, no scroll cue.
+     2. The UI group, which overlays the lower third on desktop, flows BELOW
+        the footage on the site's black as the introduction — the subtitle set
+        as the headline, then the description.
+
+   Everything here is keyed on `data-mobile-video`, which the hero sets only
+   when it has footage to show, and lives inside the phone media query. A
+   desktop viewport never matches a rule in this block.
+   ========================================================================== */
+
+@media (max-width: 767px) {
+  .k-hero[data-mobile-video='true'] {
+    display: block;
+    min-height: 0;
+    padding: 0;
+  }
+
+  /* Exactly one SMALL viewport height: the height with the browser's chrome
+     shown. Collapsing the address bar on scroll then never resizes the stage,
+     so there is no jump. Plain vh stands in where svh is not understood. */
+  .k-hero[data-mobile-video='true'] .k-hero-media {
+    position: relative;
+    inset: auto;
+    height: 100vh;
+    height: 100svh;
+    background: var(--k-background);
+  }
+
+  /* No gradient over the footage. The rail carries its own ground. */
+  .k-hero[data-mobile-video='true'] .k-hero-treatment {
+    display: none;
+  }
+
+  /* The introduction. The rail no longer sits over this group, so its top
+     padding is a rhythm value rather than a clearance. */
+  .k-hero[data-mobile-video='true'] .k-hero-ui {
+    background: var(--k-background);
+    padding-top: clamp(56px, 15vw, 76px);
+    padding-bottom: clamp(56px, 15vw, 76px);
+  }
+
+  .k-hero[data-mobile-video='true'] .k-hero-ui .k-shell > div {
+    padding-top: 0;
+  }
+
+  /* The H1 stays in the document — it is the page's name for a crawler and a
+     screen reader, and the section is labelled by it. It is the LOGO that
+     leaves the phone's first screen, so the heading is clipped, not removed. */
+  .k-hero[data-mobile-video='true'] .k-hero-identity {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* The status line, when one is configured, joins the introduction instead
+     of floating over the footage. */
+  .k-hero[data-mobile-video='true'] .k-hero-status {
+    position: static;
+    transform: none;
+    margin: 0 auto clamp(18px, 5vw, 24px);
+  }
+
+  /* The headline: the section-title scale the rest of the page uses. The
+     inline margin and colour the desktop composition sets are overridden
+     here, hence the !important. */
+  .k-hero[data-mobile-video='true'] .k-hero-subtitle {
+    margin-top: 0 !important;
+    color: var(--k-text-primary) !important;
+    font-size: clamp(32px, 9.4vw, 44px);
+    letter-spacing: 0.01em;
+    line-height: 0.98;
+  }
+
+  /* The description. The copy's own blank lines become paragraph breaks —
+     `pre-line` honours the newlines the content carries without touching the
+     markup the desktop composition renders as one block. */
+  .k-hero[data-mobile-video='true'] .k-hero-description {
+    margin-top: clamp(24px, 6.5vw, 32px) !important;
+    max-width: 34ch !important;
+    white-space: pre-line;
+    color: var(--k-text-secondary);
+  }
+}
+
+/* The game title's reveal (components/motion/GameTitleReveal.tsx) holds its
+   words in a 3D start state until the heading scrolls into view, and a word
+   rotated 36 degrees reaches 2-3px past the right edge of a 360px viewport —
+   measured at 362.7px. With the footage hero that heading now starts BELOW the
+   first screen, so the start state is held while the page loads and the
+   document is 364px wide on a 360px phone: a horizontal pan nobody asked for.
+   Clip the main column's x-overflow on phones. `clip`, not `hidden`, so #main
+   does not become a scroll container and nothing about vertical scrolling or
+   sticky positioning changes. */
+@media (max-width: 767px) {
+  #main {
+    overflow-x: clip;
+  }
+}

@@ -1359,12 +1359,31 @@ svg {
   }
 }
 
+/* The art-directed still (components/kanjo/HeroStill.tsx) wraps its <img> in a
+   <picture>. The picture must not be a box of its own: the image inside is
+   `fill` and positions against the hero's crop, exactly as a bare <img> did. */
+.k-hero-picture {
+  display: contents;
+}
+
 /* The loop sits in its own layer over the poster, in the same box, so swapping
    between them cannot shift layout. */
 .k-hero-video-layer {
   position: absolute;
   inset: 0;
   display: block;
+}
+
+/* Transparent until the first frame is actually playing, so the poster beneath
+   is all the visitor sees while the file arrives — never a black rectangle, and
+   no flash at the swap. HeroVideo sets `data-ready` on the `playing` event. */
+.k-hero-video {
+  opacity: 0;
+  transition: opacity 280ms var(--k-ease-out);
+}
+
+.k-hero-video[data-ready='true'] {
+  opacity: 1;
 }
 
 /* REDUCED MOTION is handled in components/kanjo/HeroVideo.tsx, not here.
