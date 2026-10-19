@@ -14,7 +14,7 @@
   ],
   "title": "THE KANJO",
   "subtitle": "PLACEHOLDER — one-line positioning, to be written by the owner",
-  "primaryDomain": "https://thekanjo.com",
+  "primaryDomain": "https://www.thekanjo.com",
   "chrome": {
     "_comment": [
       "The homepage is a title screen: no bar across the top of it. The header",
@@ -26,9 +26,9 @@
     "socialCluster": true
   },
   "seo": {
-    "title": "THE KANJO",
+    "title": "THE KANJO — Osaka Highway Driving Simulator",
     "titleTemplate": "%s — THE KANJO",
-    "description": "The Kanjo is a night highway racing game set on an elevated expressway loop, drawing on Japanese highway racing culture and the atmosphere of late 1990s and early 2000s Japan.",
+    "description": "THE KANJO connects a real Honda Civic build with an independent driving simulator inspired by Osaka’s Kanjo Loop and Japanese underground car culture.",
     "game": {
       "name": "The Kanjo",
       "genre": [
