@@ -18,10 +18,8 @@ either repository is used here; the visual identity is The Kanjo's own UI Canon.
 ```
 lib/motion/gsap.ts      registration + defaults, once, guarded for SSR
 lib/motion/policy.ts    the responsive motion policy, read synchronously
-lib/motion/stage.ts     the loader → hero handshake
 
-components/loader/KanjoLoader.tsx   the night-highway loader
-components/motion/TitleReveal.tsx   THE KANJO arriving
+components/motion/HeroMotion.tsx    the desktop hero parallax
 components/motion/Reveal.tsx        the one scroll reveal
 components/motion/ClipReveal.tsx    the media-frame clip reveal
 ```
@@ -141,22 +139,22 @@ Cost: GSAP + ScrollTrigger add **~47 kB** to the homepage's First Load JS
 
 ---
 
-## The loader
+## No loader, no entrance
 
-See `components/loader/KanjoLoader.tsx`. The choreography, the readiness
-contract and the escape path are documented in the file. Two points worth
-repeating here:
+The night-highway loader, its `data-loader` scroll lock, the `inert` root and
+the `whenStageReady()` handshake were removed in October 2026. The
+server-rendered page is the first screen: the hero image (desktop still or
+phone poster) and the channel rail are in the first paint, and nothing on the
+hero is hidden by JavaScript and revealed later — the logo, title, media mask
+and rail entrances went with the loader, because without an overlay to cover
+them they would have flashed the hero out and back in at hydration.
 
-**It represents app readiness, not page assets.** Hydration plus
-`document.fonts.ready`, raced against `maximumDisplayMs`. It does not wait for
-the hero video, and it cannot be held open by a slow image.
+What still moves: the desktop hero parallax, the scroll reveals below the fold,
+and the phone hero's footage, which is requested only after `load` and shown
+only once a frame is on screen (components/kanjo/HeroVideo.tsx).
 
-**The title belongs to the hero, not to the loader.** A title inside the loader
-followed by the hero's own title would make the visitor watch the same word
-arrive twice. The loader calls `markStageReady()` as it begins to dissolve, and
-the hero's `TitleReveal` is listening — so THE KANJO rises through the last of
-the fade. `whenStageReady()` **always** resolves, on a 12-second backstop if the
-loader never reports, so a crashed loader cannot leave the page mid-animation.
+The loader's settings remain in the content model and the admin so that stored
+content keeps validating; the public site does not read them.
 
 ---
 
@@ -171,9 +169,9 @@ cd /tmp && npm init -y && npm i playwright && npx playwright install chromium --
 BASE=http://localhost:3000 node <path-to>/scripts/check-motion.mjs
 ```
 
-It checks, at every width in the test matrix: that the loader is present at
-first paint, that both cars move **independently** and actually trade position,
-that the loader disposes and unlocks, that **nothing is left invisible** after
-scrolling, that there is no horizontal overflow and no console error — then
-reduced motion, the maximum-display escape path with readiness blocked,
-client-side navigation round trips, and request duplication.
+It checks, at every width in the test matrix: that there is no loader, no
+scroll lock and no inert root, and that the hero image is in the first paint;
+that **nothing is left invisible** after scrolling, that there is no horizontal
+overflow and no console error — then reduced motion, a page whose fonts hang so
+`load` never fires, client-side navigation round trips, and request duplication
+(including that no retired loader asset is fetched).

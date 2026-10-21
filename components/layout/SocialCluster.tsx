@@ -31,9 +31,7 @@ import type { SocialLink } from '@/lib/content/types'
  *
  * ── MOTION ──────────────────────────────────────────────────────────────────
  *
- * The entrance stagger is pure CSS, keyed on `html[data-loader]` — so it costs
- * no JavaScript, no hydration and no GSAP instance, and it simply does not run
- * for a visitor who asked for reduced motion. Nothing here animates after that:
+ * None. The rail is server-rendered and part of the first paint: no entrance,
  * no bounce, no pulse, no permanent motion in the corner of the eye.
  */
 
@@ -65,14 +63,11 @@ export function SocialCluster({ links }: { links: SocialLink[] }) {
       data-hero-visible={heroVisible ? 'true' : 'false'}
     >
       <ul>
-        {live.map((link, index) => {
+        {live.map((link) => {
           const newTab = link.openInNewTab ?? true
           return (
             <li
               key={link.id}
-              // Drives the CSS stagger. A custom property rather than an inline
-              // animation-delay so the whole timing curve stays in one place.
-              style={{ ['--k-social-index' as string]: index }}
             >
               <a
                 className="k-social-link"

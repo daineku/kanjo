@@ -7,9 +7,9 @@ interpretation: every colour, type size, spacing value and transition duration
 is transcribed from the game's UI canon and cited to its source file. See
 [docs/DESIGN.md](docs/DESIGN.md).
 
-**The homepage is a title screen, not a landing page.** A loader of two cars —
-the EG6 and the EK9 — trading position on a night highway, the supplied logo
-over the approved hero frame, one paragraph about the project, recent TikTok
+**The homepage is a title screen, not a landing page.** No loader: the
+supplied logo over the approved hero frame (on a phone, the real Civic on the
+night highway), one paragraph about the project, recent TikTok
 clips, the Patreon development log, and a persistent channel rail at the
 upper-left edge. The theme is near-black, graphite, white and **red**. That is the whole of it, deliberately — see [docs/MOTION.md](docs/MOTION.md)
 for the motion architecture and `content/sections.json` for the composition.
@@ -49,7 +49,7 @@ Three browser scripts are deliberately **not** in `npm run check`, because
 Playwright is not a dependency of this project — see the header of each for how
 to run them:
 
-- `scripts/check-motion.mjs` — the loader, the reveals, reduced motion, the escape path
+- `scripts/check-motion.mjs` — no loader, the reveals, reduced motion, a hung `load`
 - `scripts/check-integrations.mjs` — YouTube, TikTok and Patreon states, including every TikTok failure (blocked, 403, 429, 503 `overload-protect`, timeout, error body) and a simulated success
 - `scripts/check-rendering.mjs` — overflow, keyboard, console errors
 

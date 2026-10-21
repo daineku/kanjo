@@ -559,7 +559,12 @@
 }
 
 /* CTA buttons use the supplied section-badge artwork as their plate. No generic
-   rule, pill or bordered rectangle competes with the brand shape. */
+   rule, pill or bordered rectangle competes with the brand shape.
+
+   The plate is a 760px WebP derivative of the 2042px master (552 KB -> 11 KB):
+   the button is at most 228 CSS px wide, so 760px covers a 3x screen. A CSS
+   background is fetched as soon as its element is laid out, below the fold or
+   not, so the full master was competing with the hero on every first load. */
 .k-link-action {
   position: relative;
   display: inline-grid;
@@ -572,7 +577,7 @@
   text-align: center;
   text-decoration: none;
   background:
-    url('/media/brand/section-badge.png') center / 100% 100% no-repeat;
+    url('/media/brand/section-badge-plate.webp') center / 100% 100% no-repeat;
   transition:
     transform 150ms var(--k-ease-out),
     filter 150ms var(--k-ease-out);
@@ -766,43 +771,6 @@
   justify-content: center;
 }
 
-/* Loader: no road plate/band. Two cars run close to one another against a
-   clean black field; moving light streaks and the tighter overtake create speed. */
-.k-loader {
-  background: #000003;
-  --k-car-a-w: clamp(180px, 17vw, 292px);
-  --k-car-b-w: clamp(154px, 14.5vw, 248px);
-}
-
-.k-loader-stage {
-  background:
-    radial-gradient(circle at 50% 52%, rgb(232 74 74 / 0.08), transparent 32vw),
-    #000003;
-}
-
-.k-loader-car--a {
-  top: calc(50% + clamp(28px, 3.5vw, 58px));
-}
-
-.k-loader-car--b {
-  top: calc(50% - clamp(28px, 3.5vw, 58px));
-  opacity: 0.94;
-}
-
-.k-loader-accent {
-  width: clamp(180px, 30vw, 480px);
-  height: 2px;
-  filter: blur(0.2px);
-}
-
-.k-loader-accent--1 {
-  top: calc(50% - clamp(72px, 8vw, 124px));
-}
-
-.k-loader-accent--2 {
-  top: calc(50% + clamp(72px, 8vw, 124px));
-}
-
 @media (max-width: 1024px) {
   .k-post-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -844,27 +812,6 @@
 
   .k-footer-divider img {
     width: min(520px, 92vw);
-  }
-
-  .k-loader {
-    --k-car-a-w: clamp(172px, 49vw, 232px);
-    --k-car-b-w: clamp(146px, 41vw, 202px);
-  }
-
-  .k-loader-car--a {
-    top: calc(50% + 32px);
-  }
-
-  .k-loader-car--b {
-    top: calc(50% - 32px);
-  }
-
-  .k-loader-accent--1 {
-    top: calc(50% - 92px);
-  }
-
-  .k-loader-accent--2 {
-    top: calc(50% + 92px);
   }
 }
 

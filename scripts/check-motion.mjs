@@ -1,6 +1,6 @@
 /**
- * Motion checks: the loader's sequence, the reveals, and the failure modes that
- * this kind of animation work introduces.
+ * Motion checks: no loader, the reveals, and the failure modes that this kind
+ * of animation work introduces.
  *
  * NOT wired into `npm run check`, and playwright is deliberately NOT a
  * dependency — it would add ~100MB of browser download to every install. Run it
@@ -19,9 +19,9 @@
  *     separately under `reducedMotion: 'reduce'`, which is the case most likely
  *     to regress.
  *
- *  2. THE LOADER ALWAYS LIFTS. Including when the readiness signal never
- *     arrives: the maximum-display escape path is exercised by blocking the
- *     page's own subresources so `load` cannot fire.
+ *  2. THERE IS NO LOADER. The page is usable at first paint: no overlay, no
+ *     scroll lock, no inert root, and the hero image is in the HTML — including
+ *     when fonts hang so `load` never fires.
  *
  *  3. SCROLLTRIGGER ACCUMULATION. Client-side navigation away and back must not
  *     leave the previous page's triggers behind. A page that gathers a trigger
@@ -35,7 +35,7 @@
 import { chromium } from 'playwright'
 
 const BASE = process.env.BASE ?? 'http://localhost:3517'
-const WIDTHS = [1920, 1440, 1024, 768, 430, 390, 360]
+const WIDTHS = [1920, 1440, 1024, 768, 430, 393, 375, 360]
 
 /**
  * Hosts the TikTok creator embed reaches, and the one allowed third party.
@@ -89,7 +89,6 @@ const browser = await chromium.launch()
 /** Every element the site animates, and whether any of them ended up invisible. */
 const INVISIBLE_PROBE = () => {
   const selectors = [
-    '.k-word-in',
     '.k-post-row',
     '.k-post-list',
     '.k-video-meta',
@@ -128,7 +127,7 @@ const INVISIBLE_PROBE = () => {
   return stuck
 }
 
-// ── 1. The loader's full sequence, and the page it leaves behind ─────────────
+// ── 1. No loader, and the page it renders ─────────────────────────────────────
 for (const width of WIDTHS) {
   const context = await browser.newContext({
     viewport: { width, height: width <= 430 ? 844 : 900 },
@@ -147,50 +146,18 @@ for (const width of WIDTHS) {
 
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
 
-  // The loader must be up immediately — it is server-rendered, so this is a
-  // check that it is in the HTML rather than appearing after hydration.
+  // No loader: the first screen is the page itself, usable from the HTML.
   const early = await page.evaluate(() => ({
     loader: !!document.querySelector('.k-loader'),
     locked: getComputedStyle(document.documentElement).overflow === 'hidden',
+    inert: document.getElementById('app-root')?.hasAttribute('inert') ?? false,
+    hero: !!document.querySelector('.k-hero-media img'),
   }))
-  check(`${width}: loader present at first paint`, early.loader && early.locked)
-
-  // Two cars, both moving, and moving DIFFERENTLY — a single shared timeline
-  // bug would move them identically and still look animated in a screenshot.
-  const samples = []
-  for (let i = 0; i < 6; i += 1) {
-    samples.push(
-      await page.evaluate(() => {
-        const read = (s) => {
-          const el = document.querySelector(s)
-          if (!el) return null
-          const m = new DOMMatrixReadOnly(getComputedStyle(el).transform)
-          return m.m41
-        }
-        return { a: read('.k-loader-car--a'), b: read('.k-loader-car--b') }
-      }),
-    )
-    await page.waitForTimeout(220)
-  }
-  const aMoved = new Set(samples.map((s) => Math.round(s.a ?? 0))).size > 3
-  const bMoved = new Set(samples.map((s) => Math.round(s.b ?? 0))).size > 3
-  const gaps = samples.map((s) => (s.a ?? 0) - (s.b ?? 0))
-  const tradedPlaces = Math.max(...gaps) > 0 !== Math.min(...gaps) > 0
-  check(`${width}: both cars move independently`, aMoved && bMoved)
   check(
-    `${width}: the cars trade position`,
-    tradedPlaces,
-    `lead ranged ${Math.round(Math.min(...gaps))}px to ${Math.round(Math.max(...gaps))}px`,
+    `${width}: no loader, no lock, hero in the first paint`,
+    !early.loader && !early.locked && !early.inert && early.hero,
+    JSON.stringify(early),
   )
-
-  // The loader lifts, unlocks, and removes itself from the DOM.
-  await page.waitForFunction(() => !document.querySelector('.k-loader'), null, { timeout: 15000 })
-  const after = await page.evaluate(() => ({
-    locked: getComputedStyle(document.documentElement).overflow === 'hidden',
-    inert: document.getElementById('app-root')?.hasAttribute('inert'),
-    state: document.documentElement.dataset.loader,
-  }))
-  check(`${width}: loader disposes and unlocks`, !after.locked && !after.inert && after.state === 'done')
 
   // Scroll the whole page so every ScrollTrigger fires, then look for anything
   // left invisible.
@@ -229,29 +196,6 @@ for (const width of WIDTHS) {
   })
   const page = await context.newPage()
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
-  // Sample only once the loader has hydrated and placed its cars: the page
-  // behind it is made inert in the same effect, so that attribute is the cue.
-  await page.waitForSelector('#app-root[inert]', { state: 'attached', timeout: 8000 })
-
-  // The cars must never repeat an overtake. Sample across a window longer than
-  // one cycle would be; every sample must be the same position.
-  const positions = []
-  for (let i = 0; i < 4; i += 1) {
-    positions.push(
-      await page.evaluate(() => {
-        const el = document.querySelector('.k-loader-car--a')
-        if (!el) return 'gone'
-        return new DOMMatrixReadOnly(getComputedStyle(el).transform).m41.toFixed(1)
-      }),
-    )
-    await page.waitForTimeout(150)
-  }
-  const stillOrGone = new Set(positions.filter((p) => p !== 'gone')).size <= 1
-  check('reduced: the loader does not animate', stillOrGone, positions.join(','))
-
-  await page.waitForFunction(() => !document.querySelector('.k-loader'), null, { timeout: 8000 })
-  check('reduced: the loader still lifts', true)
-
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
   await page.waitForTimeout(500)
   const stuck = await page.evaluate(INVISIBLE_PROBE)
@@ -268,31 +212,21 @@ for (const width of WIDTHS) {
   await context.close()
 }
 
-// ── 3. The maximum-display escape path ───────────────────────────────────────
+// ── 3. Usable even when `load` never fires ──────────────────────────────────
 {
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 } })
   const page = await context.newPage()
   // Hang the font requests so `document.fonts.ready` and `load` cannot settle.
-  // The loader must still lift, on its configured ceiling alone.
   await page.route('**/fonts/**', () => {
     /* never fulfilled, never aborted */
   })
-  const started = Date.now()
-  await page.goto(BASE, { waitUntil: 'commit' })
-  let lifted = false
-  try {
-    await page.waitForFunction(() => !document.querySelector('.k-loader'), null, { timeout: 20000 })
-    lifted = true
-  } catch {
-    lifted = false
-  }
-  const elapsed = Date.now() - started
-  check('escape path: the loader lifts with readiness blocked', lifted, `${elapsed}ms`)
+  await page.goto(BASE, { waitUntil: 'domcontentloaded' })
   const usable = await page.evaluate(() => ({
     locked: getComputedStyle(document.documentElement).overflow === 'hidden',
-    inert: document.getElementById('app-root')?.hasAttribute('inert'),
+    inert: document.getElementById('app-root')?.hasAttribute('inert') ?? false,
+    hero: !!document.querySelector('.k-hero-media img'),
   }))
-  check('escape path: the page is usable afterwards', !usable.locked && !usable.inert)
+  check('fonts hung: the page is usable and the hero is there', !usable.locked && !usable.inert && usable.hero)
   await context.close()
 }
 
@@ -307,8 +241,7 @@ for (const width of WIDTHS) {
 // The instance count is not observable from here — GSAP is not on `window`, and
 // putting it there to make a test easier would ship a global to every visitor.
 // So this measures the CONSEQUENCES, which is what would actually be noticed:
-// the loader must not replay, content must still reveal, scroll work must not
-// grow, and nothing may error.
+// content must still reveal, scroll work must not grow, and nothing may error.
 {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   const page = await context.newPage()
@@ -320,8 +253,7 @@ for (const width of WIDTHS) {
     errors.push(m.text().slice(0, 160))
   })
 
-  await page.goto(BASE, { waitUntil: 'domcontentloaded' })
-  await page.waitForFunction(() => !document.querySelector('.k-loader'), null, { timeout: 15000 })
+  await page.goto(BASE, { waitUntil: 'load' })
 
   /** Wall-clock cost of 30 scroll frames — it grows if triggers pile up. */
   const scrollCost = () =>
@@ -348,9 +280,6 @@ for (const width of WIDTHS) {
     await page.waitForURL(BASE + '/', { timeout: 10000 })
     await page.waitForTimeout(500)
   }
-
-  const replayed = await page.evaluate(() => !!document.querySelector('.k-loader'))
-  check('client nav: the loader does not replay', !replayed)
 
   const stuck = await page.evaluate(INVISIBLE_PROBE)
   check('client nav: content still reveals after 3 round trips', stuck.length === 0, JSON.stringify(stuck.slice(0, 3)))
@@ -379,8 +308,7 @@ for (const width of WIDTHS) {
       thirdParty.add(host)
     }
   })
-  await page.goto(BASE, { waitUntil: 'domcontentloaded' })
-  await page.waitForFunction(() => !document.querySelector('.k-loader'), null, { timeout: 15000 })
+  await page.goto(BASE, { waitUntil: 'load' })
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
   await page.waitForTimeout(2500)
 
@@ -425,14 +353,9 @@ for (const width of WIDTHS) {
     [...thirdParty].every((host) => !/google|youtube|ytimg|ggpht/i.test(host)),
     [...thirdParty].filter((h) => /google|youtube|ytimg|ggpht/i.test(h)).join(', '),
   )
-  // The cars are served through next/image (`/_next/image?url=%2Fmedia%2Floader…`),
-  // so the path is matched decoded. One request per car: the srcset resolves to
-  // a single width, and a second width for the same car would be a duplicate.
-  const carRequests = [...asked.keys()].filter((u) =>
-    decodeURIComponent(u).includes('/media/loader/'),
-  ).length
-
-  check('both loader vehicles are fetched exactly once each', carRequests === 2, `${carRequests} request(s)`)
+  // The retired loader's vehicles must not be fetched at all.
+  const loaderRequests = [...asked.keys()].filter((u) => decodeURIComponent(u).includes('/media/loader/'))
+  check('no loader asset is requested', loaderRequests.length === 0, loaderRequests.join(', '))
   await context.close()
 }
 

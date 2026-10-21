@@ -7,17 +7,6 @@
    palette and the same faces as the thing they are editing.
    ========================================================================== */
 
-/* The site's entrance is not the tool's entrance. The overlay is hidden and the
-   scroll lock released; SkipLoader releases the `inert` attribute that goes
-   with it. See app/admin/SkipLoader.tsx. */
-.k-loader {
-  display: none;
-}
-html[data-loader='pending'],
-html[data-loader='pending'] body {
-  overflow: visible;
-}
-
 /* Admin is a focused tool, not another public-site route. The route-specific
    stylesheet therefore removes the public social rail and footer chrome. */
 #app-root > .k-social-cluster,

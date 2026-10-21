@@ -20,11 +20,23 @@
    ec626514f79f831f1ab848a82114a0ce7e2d6372.
    ------------------------------------------------------------------------ */
 /* WOFF2 FIRST, TTF AS THE FALLBACK. The .woff2 files are the SAME binaries,
-   recompressed losslessly (fontTools): identical glyphs, identical metrics,
-   ~62% fewer bytes (the display family 219 kB → 82 kB; the two technical faces
-   ~45 kB → ~15 kB each). The display and technical faces are also preloaded
-   from app/layout.tsx, so the title and the labels arrive with the first paint
-   rather than one round trip after the stylesheet. */
+   recompressed (fontTools), with identical glyphs and metrics for every
+   character they contain. The display family and Iceland are also SUBSET to the
+   Latin and Latin-Extended-A ranges — everything the site's English, French,
+   Spanish, German, Italian and Portuguese copy uses — keeping the full 100–900
+   weight axis: display 219 kB → 39 kB, Iceland 48 kB → 11 kB. Rendered against
+   the full fonts at every weight the site uses, the result is pixel-identical.
+   A character outside the subset renders in the next family of the font stack
+   (the .ttf is only a format fallback for browsers without WOFF2, not a glyph
+   fallback). Both are preloaded from app/layout.tsx, so the title and the
+   labels arrive with the first paint rather than one round trip after the
+   stylesheet.
+
+   Re-subset (fontTools + brotli):
+     pyftsubset public/fonts/BigShouldersDisplay-VF.ttf --flavor=woff2 \
+       --output-file=public/fonts/BigShouldersDisplay-VF.woff2 \
+       --unicodes="U+0020-007E,U+00A0-017F,U+0192,U+0218-021B,U+02BB-02BC,U+02C6,U+02C7,U+02D8-02DD,U+2000-206F,U+2074,U+20AC,U+20BA,U+20BD,U+2113,U+2116,U+2122,U+2190-2193,U+2212,U+2215,U+FEFF,U+FFFD"
+     (and the same for Iceland-Regular) */
 @font-face {
   font-family: 'Big Shoulders Display';
   src:
@@ -1635,302 +1647,6 @@ svg {
 }
 
 /* ============================================================================
-   THE LOADER — a night highway, seen as a stylised 2D composition
-   ----------------------------------------------------------------------------
-   EVERYTHING THAT MOVES MOVES WITH transform OR opacity. There is no animated
-   width, height, top or left anywhere in this block, and no continuous filter
-   or box-shadow either: a compositor can run all of the below without waking
-   the main thread, which on a mid-range phone is the difference between an
-   entrance and a stutter.
-
-   The geometry is driven by one custom property, --k-road-h, so the desktop and
-   the phone compositions are the same drawing at two scales rather than two
-   layouts that can drift apart.
-
-   The motion itself is components/loader/KanjoLoader.tsx. This file only draws.
-   ========================================================================== */
-
-/* Scroll is locked while the loader is up. The attribute is set by the SERVER
-   (app/layout.tsx) so the lock exists at first paint, and cleared by the loader
-   when the highway masks away. app/layout.tsx carries a <noscript> override, so
-   a visitor without JavaScript is never locked behind a loader that cannot lift. */
-html[data-loader='pending'],
-html[data-loader='pending'] body {
-  overflow: hidden;
-}
-
-.k-loader {
-  position: fixed;
-  inset: 0;
-  z-index: 200;
-  background: var(--k-background);
-  overflow: hidden;
-  /* The overlay itself only ever animates opacity, and only once, at the end. */
-  will-change: opacity;
-  /* The road band's height, and the unit every other measurement here is in. */
-  --k-road-h: clamp(190px, 34vh, 340px);
-  /* The cars' rendered widths. Variables rather than literals because the lane
-     markers are placed at each car's WHEEL LINE, and that is
-     centre + half the car's height = centre + width × (ratio / 2). The ratios
-     are the trimmed images' own (car-a 556/1798, car-b 594/1835); the
-     pipeline trims each car to its opaque bounds so the bottom of the image is
-     the tyre contact. */
-  --k-car-a-w: clamp(150px, 15vw, 260px);
-  --k-car-b-w: clamp(118px, 12vw, 206px);
-  --k-car-a-ratio: 0.3092;
-  --k-car-b-ratio: 0.3237;
-}
-
-@media (max-width: 767px) {
-  .k-loader {
-    /* NOT a scaled-down desktop highway. A phone gets a proportionally TALLER
-       band, because the cars have to stay readable at a third of the width and
-       a 34vh band on a 9:19.5 screen leaves them as specks. */
-    --k-road-h: clamp(210px, 30vh, 300px);
-    /* READABILITY OVER FIDELITY on a phone: the cars take a larger share of the
-       width than the desktop proportion would give them, so the overtake is
-       still legible at 360px. */
-    --k-car-a-w: clamp(150px, 42vw, 220px);
-    --k-car-b-w: clamp(120px, 34vw, 184px);
-  }
-}
-
-.k-loader-stage {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-/* An optional painted plate, when one is configured. */
-.k-loader-plate {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0.5;
-}
-
-/* ── The road ──────────────────────────────────────────────────────────────
-   A dark band with a lit centre, so the surface reads as lit by the cars on it
-   rather than as a flat rectangle. transform-origin is centred because the exit
-   closes the band vertically onto its own horizon. */
-.k-loader-road {
-  position: relative;
-  width: 100%;
-  height: var(--k-road-h);
-  transform-origin: center center;
-  /* A faint red bloom along the horizon line — the city behind the barrier.
-     CSS, static, and one gradient: it is a tint, not a texture. */
-  box-shadow: 0 0 120px 20px var(--k-accent-tint);
-  background: linear-gradient(
-    to bottom,
-    rgb(0 0 3) 0%,
-    rgb(20 20 23) 24%,
-    rgb(26 26 30) 50%,
-    rgb(18 18 21) 76%,
-    rgb(0 0 3) 100%
-  );
-}
-
-/* The carriageway edges. The far barrier catches a little more light. */
-.k-loader-edge {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: var(--k-thin-width);
-}
-.k-loader-edge--top {
-  top: 0;
-  background: rgb(255 255 255 / 0.14);
-}
-.k-loader-edge--bottom {
-  bottom: 0;
-  background: rgb(255 255 255 / 0.09);
-}
-
-/* The separator between the two carriageways. */
-.k-loader-divider {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: var(--k-thin-width);
-  background: rgb(255 255 255 / 0.06);
-}
-
-/* ── Lane markers ──────────────────────────────────────────────────────────
-   Each lane's dashes live on a strip one dash-period WIDER than the lane. The
-   loop translates it by exactly one period, which puts an identical dash where
-   the previous one was — so the repeat is seamless at any viewport width, with
-   no dependency on the strip being a round fraction of the screen.
-
-   --k-dash IS READ BY THE JAVASCRIPT: KanjoLoader reads the computed value and
-   translates by exactly that many pixels. Change it here and the motion
-   follows; there is no second copy of the number to keep in step. */
-.k-loader-lane {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 3px;
-  overflow: hidden;
-}
-/* THE MARKERS SIT AT EACH CAR'S WHEEL LINE, not at its centre.
-
-   Measured at 1440x900 with the first version: the near lane's dashes ran at
-   y=514 and car A's centre was at y=511, so the lane line was drawn straight
-   THROUGH the car, which reads as a shape floating on a stripe rather than as a
-   car on a road. A car sits ON the surface, so the surface belongs under its
-   wheels. Each value below is the corresponding car's contact line: the lane
-   offsets in .k-loader-car--a/--b are ±0.2 of the band, and half a car's height
-   is about another 0.13. */
-.k-loader-lane--far {
-  /* car B's wheel line: its centre is 0.2 of the band above the middle, plus
-     half its rendered height, plus 2px so the dash sits under the tyre. */
-  top: calc(50% - var(--k-road-h) * 0.2 + var(--k-car-b-w) * var(--k-car-b-ratio) / 2 + 2px);
-}
-.k-loader-lane--near {
-  top: calc(50% + var(--k-road-h) * 0.2 + var(--k-car-a-w) * var(--k-car-a-ratio) / 2 + 2px);
-}
-
-.k-loader-dashes {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: calc(100% + var(--k-dash));
-  background-image: repeating-linear-gradient(
-    90deg,
-    rgb(255 255 255 / 0.55) 0 calc(var(--k-dash) * 0.4),
-    rgb(255 255 255 / 0) calc(var(--k-dash) * 0.4) var(--k-dash)
-  );
-}
-
-/* The far lane's dashes are shorter and closer together. That, plus the slower
-   scroll the timeline gives it, IS the parallax — there is no second scroll
-   system, no pointer input and no perspective transform in this loader. */
-.k-loader-dashes--far {
-  --k-dash: 96px;
-  opacity: 0.6;
-}
-.k-loader-dashes--near {
-  --k-dash: 150px;
-}
-
-@media (max-width: 767px) {
-  .k-loader-dashes--far {
-    --k-dash: 64px;
-  }
-  .k-loader-dashes--near {
-    --k-dash: 96px;
-  }
-}
-
-/* ── Speed accents ─────────────────────────────────────────────────────────
-   Two thin streaks of reflected light. White, not neon: this is a night
-   highway, and the canon's palette has exactly one accent colour, which means
-   something. They start at opacity 0 and are only animated at medium/high
-   intensity — a phone drops them entirely. */
-.k-loader-accent {
-  position: absolute;
-  left: 0;
-  height: var(--k-thin-width);
-  width: clamp(120px, 24vw, 340px);
-  opacity: 0;
-  /* Tail-light red, not white: the streak is the trace a car leaves, and the
-     one accent this theme has is red. */
-  background: linear-gradient(
-    90deg,
-    rgb(232 74 74 / 0) 0%,
-    rgb(255 111 111 / 0.55) 50%,
-    rgb(232 74 74 / 0) 100%
-  );
-}
-.k-loader-accent--1 {
-  top: calc(50% - var(--k-road-h) * 0.38);
-}
-.k-loader-accent--2 {
-  top: calc(50% + var(--k-road-h) * 0.4);
-}
-
-/* ── The cars ──────────────────────────────────────────────────────────────
-   Positioned against the STAGE, not the road, so a lane's vertical placement is
-   one calc against --k-road-h. GSAP applies xPercent/yPercent: -50 to centre
-   them on those coordinates, which leaves `x` free for the choreography. */
-.k-loader-car {
-  position: absolute;
-  left: 50%;
-  height: auto;
-  /* The transform is entirely GSAP's. Declaring one here would be overwritten
-     on the first frame and is only a source of confusion. */
-  will-change: transform;
-}
-
-.k-loader-car--a {
-  /* The near lane: lower, larger. */
-  top: calc(50% + var(--k-road-h) * 0.2);
-  width: var(--k-car-a-w);
-  z-index: 2;
-}
-
-.k-loader-car--b {
-  /* The far lane: higher, smaller — the depth cue that makes two identical road
-     positions read as two different distances. */
-  top: calc(50% - var(--k-road-h) * 0.2);
-  width: var(--k-car-b-w);
-  z-index: 1;
-  opacity: 0.9;
-}
-
-/* REDUCED MOTION. The loader still exists — it is a still frame of the same
-   highway, held briefly and faded — but nothing in it may move. The component
-   also never builds the repeating timelines in that case; this is the belt to
-   that braces, and it covers the accents, which are drawn but never animated. */
-@media (prefers-reduced-motion: reduce) {
-  .k-loader-car,
-  .k-loader-dashes,
-  .k-loader-accent {
-    animation: none;
-    transition: none;
-  }
-  .k-loader-accent {
-    opacity: 0;
-  }
-  .k-loader-car {
-    will-change: auto;
-  }
-}
-
-/* ============================================================================
-   THE TITLE REVEAL
-   ----------------------------------------------------------------------------
-   A masked vertical reveal. The mask is the ONLY thing this stylesheet
-   contributes: the words are not hidden here. Their start state is applied by
-   GSAP in a layout effect, and only when motion is welcome — so reduced motion,
-   a failed hydration and a crawler all get a finished title rather than an
-   empty box. See components/motion/TitleReveal.tsx.
-   ========================================================================== */
-
-.k-word {
-  display: inline-block;
-  overflow: hidden;
-  /* Big Shoulders' uppercase has no descenders, but the rotateX in the reveal
-     swings the glyph below its baseline for part of the tween. Without this the
-     bottom edge of the letterform is clipped mid-animation. */
-  padding-bottom: 0.08em;
-  margin-bottom: -0.08em;
-  vertical-align: bottom;
-}
-
-.k-word-in {
-  display: inline-block;
-  will-change: transform, opacity;
-}
-
-/* ============================================================================
    THE SOCIAL CLUSTER — persistent, upper-left
    ----------------------------------------------------------------------------
    The canon's menu language rather than a social widget: a divider-width spine
@@ -1961,22 +1677,8 @@ html[data-loader='pending'] body {
   pointer-events: auto;
 }
 
-/* The entrance. Pure CSS, keyed on the loader's own attribute, so it costs no
-   JavaScript and no hydration. While the loader is pending the rule does not
-   apply at all — which means the items are NOT animating behind the overlay and
-   are NOT hidden either. With no loader configured it matches from the first
-   frame, and if the loader never finishes the items are simply already there. */
-html:not([data-loader='pending']) .k-social-cluster li {
-  animation: k-social-in 300ms var(--k-ease-out) backwards;
-  animation-delay: calc(var(--k-social-index, 0) * 70ms + 90ms);
-}
-
-@keyframes k-social-in {
-  from {
-    opacity: 0;
-    transform: translateX(-10px);
-  }
-}
+/* No entrance animation: the rail is part of the first paint, usable from the
+   first frame. It used to stagger in on the loader's hand-over. */
 
 .k-social-link {
   display: inline-flex;
@@ -2060,12 +1762,6 @@ html:not([data-loader='pending']) .k-social-cluster li {
 @media (pointer: coarse) {
   .k-social-link {
     min-height: var(--k-touch-target-min);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html:not([data-loader='pending']) .k-social-cluster li {
-    animation: none;
   }
 }
 

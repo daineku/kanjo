@@ -38,7 +38,9 @@ export function HeroStill({
   /** Passed through for the desktop still only, as the hero always has. */
   quality?: number
 }) {
-  const common = { alt: '', fill: true, sizes: '100vw', priority: true } as const
+  // `priority` makes the <img> eager; `fetchPriority: 'high'` puts the hero
+  // ahead of every other image the parser finds. It is the page's LCP element.
+  const common = { alt: '', fill: true, sizes: '100vw', priority: true, fetchPriority: 'high' } as const
 
   const { props: desktopProps } = getImageProps({ ...common, src: desktop.src, quality })
   const { props: mobileProps } = getImageProps({ ...common, src: mobile.src })

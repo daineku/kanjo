@@ -198,7 +198,7 @@ export default async function AdminPage({
         title="LOADER"
         action={saveLoader}
         readOnly={readOnly}
-        note="The night highway. Both vehicles are required; the road plate is optional. Uploaded art replaces the temporary neutral silhouettes."
+        note="Retired: the public site no longer shows a loader and ignores these settings. They are kept so stored content stays valid."
       >
         <Toggle label="Enabled" name="enabled" defaultChecked={draft.loader.enabled} />
         <Toggle

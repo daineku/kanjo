@@ -2,7 +2,7 @@ import { Reveal } from '@/components/motion/Reveal'
 import { EmptyNotice, Section } from '@/components/kanjo/Section'
 import { TikTokEmbed } from '@/components/tiktok/TikTokEmbed'
 import { real } from '@/lib/content/placeholder'
-import type { LoaderConfig, TikTokConfig } from '@/lib/content/types'
+import type { TikTokConfig } from '@/lib/content/types'
 import { tikTokHandle, tikTokProfileUrl } from '@/lib/tiktok/profile'
 
 /**
@@ -23,15 +23,9 @@ import { tikTokHandle, tikTokProfileUrl } from '@/lib/tiktok/profile'
 export function TikTokSection({
   id,
   config,
-  loader,
 }: {
   id: string
   config: TikTokConfig
-  /**
-   * The embed must not fetch TikTok's script while the loader is still
-   * running. This is how it knows whether there is a loader to wait for.
-   */
-  loader: LoaderConfig
 }) {
   const header = {
     eyebrow: real(config.eyebrow),
@@ -59,7 +53,6 @@ export function TikTokSection({
         <TikTokEmbed
           handle={handle}
           profileUrl={tikTokProfileUrl(handle)}
-          waitForLoader={loader.enabled}
         />
       </Reveal>
     </Section>

@@ -41,7 +41,6 @@ export function renderSection(section: Section, content: LandingContent) {
           config={section.config}
           settings={content.settings}
           links={content.links}
-          loader={content.loader}
         />
       )
 
@@ -64,7 +63,6 @@ export function renderSection(section: Section, content: LandingContent) {
           key={section.id}
           id={section.id}
           config={section.config}
-          loader={content.loader}
         />
       )
 

@@ -6,10 +6,8 @@ import { HeroVideo } from '@/components/kanjo/HeroVideo'
 import { WedgeCard } from '@/components/kanjo/WedgeCard'
 import { HeroMotion } from '@/components/motion/HeroMotion'
 import { LocalizedInlineCopy } from '@/components/i18n/LocalizedHomeCopy'
-import { LogoReveal } from '@/components/motion/LogoReveal'
-import { TitleReveal } from '@/components/motion/TitleReveal'
 import { isPlaceholder } from '@/lib/content/placeholder'
-import type { HeroConfig, LinkBlock, LoaderConfig, SiteSettings } from '@/lib/content/types'
+import type { HeroConfig, LinkBlock, SiteSettings } from '@/lib/content/types'
 import { MOBILE_HERO_MEDIA_QUERY, MOBILE_HERO_VIDEO } from '@/lib/media/mobileHeroVideo'
 
 /**
@@ -61,17 +59,10 @@ export function HeroSection({
   config,
   settings,
   links,
-  loader,
 }: {
   config: HeroConfig
   settings: SiteSettings
   links: LinkBlock[]
-  /**
-   * The hero owns THE KANJO's arrival, and the loader only supplies the cue —
-   * see components/motion/TitleReveal.tsx for why the title is not inside the
-   * loader. This is how the hero knows whether there is a cue to wait for.
-   */
-  loader: LoaderConfig
 }) {
   const background = config.background ?? {
     kind: 'none' as const,
@@ -150,25 +141,20 @@ export function HeroSection({
         }
       >
         {background.kind === 'image' && background.image && (
-          // The settle-and-parallax island wraps the media only. The image
-          // itself is still a server-rendered, priority next/image — the
-          // island adds motion around it and nothing to how it loads.
-          <HeroMotion waitForLoader={loader.enabled}>
+          // The parallax island wraps the media only. The image itself is a
+          // server-rendered, priority image, visible in the first paint — the
+          // island adds scroll motion around it and nothing to how it loads.
+          <HeroMotion>
             {mobileVideo ? (
               <>
                 {/* One <picture>: the desktop still, or the footage's own
                     first frame below the breakpoint. Only the chosen one is
                     requested — see HeroStill. */}
                 <HeroStill desktop={background.image} mobile={mobileVideo.poster} quality={82} />
-                {/* Mounted only below the breakpoint and only when motion is
-                    welcome; transparent until it is actually playing, so the
-                    poster above is the first paint and the fallback. */}
-                <HeroVideo
-                  sources={mobileVideo.sources}
-                  poster={mobileVideo.poster.src}
-                  media={MOBILE_HERO_MEDIA_QUERY}
-                  waitForLoader={loader.enabled}
-                />
+                {/* Progressive enhancement: requested only after `load`, only
+                    below the breakpoint, and shown only once a frame is on
+                    screen. The poster above is the hero until then. */}
+                <HeroVideo sources={mobileVideo.sources} media={MOBILE_HERO_MEDIA_QUERY} />
               </>
             ) : (
               <>
@@ -234,7 +220,7 @@ export function HeroSection({
              * motion. The poster above is the server-rendered first paint, so a
              * reduced-motion visitor gets a complete hero and no video request.
              */}
-            <HeroVideo sources={videoSources} poster={background.poster?.src} />
+            <HeroVideo sources={videoSources} />
           </>
         )}
 
@@ -271,25 +257,25 @@ export function HeroSection({
 
             {/* THE IDENTITY MOMENT, and always an H1 that reads "THE KANJO".
                 With the supplied logo the H1 wraps the image and the name is
-                its alt text; with set type it is the word-by-word reveal. A
-                string in both cases — never parsed as HTML, unlike the
-                reference implementation this effect is adapted from. */}
+                its alt text; with set type it is the title in the display
+                face. Both are in the first paint: no entrance hides them. */}
             {config.identity === 'logo' && config.logo ? (
-              <LogoReveal
-                id="hero-title"
-                logo={config.logo}
-                title={config.title}
-                waitForLoader={loader.enabled}
-                enabled={loader.titleRevealEnabled}
-              />
+              <h1 id="hero-title" className="k-hero-identity">
+                <Image
+                  className="k-hero-logo"
+                  src={config.logo.src}
+                  alt={config.title}
+                  width={config.logo.width}
+                  height={config.logo.height}
+                  // Above the fold on desktop and the LCP candidate there.
+                  priority
+                  sizes="(max-width: 767px) 29vw, (max-width: 1024px) 24vw, 205px"
+                />
+              </h1>
             ) : (
-              <TitleReveal
-                id="hero-title"
-                className="k-hero-title"
-                text={config.title}
-                waitForLoader={loader.enabled}
-                enabled={loader.titleRevealEnabled}
-              />
+              <h1 id="hero-title" className="k-hero-title">
+                {config.title}
+              </h1>
             )}
 
             {subtitle && (

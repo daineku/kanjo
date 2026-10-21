@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-import { whenStageReady } from '@/lib/motion/stage'
 import { readTikTokRenderSignal } from '@/lib/tiktok/signal'
 
 const EMBED_SRC = 'https://www.tiktok.com/embed.js'
@@ -114,8 +113,9 @@ function askProviderToRender(blockquote: HTMLElement): Promise<boolean> {
  * A crawler, a visitor without JavaScript and a visitor TikTok has
  * rate-limited all see the same complete block: the heading and the link.
  *
- * The embed is asked for once per mount, after the loader has finished and
- * when the section is within 120px of the viewport. One observer,
+ * The embed is asked for once per mount, after the window's `load` event (so
+ * TikTok's script never competes with the hero) and when the section is within
+ * 120px of the viewport. One observer,
  * disconnected the moment it fires; no polling, no timer-driven retry.
  *
  * The blockquote's `cite` and `data-unique-id` derive from a handle validated
@@ -125,21 +125,18 @@ function askProviderToRender(blockquote: HTMLElement): Promise<boolean> {
 export function TikTokEmbed({
   handle,
   profileUrl,
-  waitForLoader,
 }: {
   /** Already validated server-side. `[A-Za-z0-9_.]{2,24}`, no `@`. */
   handle: string
   /** Canonical, rebuilt from the validated handle. */
   profileUrl: string
-  /** False when the loader is off: there is then nothing to wait for. */
-  waitForLoader: boolean
 }) {
   const root = useRef<HTMLDivElement>(null)
   const providerRef = useRef<HTMLDivElement>(null)
   const [phase, setPhase] = useState<Phase>('loading')
   const [asked, setAsked] = useState(false)
 
-  // ── When to ask: after the loader, near the viewport, once ────────────────
+  // ── When to ask: after `load`, near the viewport, once ────────────────────
   useEffect(() => {
     const element = root.current
     if (!element) return
@@ -147,7 +144,7 @@ export function TikTokEmbed({
     let observer: IntersectionObserver | null = null
     let cancelled = false
 
-    void whenStageReady(waitForLoader).then(() => {
+    const watch = () => {
       if (cancelled) return
       if (typeof IntersectionObserver !== 'function') {
         setAsked(true)
@@ -164,13 +161,17 @@ export function TikTokEmbed({
         { rootMargin: '120px 0px' },
       )
       observer.observe(element)
-    })
+    }
+
+    if (document.readyState === 'complete') watch()
+    else window.addEventListener('load', watch, { once: true })
 
     return () => {
       cancelled = true
+      window.removeEventListener('load', watch)
       observer?.disconnect()
     }
-  }, [waitForLoader])
+  }, [])
 
   // ── The one attempt: ask, listen, bound the wait, fit the result ──────────
   useEffect(() => {

@@ -3,192 +3,287 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { mimeFor } from '@/lib/media'
-import { whenStageReady } from '@/lib/motion/stage'
 
 /**
- * The hero's background loop, mounted only when motion is welcome — and, when
- * asked, only on the viewports that show it.
+ * The phone hero's footage, as progressive enhancement over a poster.
  *
- * WHY THIS IS A CLIENT COMPONENT RATHER THAN CSS. The first version hid the
- * video with `@media (prefers-reduced-motion: reduce) { display: none }`, which
- * does stop the motion — measured, the layer computes to `display: none` and
- * nothing plays. But the browser still issued the request for the file:
- * measured, 1 video request under `reducedMotion: 'reduce'`, identical to
- * `no-preference`. So a visitor who has asked for less motion was downloading a
- * multi-megabyte loop they would never see, which is a real data cost and
- * exactly what "respect reduced-motion / data considerations" rules out.
+ * ── THE POSTER IS THE HERO ──────────────────────────────────────────────────
  *
- * A `matchMedia` gate is the only way to not ask for the file at all. The trade
- * is one small client component; what makes that cheap here is that the POSTER
- * is server-rendered by the hero and always present, so:
- *
- *   - the first paint is the poster, from the server HTML, with no layout shift
- *   - the loop fades in over it after hydration, if motion is allowed
- *   - a reduced-motion visitor keeps the poster and issues no video request
- *   - the loop never competes with the poster for LCP
- *
- * It also honours a preference CHANGE while the page is open, because a
- * `matchMedia` listener is nearly free once the object exists.
- *
- * ── THE VIEWPORT GATE ───────────────────────────────────────────────────────
- *
- * `media` is the same idea applied to the viewport. The phone hero's footage is
- * a 3 MB file that the desktop page never shows, and `display: none` on an
- * autoplaying <video> does not stop the download any more than it did for
- * reduced motion. So below the breakpoint the element exists; above it, it
- * does not, and a desktop visitor issues no request. Rotating a tablet across
- * the breakpoint mounts or unmounts it live.
- *
- * ── WHAT THE VISITOR SEES ───────────────────────────────────────────────────
- *
- * The element is transparent until its first frame is actually playing
- * (`data-ready`), so the server-rendered poster underneath is the only thing on
- * screen until the real footage can replace it — no black rectangle while the
- * file arrives, no flash at the swap. Because the poster is frame 0 of the
- * loop, the swap itself is invisible.
- *
- * If the browser refuses autoplay (iOS Low Power Mode, a data-saver policy) or
- * the file fails, the element is removed and the poster stays: a complete hero
- * either way, and never iOS's greyed play glyph over a frozen first frame.
- *
- * Offscreen, it pauses. An IntersectionObserver on the element itself stops
- * playback once the hero has scrolled away and resumes it on the way back —
- * decoding a 30 fps loop under a page the visitor is reading is battery spent
- * on nothing.
+ * The first frame of this loop is server-rendered by the hero as an ordinary
+ * <img> (components/kanjo/HeroStill.tsx). It needs no JavaScript, no hydration
+ * and no network event to appear, and it is what a visitor sees for as long as
+ * this component has nothing better to show. Everything below can fail, be
+ * skipped or be refused, and the hero is still complete.
  *
  * ── WHEN THE FILE IS ASKED FOR ──────────────────────────────────────────────
  *
- * Not at hydration. Measured under Lighthouse's slow-4G simulation, a loop that
- * starts downloading the moment the island mounts shares the connection with
- * the script chunks the page is still fetching, hydration lands late, the
- * loader (which waits for hydration) lifts late, and the first screen is
- * reported at 9.6 s. So the element is created only once the stage is the
- * visitor's — the loader has handed over (lib/motion/stage.ts) and the window
- * has loaded — which is also the first moment the footage could be seen. Until
- * then the poster IS the hero, and since the poster is frame 0, starting a few
- * seconds later costs nothing visible. The brief's order, exactly: HTML, poster,
- * links, then the footage.
+ * Not while the page is loading. The element does not exist until:
+ *
+ *   1. the window has fired `load` — the poster, fonts, CSS and scripts are in —
+ *      AND the browser has reported its first contentful paint (on a small,
+ *      fast page `load` can come first, which would let the video start before
+ *      anything is on screen);
+ *   2. the browser has an idle moment after that (`requestIdleCallback`, with a
+ *      short timeout so a busy main thread cannot postpone it indefinitely);
+ *   3. the tab is visible and the hero is actually on screen;
+ *   4. the visitor has not asked for less motion or less data, and the
+ *      connection is not clearly too slow for a 3 MB background.
+ *
+ * Measured under Lighthouse's slow-4G simulation, a loop requested at hydration
+ * shares the connection with the page's own scripts and pushed the first screen
+ * to 9.6 s. Requested after `load`, it competes with nothing.
+ *
+ * ── WHEN IT IS SHOWN ────────────────────────────────────────────────────────
+ *
+ * Only once a decoded frame is on screen: `canplay`, then `play()`, then
+ * `requestVideoFrameCallback` — the browser's own confirmation that a frame has
+ * been presented — or, where that API is missing, the first `timeupdate` with
+ * time actually advancing. Then the element fades in over the poster. Because
+ * the poster IS frame 0, the fade is invisible except as motion beginning.
+ *
+ * ── WHEN IT GIVES UP ────────────────────────────────────────────────────────
+ *
+ * A refused autoplay (iOS Low Power Mode, a data-saver policy) or a failed file
+ * unmounts the element for the life of the page — no retry loop, no browser
+ * play button over a frozen frame. The poster stays.
+ *
+ * ── WHILE IT PLAYS ──────────────────────────────────────────────────────────
+ *
+ * It pauses when the hero leaves the viewport or the tab is hidden, and resumes
+ * only when both are true again. Every asynchronous callback checks that it
+ * still belongs to the mounted element, so a late promise cannot restart a
+ * video that has since been paused or removed.
  */
+
+type NetworkInformation = { saveData?: boolean; effectiveType?: string }
+
+/** True when the visitor or the connection says a background video is unwelcome. */
+function constrained(): boolean {
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return true
+  const connection = (navigator as Navigator & { connection?: NetworkInformation }).connection
+  if (!connection) return false // Safari and Firefox: no signal, so no penalty.
+  if (connection.saveData) return true
+  return connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g'
+}
+
+/** Resolves once the browser reports its first contentful paint. */
+function afterFirstPaint(then: () => void) {
+  const painted = () => performance.getEntriesByName('first-contentful-paint').length > 0
+  if (painted() || typeof PerformanceObserver !== 'function') return then()
+  try {
+    const observer = new PerformanceObserver(() => {
+      if (!painted()) return
+      observer.disconnect()
+      then()
+    })
+    observer.observe({ type: 'paint', buffered: true })
+  } catch {
+    then() // no paint timing: fall back to load + idle alone
+  }
+}
+
+/**
+ * Runs `then` once the page is visually ready: the first contentful paint has
+ * happened AND the window has loaded, followed by an idle period. On a small,
+ * fast page `load` can fire before the first paint, so `load` alone would let
+ * the video start before anything is on screen.
+ */
+function afterVisuallyReady(signal: { cancelled: boolean }, then: () => void) {
+  const idle = () => {
+    if (signal.cancelled) return
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(() => !signal.cancelled && then(), { timeout: 1500 })
+    } else {
+      setTimeout(() => !signal.cancelled && then(), 200)
+    }
+  }
+  const loaded = () => afterFirstPaint(idle)
+  if (document.readyState === 'complete') loaded()
+  else window.addEventListener('load', loaded, { once: true })
+}
 
 export function HeroVideo({
   sources,
-  poster,
   media,
-  waitForLoader = false,
 }: {
   /** Local paths in preference order. MIME types are derived from extensions. */
   sources: string[]
-  poster?: string
   /**
    * A media query the viewport must match for the element to exist at all,
-   * e.g. `(max-width: 767px)`. Omit to mount at every width.
+   * e.g. `(max-width: 767px)`. Desktop visitors never request the file.
    */
   media?: string
-  /** Whether there is a loader whose hand-over to wait for. */
-  waitForLoader?: boolean
 }) {
-  // Starts false so the server render and the first client render agree: no
-  // video element, no hydration mismatch. It flips only if motion is allowed
-  // (and the viewport matches, when a query is given).
-  const [active, setActive] = useState(false)
-  const [stageReady, setStageReady] = useState(false)
-  const [ready, setReady] = useState(false)
-  const [failed, setFailed] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const [presented, setPresented] = useState(false)
+  // Set once and never cleared: a refusal or a failure ends the enhancement.
+  const [gaveUp, setGaveUp] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
 
+  // ── Phase 3: decide whether, and when, to mount ──────────────────────────
   useEffect(() => {
-    let cancelled = false
-    const loaded =
-      document.readyState === 'complete'
-        ? Promise.resolve()
-        : new Promise<void>((resolve) => {
-            window.addEventListener('load', () => resolve(), { once: true })
-            // A third-party resource that never finishes must not hold the
-            // footage back for good; `whenStageReady` has the same backstop.
-            setTimeout(resolve, 8_000)
-          })
-    void Promise.all([whenStageReady(waitForLoader), loaded]).then(() => {
-      if (!cancelled) setStageReady(true)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [waitForLoader])
-
-  useEffect(() => {
-    if (typeof window.matchMedia !== 'function') {
-      setActive(true)
-      return
-    }
-    const motion = window.matchMedia('(prefers-reduced-motion: reduce)')
+    if (gaveUp || sources.length === 0) return
+    const signal = { cancelled: false }
     const viewport = media ? window.matchMedia(media) : null
-    const apply = () => setActive(!motion.matches && (viewport ? viewport.matches : true))
-    apply()
-    motion.addEventListener('change', apply)
-    viewport?.addEventListener('change', apply)
-    return () => {
-      motion.removeEventListener('change', apply)
-      viewport?.removeEventListener('change', apply)
+    let observer: IntersectionObserver | undefined
+
+    const decide = () => {
+      if (signal.cancelled) return
+      if (viewport && !viewport.matches) return
+      if (constrained()) return
+      const host = document.querySelector('.k-hero-media')
+      if (!host || typeof IntersectionObserver !== 'function') {
+        if (document.visibilityState === 'visible') setMounted(true)
+        return
+      }
+      // Mount only when the hero is actually in view, in a visible tab. A
+      // visitor who has already scrolled past it by `load` never pays for it.
+      observer = new IntersectionObserver(([entry]) => {
+        if (entry?.isIntersecting && document.visibilityState === 'visible') {
+          observer?.disconnect()
+          if (!signal.cancelled) setMounted(true)
+        }
+      })
+      observer.observe(host)
     }
-  }, [media])
 
-  const mounted = active && stageReady && !failed
+    afterVisuallyReady(signal, decide)
 
+    // Rotating a tablet out of the phone layout removes the loop; rotating it
+    // back re-runs the decision rather than mounting unconditionally.
+    const onViewport = () => {
+      if (viewport && !viewport.matches) {
+        setMounted(false)
+        setPresented(false)
+      } else if (document.readyState === 'complete') {
+        decide()
+      }
+    }
+    viewport?.addEventListener('change', onViewport)
+
+    return () => {
+      signal.cancelled = true
+      observer?.disconnect()
+      viewport?.removeEventListener('change', onViewport)
+    }
+  }, [media, gaveUp, sources.length])
+
+  // ── Phases 3–4: play once ready, confirm a frame, keep it honest ─────────
   useEffect(() => {
     const video = videoRef.current
     if (!mounted || !video) return
 
-    // The explicit attempt is what surfaces an autoplay refusal: the attribute
-    // alone fails silently and leaves a frozen frame. Only a refusal counts as
-    // failure — an AbortError here is our own pause() below interrupting a
-    // pending play(), which is routine.
-    const attempt = () =>
-      video.play().catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === 'NotAllowedError') setFailed(true)
-      })
+    let alive = true
+    let inView = true
+    let frameHandle: number | undefined
+
+    const giveUp = () => {
+      if (!alive) return
+      alive = false
+      setMounted(false)
+      setPresented(false)
+      setGaveUp(true)
+    }
+
+    const confirmFrame = () => {
+      if (!alive) return
+      if (typeof video.requestVideoFrameCallback === 'function') {
+        frameHandle = video.requestVideoFrameCallback(() => alive && setPresented(true))
+        return
+      }
+      // Fallback: time advancing means frames are being presented.
+      const start = video.currentTime
+      const onTime = () => {
+        if (!alive) return
+        if (video.currentTime > start) {
+          video.removeEventListener('timeupdate', onTime)
+          setPresented(true)
+        }
+      }
+      video.addEventListener('timeupdate', onTime)
+    }
+
+    const shouldPlay = () => alive && inView && document.visibilityState === 'visible'
+
+    // A single in-flight attempt at a time; a second call while one is pending
+    // simply waits on the same promise.
+    let pending: Promise<void> | null = null
+    const attempt = () => {
+      if (!shouldPlay() || pending || !video.paused) return
+      pending = video
+        .play()
+        .then(() => {
+          pending = null
+          if (!alive) return
+          if (!shouldPlay()) video.pause() // conditions changed while starting
+          else confirmFrame()
+        })
+        .catch((error: unknown) => {
+          pending = null
+          // NotAllowedError is a refusal: stop for good. AbortError is our own
+          // pause() interrupting a pending play(), which is routine.
+          if (error instanceof DOMException && error.name === 'NotAllowedError') giveUp()
+        })
+    }
+
+    const onCanPlay = () => attempt()
+    const onError = () => giveUp()
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') video.pause()
+      else attempt()
+    }
+
+    video.addEventListener('canplay', onCanPlay, { once: true })
+    video.addEventListener('error', onError)
+    // <source> failures fire on the source element, not the video.
+    video.querySelectorAll('source').forEach((source) => source.addEventListener('error', onError))
+    document.addEventListener('visibilitychange', onVisibility)
 
     let observer: IntersectionObserver | undefined
     if (typeof IntersectionObserver === 'function') {
-      observer = new IntersectionObserver(
-        ([entry]) => {
-          if (!entry) return
-          if (entry.isIntersecting) void attempt()
-          else video.pause()
-        },
-        { threshold: 0 },
-      )
+      observer = new IntersectionObserver(([entry]) => {
+        if (!entry || !alive) return
+        inView = entry.isIntersecting
+        if (inView) attempt()
+        else video.pause()
+      })
       observer.observe(video)
-    } else {
-      void attempt()
     }
 
-    return () => observer?.disconnect()
+    // Already buffered (fast cache): `canplay` may have fired before we listened.
+    if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) attempt()
+
+    return () => {
+      alive = false
+      observer?.disconnect()
+      document.removeEventListener('visibilitychange', onVisibility)
+      video.removeEventListener('canplay', onCanPlay)
+      video.removeEventListener('error', onError)
+      if (frameHandle !== undefined) video.cancelVideoFrameCallback?.(frameHandle)
+      video.pause()
+    }
   }, [mounted])
 
-  if (!mounted || sources.length === 0) return null
+  if (!mounted || gaveUp) return null
 
   return (
     <span className="k-hero-video-layer">
       <video
         ref={videoRef}
         className="k-hero-video"
-        data-ready={ready ? 'true' : 'false'}
-        // The poster is also set here so that if the loop is slow the element
-        // shows the same frame as the layer beneath it rather than going black.
-        poster={poster}
-        autoPlay
+        data-ready={presented ? 'true' : 'false'}
+        // No `poster` attribute: the server-rendered still beneath is the
+        // poster, and a second one here would be a duplicate request.
         muted
         loop
         playsInline
-        // The element only exists for a visitor who is about to watch it, so
-        // let the browser start fetching as soon as it mounts. Browsers that
-        // ignore the hint for autoplaying media fetch on the play() attempt
-        // above, which is immediate.
+        // The element exists only after `load`, so fetching now competes with
+        // nothing. Playback is started explicitly once `canplay` fires, which
+        // is what lets a refusal be detected rather than leaving a still frame.
         preload="auto"
         tabIndex={-1}
         disablePictureInPicture
-        onPlaying={() => setReady(true)}
-        onError={() => setFailed(true)}
+        aria-hidden="true"
       >
         {sources.map((source) => (
           <source key={source} src={source} type={mimeFor(source)} />

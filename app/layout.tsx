@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 
 import './globals.css'
 import './production-tuning.css'
-import { KanjoLoader } from '@/components/loader/KanjoLoader'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { SocialCluster } from '@/components/layout/SocialCluster'
 import { resolveContentSource } from '@/lib/content/source'
@@ -25,17 +24,14 @@ import { buildRootMetadata } from '@/lib/seo/metadata'
  * The homepage renders it itself when `chrome.headerOnHome` is set, so the
  * decision is configuration rather than a layout edit either way.
  *
- * ── THE LOADER'S CONTRACT ───────────────────────────────────────────────────
+ * ── NO LOADER ───────────────────────────────────────────────────────────────
  *
- * `data-loader="pending"` is set HERE, on the server, when the loader is
- * enabled. It locks scrolling (app/globals.css) and gates the social cluster's
- * entrance. The loader flips it to "done" when the highway masks away.
- *
- * The <noscript> block below is the escape hatch that makes that safe: with
- * JavaScript disabled nothing would ever flip the attribute, so the page would
- * be locked behind a highway that never moves. The style unlocks the document
- * and removes the loader entirely — a no-JavaScript visitor simply arrives at
- * the site.
+ * There used to be a full-screen branded loader here, rendered by this layout,
+ * with a server-set `data-loader` attribute that locked scrolling and made the
+ * page inert until it lifted. It is gone: the server-rendered page IS the first
+ * screen, with the hero still in the first paint and nothing to wait for. The
+ * loader's settings remain in the content model (and the admin) so that stored
+ * content keeps validating, but nothing on the public site reads them.
  */
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -46,12 +42,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const source = await resolveContentSource()
-  const [settings, loader] = await Promise.all([
-    source.getSiteSettings(),
-    source.getLoaderConfig(),
-  ])
-
-  const loaderActive = loader.enabled
+  const settings = await source.getSiteSettings()
 
   /**
    * How many channels the cluster will actually draw.
@@ -65,7 +56,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const showCluster = settings.chrome.socialCluster && liveChannels > 0
 
   return (
-    <html lang="en" data-loader={loaderActive ? 'pending' : undefined}>
+    <html lang="en">
       <head>
         {/* The two faces on every first screen — the display family for the
             title and headings, the technical face for every label — fetched
@@ -87,26 +78,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body>
-
-        {loaderActive && (
-          <noscript>
-            <style>
-              {`html[data-loader='pending']{overflow:visible}` +
-                `html[data-loader='pending'] .k-loader{display:none}`}
-            </style>
-          </noscript>
-        )}
-
         <a className="k-skip-link" href="#main">
           Skip to content
         </a>
 
-        {loaderActive && <KanjoLoader config={loader} />}
-
-        {/* The loader marks this `inert` while it is up, so nothing behind an
-            opaque overlay is focusable. It is set from the client, so a visitor
-            without JavaScript — who never sees the loader — is never handed an
-            inert page. */}
         <div
           id="app-root"
           data-social-cluster={showCluster || undefined}
