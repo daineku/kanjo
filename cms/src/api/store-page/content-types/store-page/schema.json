@@ -1,0 +1,43 @@
+{
+  "kind": "collectionType",
+  "collectionName": "store_pages",
+  "info": {
+    "singularName": "store-page",
+    "pluralName": "store-pages",
+    "displayName": "Store policy page"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string",
+      "maxLength": 120,
+      "required": true
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "title",
+      "required": true
+    },
+    "body": {
+      "type": "richtext"
+    },
+    "legalReviewed": {
+      "type": "boolean",
+      "default": false
+    },
+    "legalReviewedBy": {
+      "type": "string"
+    },
+    "effectiveDate": {
+      "type": "date"
+    },
+    "seo": {
+      "type": "component",
+      "component": "shared.seo",
+      "repeatable": false
+    }
+  }
+}

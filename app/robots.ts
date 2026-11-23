@@ -25,7 +25,15 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
   }
 
   return {
-    rules: [{ userAgent: '*', allow: '/' }],
+    rules: [
+      {
+        userAgent: '*',
+        allow: '/',
+        // The store's private and transactional routes. Harmless when the store
+        // is off (they are 404s), and correct the moment it is on.
+        disallow: ['/cart', '/checkout', '/orders/', '/api/', '/parts/search'],
+      },
+    ],
     sitemap: `${origin}/sitemap.xml`,
     host: origin,
   }

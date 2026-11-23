@@ -1,0 +1,53 @@
+{
+  "kind": "collectionType",
+  "collectionName": "order_events",
+  "info": {
+    "singularName": "order-event",
+    "pluralName": "order-events",
+    "displayName": "Order event"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "order": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::order.order",
+      "inversedBy": "events"
+    },
+    "orderReference": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "enumeration",
+      "enum": [
+        "created",
+        "status_changed",
+        "payment",
+        "refund",
+        "tracking",
+        "note",
+        "stock",
+        "sync"
+      ],
+      "required": true
+    },
+    "fromStatus": {
+      "type": "string"
+    },
+    "toStatus": {
+      "type": "string"
+    },
+    "actor": {
+      "type": "string"
+    },
+    "message": {
+      "type": "text"
+    },
+    "data": {
+      "type": "json"
+    }
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "kind": "singleType",
+  "collectionName": "tiktok_connections",
+  "info": {
+    "singularName": "tiktok-connection",
+    "pluralName": "tiktok-connections",
+    "displayName": "TikTok Shop connection"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "status": {
+      "type": "enumeration",
+      "enum": [
+        "not_configured",
+        "awaiting_authorization",
+        "connected",
+        "token_expired",
+        "error"
+      ],
+      "default": "not_configured"
+    },
+    "shopId": {
+      "type": "string"
+    },
+    "shopName": {
+      "type": "string"
+    },
+    "shopRegion": {
+      "type": "string"
+    },
+    "sellerType": {
+      "type": "string"
+    },
+    "shopCipher": {
+      "type": "string",
+      "private": true
+    },
+    "accessTokenEnc": {
+      "type": "text",
+      "private": true
+    },
+    "refreshTokenEnc": {
+      "type": "text",
+      "private": true
+    },
+    "accessTokenExpiresAt": {
+      "type": "datetime"
+    },
+    "refreshTokenExpiresAt": {
+      "type": "datetime"
+    },
+    "syncProducts": {
+      "type": "boolean",
+      "default": false
+    },
+    "syncInventory": {
+      "type": "boolean",
+      "default": false
+    },
+    "importOrders": {
+      "type": "boolean",
+      "default": false
+    },
+    "lastSyncAt": {
+      "type": "datetime"
+    },
+    "lastError": {
+      "type": "text"
+    }
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "kind": "collectionType",
+  "collectionName": "sourcing_requests",
+  "info": {
+    "singularName": "sourcing-request",
+    "pluralName": "sourcing-requests",
+    "displayName": "Sourcing request"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "fullName": {
+      "type": "string",
+      "maxLength": 120,
+      "required": true
+    },
+    "email": {
+      "type": "email",
+      "required": true
+    },
+    "country": {
+      "type": "string",
+      "maxLength": 2,
+      "required": true
+    },
+    "vehicle": {
+      "type": "string",
+      "maxLength": 200,
+      "required": true
+    },
+    "requestedPart": {
+      "type": "text",
+      "maxLength": 1000,
+      "required": true
+    },
+    "preference": {
+      "type": "enumeration",
+      "enum": [
+        "oem",
+        "aftermarket",
+        "either"
+      ],
+      "default": "either"
+    },
+    "budget": {
+      "type": "string",
+      "maxLength": 80
+    },
+    "notes": {
+      "type": "text",
+      "maxLength": 4000
+    },
+    "referenceImage": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": [
+        "new",
+        "in_review",
+        "quoted",
+        "won",
+        "declined",
+        "closed"
+      ],
+      "default": "new"
+    },
+    "internalNotes": {
+      "type": "text"
+    },
+    "ipHash": {
+      "type": "string",
+      "private": true
+    }
+  }
+}

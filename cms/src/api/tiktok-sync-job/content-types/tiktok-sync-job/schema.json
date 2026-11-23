@@ -1,0 +1,71 @@
+{
+  "kind": "collectionType",
+  "collectionName": "tiktok_sync_jobs",
+  "info": {
+    "singularName": "tiktok-sync-job",
+    "pluralName": "tiktok-sync-jobs",
+    "displayName": "TikTok sync job"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "kind": {
+      "type": "enumeration",
+      "enum": [
+        "product_upsert",
+        "price_update",
+        "inventory_update",
+        "product_deactivate",
+        "order_import",
+        "fulfillment_update",
+        "token_refresh"
+      ],
+      "required": true
+    },
+    "dedupeKey": {
+      "type": "string",
+      "unique": true,
+      "required": true
+    },
+    "subject": {
+      "type": "string"
+    },
+    "payload": {
+      "type": "json"
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": [
+        "queued",
+        "running",
+        "succeeded",
+        "failed",
+        "dead",
+        "cancelled"
+      ],
+      "default": "queued"
+    },
+    "attempts": {
+      "type": "integer",
+      "default": 0
+    },
+    "maxAttempts": {
+      "type": "integer",
+      "default": 6
+    },
+    "runAfter": {
+      "type": "datetime"
+    },
+    "lastError": {
+      "type": "text"
+    },
+    "finishedAt": {
+      "type": "datetime"
+    },
+    "requestedBy": {
+      "type": "string"
+    }
+  }
+}

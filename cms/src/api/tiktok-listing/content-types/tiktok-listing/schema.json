@@ -1,0 +1,73 @@
+{
+  "kind": "collectionType",
+  "collectionName": "tiktok_listings",
+  "info": {
+    "singularName": "tiktok-listing",
+    "pluralName": "tiktok-listings",
+    "displayName": "TikTok listing mapping"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "productDocumentId": {
+      "type": "string",
+      "required": true
+    },
+    "productName": {
+      "type": "string"
+    },
+    "sku": {
+      "type": "string",
+      "unique": true,
+      "required": true
+    },
+    "tiktokProductId": {
+      "type": "string"
+    },
+    "tiktokSkuId": {
+      "type": "string"
+    },
+    "tiktokCategoryId": {
+      "type": "string"
+    },
+    "listingStatus": {
+      "type": "enumeration",
+      "enum": [
+        "not_listed",
+        "pending",
+        "live",
+        "deactivated",
+        "rejected",
+        "error"
+      ],
+      "default": "not_listed"
+    },
+    "syncEnabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "lastPushedPrice": {
+      "type": "decimal",
+      "min": 0
+    },
+    "lastPushedStock": {
+      "type": "integer"
+    },
+    "lastSyncedAt": {
+      "type": "datetime"
+    },
+    "lastError": {
+      "type": "text"
+    },
+    "tiktokPrice": {
+      "type": "decimal",
+      "min": 0
+    },
+    "tiktokCurrency": {
+      "type": "string",
+      "maxLength": 3
+    }
+  }
+}

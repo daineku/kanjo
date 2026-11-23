@@ -1,0 +1,230 @@
+{
+  "kind": "collectionType",
+  "collectionName": "orders",
+  "info": {
+    "singularName": "order",
+    "pluralName": "orders",
+    "displayName": "Order"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "reference": {
+      "type": "string",
+      "unique": true,
+      "required": true
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": [
+        "pending_payment",
+        "paid",
+        "processing",
+        "awaiting_supplier",
+        "manufacturing",
+        "ready_to_ship",
+        "shipped",
+        "delivered",
+        "cancelled",
+        "refunded"
+      ],
+      "default": "pending_payment",
+      "required": true
+    },
+    "channel": {
+      "type": "enumeration",
+      "enum": [
+        "web",
+        "tiktok_shop",
+        "manual"
+      ],
+      "default": "web",
+      "required": true
+    },
+    "email": {
+      "type": "email"
+    },
+    "customerName": {
+      "type": "string",
+      "required": true
+    },
+    "shippingAddress": {
+      "type": "component",
+      "component": "order.address",
+      "repeatable": false
+    },
+    "items": {
+      "type": "component",
+      "component": "order.line-item",
+      "repeatable": true
+    },
+    "currency": {
+      "type": "enumeration",
+      "enum": [
+        "USD",
+        "EUR",
+        "GBP",
+        "THB",
+        "CAD"
+      ],
+      "default": "USD",
+      "required": true
+    },
+    "subtotal": {
+      "type": "decimal",
+      "min": 0,
+      "required": true
+    },
+    "discountTotal": {
+      "type": "decimal",
+      "min": 0,
+      "default": 0
+    },
+    "shippingTotal": {
+      "type": "decimal",
+      "min": 0,
+      "default": 0
+    },
+    "total": {
+      "type": "decimal",
+      "min": 0,
+      "required": true
+    },
+    "refundedTotal": {
+      "type": "decimal",
+      "min": 0,
+      "default": 0
+    },
+    "paymentStatus": {
+      "type": "enumeration",
+      "enum": [
+        "unpaid",
+        "pending",
+        "paid",
+        "partially_refunded",
+        "refunded",
+        "failed"
+      ],
+      "default": "unpaid",
+      "required": true
+    },
+    "paymentProvider": {
+      "type": "enumeration",
+      "enum": [
+        "stripe",
+        "tiktok_shop",
+        "mock",
+        "manual"
+      ]
+    },
+    "paymentSessionId": {
+      "type": "string"
+    },
+    "paymentIntentId": {
+      "type": "string"
+    },
+    "paymentFee": {
+      "type": "decimal",
+      "min": 0
+    },
+    "paymentFeeCurrency": {
+      "type": "string",
+      "maxLength": 3
+    },
+    "paidAt": {
+      "type": "datetime"
+    },
+    "placedAt": {
+      "type": "datetime"
+    },
+    "reservationExpiresAt": {
+      "type": "datetime"
+    },
+    "stockState": {
+      "type": "enumeration",
+      "enum": [
+        "none",
+        "reserved",
+        "committed",
+        "released"
+      ],
+      "default": "none"
+    },
+    "shippingCarrier": {
+      "type": "enumeration",
+      "enum": [
+        "thailand_post",
+        "dhl",
+        "fedex",
+        "manual"
+      ]
+    },
+    "shippingService": {
+      "type": "string"
+    },
+    "incoterm": {
+      "type": "enumeration",
+      "enum": [
+        "DAP",
+        "DDP"
+      ]
+    },
+    "shippingZoneCode": {
+      "type": "string"
+    },
+    "trackingNumber": {
+      "type": "string"
+    },
+    "trackingUrl": {
+      "type": "string"
+    },
+    "shippedAt": {
+      "type": "datetime"
+    },
+    "deliveredAt": {
+      "type": "datetime"
+    },
+    "shippingCostActual": {
+      "type": "decimal",
+      "min": 0
+    },
+    "totalWeightGrams": {
+      "type": "integer"
+    },
+    "customerNote": {
+      "type": "text",
+      "maxLength": 1000
+    },
+    "internalNotes": {
+      "type": "text"
+    },
+    "externalOrderId": {
+      "type": "string"
+    },
+    "accessTokenHash": {
+      "type": "string",
+      "private": true
+    },
+    "termsAcceptedAt": {
+      "type": "datetime"
+    },
+    "isTest": {
+      "type": "boolean",
+      "default": false
+    },
+    "events": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::order-event.order-event",
+      "mappedBy": "order"
+    },
+    "refunds": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::refund.refund",
+      "mappedBy": "order"
+    }
+  }
+}

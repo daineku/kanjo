@@ -121,6 +121,7 @@ treatment. Please keep it that way.
 | [docs/ADMIN.md](docs/ADMIN.md) | The content admin at `/admin` — the local one, the authenticated one, and why a preview cannot write |
 | [docs/PATREON.md](docs/PATREON.md) | The Patreon API v2 integration and its security model |
 | [docs/CONTENT_REQUIRED.md](docs/CONTENT_REQUIRED.md) | What real content the site still needs |
+| [docs/store/README.md](docs/store/README.md) | **The Kanjo Parts** — the store: Next.js storefront + Strapi commerce backend in `cms/`. Off until `STORE_CMS_URL` and `STORE_CMS_TOKEN` are set |
 
 ## Adding real media
 

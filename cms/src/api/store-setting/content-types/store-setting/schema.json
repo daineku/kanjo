@@ -1,0 +1,79 @@
+{
+  "kind": "singleType",
+  "collectionName": "store_settings",
+  "info": {
+    "singularName": "store-setting",
+    "pluralName": "store-settings",
+    "displayName": "Store settings"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "storeCurrency": {
+      "type": "enumeration",
+      "enum": [
+        "USD",
+        "EUR",
+        "GBP",
+        "THB",
+        "CAD"
+      ],
+      "default": "USD",
+      "required": true
+    },
+    "checkoutEnabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "checkoutDisabledMessage": {
+      "type": "text"
+    },
+    "handlingDaysInStock": {
+      "type": "integer",
+      "default": 3,
+      "min": 0
+    },
+    "handlingDaysSourced": {
+      "type": "integer",
+      "default": 14,
+      "min": 0
+    },
+    "handlingDaysMadeToOrder": {
+      "type": "integer",
+      "default": 10,
+      "min": 0
+    },
+    "reservationMinutes": {
+      "type": "integer",
+      "default": 45,
+      "min": 31,
+      "max": 1440
+    },
+    "sourcingVerificationDays": {
+      "type": "integer",
+      "default": 30,
+      "min": 1
+    },
+    "customsDisclosure": {
+      "type": "text"
+    },
+    "blockedCountries": {
+      "type": "string"
+    },
+    "supportEmail": {
+      "type": "email"
+    },
+    "merchantLegalName": {
+      "type": "string"
+    },
+    "merchantAddress": {
+      "type": "text"
+    },
+    "reviewsEnabled": {
+      "type": "boolean",
+      "default": true
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "kanjo-ops",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The Kanjo Parts operations: sales analytics, supplier imports and the TikTok Shop integration.",
+  "strapi": {
+    "kind": "plugin",
+    "name": "kanjo-ops",
+    "displayName": "Kanjo Ops"
+  }
+}

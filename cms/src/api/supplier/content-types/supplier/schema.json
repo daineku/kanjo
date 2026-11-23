@@ -1,0 +1,91 @@
+{
+  "kind": "collectionType",
+  "collectionName": "suppliers",
+  "info": {
+    "singularName": "supplier",
+    "pluralName": "suppliers",
+    "displayName": "Supplier"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "maxLength": 120,
+      "required": true
+    },
+    "code": {
+      "type": "string",
+      "maxLength": 32,
+      "unique": true,
+      "regex": "^[a-z0-9][a-z0-9-]*$",
+      "required": true
+    },
+    "platform": {
+      "type": "enumeration",
+      "enum": [
+        "direct",
+        "shopee_th",
+        "lazada_th",
+        "manufacturer",
+        "workshop",
+        "other"
+      ],
+      "default": "direct"
+    },
+    "country": {
+      "type": "string",
+      "maxLength": 2,
+      "default": "TH"
+    },
+    "contactName": {
+      "type": "string"
+    },
+    "contactEmail": {
+      "type": "email"
+    },
+    "contactPhone": {
+      "type": "string"
+    },
+    "url": {
+      "type": "string"
+    },
+    "accessMethod": {
+      "type": "enumeration",
+      "enum": [
+        "manual",
+        "csv",
+        "authorized_api",
+        "authorized_feed"
+      ],
+      "default": "manual"
+    },
+    "contentRights": {
+      "type": "enumeration",
+      "enum": [
+        "none",
+        "images_licensed",
+        "images_and_copy_licensed"
+      ],
+      "default": "none"
+    },
+    "authorizationNotes": {
+      "type": "text"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "notes": {
+      "type": "text"
+    },
+    "products": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::product.product",
+      "mappedBy": "supplier"
+    }
+  }
+}

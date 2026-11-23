@@ -2,6 +2,9 @@ import type { MetadataRoute } from 'next'
 
 import { resolveContentSource } from '@/lib/content/source'
 import { siteOrigin } from '@/lib/seo/metadata'
+import { getCatalog, getStorePages } from '@/lib/store/client'
+import { realProductCount } from '@/lib/store/filter'
+import { storeEnabled } from '@/lib/store/server'
 
 /**
  * sitemap.xml.
@@ -26,6 +29,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const newestUpdate = articles[0]?.updatedAt ?? articles[0]?.publishedAt
 
   return [
+    ...(await storeEntries(origin)),
     {
       url: origin,
       changeFrequency: 'weekly',
@@ -53,5 +57,51 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.3,
       ...(settings.legal[key].updatedAt ? { lastModified: settings.legal[key].updatedAt } : {}),
     })),
+  ]
+}
+
+/**
+ * THE KANJO PARTS, when the store exists and its backend answered.
+ *
+ * Only pages worth indexing: categories that hold products, real (non-sample)
+ * products, and policies the merchant has signed off. Never the cart,
+ * checkout, order or search pages, and never a filtered view. A backend
+ * failure contributes nothing rather than failing the sitemap.
+ */
+async function storeEntries(origin: string): Promise<MetadataRoute.Sitemap> {
+  if (!storeEnabled()) return []
+  const [catalog, pages] = await Promise.all([getCatalog(), getStorePages()])
+  if (!catalog) return []
+
+  const products = catalog.products.filter((product) => !product.isSample)
+  const newest = products.map((product) => product.updatedAt).sort().at(-1)
+
+  return [
+    ...(products.length > 0
+      ? [{ url: `${origin}/parts`, changeFrequency: 'daily' as const, priority: 0.8, ...(newest ? { lastModified: newest } : {}) }]
+      : []),
+    { url: `${origin}/parts/sourcing`, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${origin}/builds`, changeFrequency: 'monthly', priority: 0.5 },
+    ...catalog.categories
+      .filter((category) => realProductCount(catalog, category.slug) > 0)
+      .map((category) => ({
+        url: `${origin}/parts/category/${category.slug}`,
+        changeFrequency: 'weekly' as const,
+        priority: 0.6,
+      })),
+    ...products.map((product) => ({
+      url: `${origin}/parts/${product.slug}`,
+      lastModified: product.updatedAt,
+      changeFrequency: 'weekly' as const,
+      priority: 0.7,
+    })),
+    ...(pages ?? [])
+      .filter((page) => page.legalReviewed)
+      .map((page) => ({
+        url: `${origin}/policies/${page.slug}`,
+        lastModified: page.updatedAt,
+        changeFrequency: 'yearly' as const,
+        priority: 0.3,
+      })),
   ]
 }

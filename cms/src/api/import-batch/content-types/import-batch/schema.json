@@ -1,0 +1,79 @@
+{
+  "kind": "collectionType",
+  "collectionName": "import_batches",
+  "info": {
+    "singularName": "import-batch",
+    "pluralName": "import-batches",
+    "displayName": "Import batch"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "label": {
+      "type": "string",
+      "maxLength": 120,
+      "required": true
+    },
+    "supplier": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::supplier.supplier"
+    },
+    "source": {
+      "type": "enumeration",
+      "enum": [
+        "csv",
+        "manual",
+        "authorized_api",
+        "authorized_feed"
+      ],
+      "default": "csv",
+      "required": true
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": [
+        "received",
+        "normalized",
+        "in_review",
+        "promoted",
+        "failed"
+      ],
+      "default": "received"
+    },
+    "totalRows": {
+      "type": "integer",
+      "default": 0
+    },
+    "validRows": {
+      "type": "integer",
+      "default": 0
+    },
+    "duplicateRows": {
+      "type": "integer",
+      "default": 0
+    },
+    "invalidRows": {
+      "type": "integer",
+      "default": 0
+    },
+    "promotedRows": {
+      "type": "integer",
+      "default": 0
+    },
+    "createdByName": {
+      "type": "string"
+    },
+    "log": {
+      "type": "text"
+    },
+    "items": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::import-item.import-item",
+      "mappedBy": "batch"
+    }
+  }
+}

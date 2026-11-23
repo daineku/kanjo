@@ -1,0 +1,61 @@
+{
+  "kind": "collectionType",
+  "collectionName": "inventory_movements",
+  "info": {
+    "singularName": "inventory-movement",
+    "pluralName": "inventory-movements",
+    "displayName": "Inventory movement"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "sku": {
+      "type": "string",
+      "required": true
+    },
+    "kind": {
+      "type": "enumeration",
+      "enum": [
+        "reserve",
+        "release",
+        "sale",
+        "restock",
+        "adjustment",
+        "return",
+        "marketplace_sale"
+      ],
+      "required": true
+    },
+    "quantity": {
+      "type": "integer",
+      "required": true
+    },
+    "onHandAfter": {
+      "type": "integer"
+    },
+    "reservedAfter": {
+      "type": "integer"
+    },
+    "channel": {
+      "type": "enumeration",
+      "enum": [
+        "web",
+        "tiktok_shop",
+        "manual",
+        "system"
+      ],
+      "default": "system"
+    },
+    "orderReference": {
+      "type": "string"
+    },
+    "actor": {
+      "type": "string"
+    },
+    "note": {
+      "type": "text"
+    }
+  }
+}

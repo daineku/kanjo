@@ -1,0 +1,78 @@
+{
+  "kind": "collectionType",
+  "collectionName": "build_inquiries",
+  "info": {
+    "singularName": "build-inquiry",
+    "pluralName": "build-inquiries",
+    "displayName": "Build inquiry"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "fullName": {
+      "type": "string",
+      "maxLength": 120,
+      "required": true
+    },
+    "email": {
+      "type": "email",
+      "required": true
+    },
+    "phone": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "destinationCountry": {
+      "type": "string",
+      "maxLength": 2,
+      "required": true
+    },
+    "preferredChassis": {
+      "type": "string",
+      "maxLength": 120,
+      "required": true
+    },
+    "budgetRange": {
+      "type": "string",
+      "maxLength": 80,
+      "required": true
+    },
+    "intendedUse": {
+      "type": "enumeration",
+      "enum": [
+        "street",
+        "track",
+        "show",
+        "collection",
+        "mixed",
+        "other"
+      ],
+      "default": "street"
+    },
+    "desiredModifications": {
+      "type": "text",
+      "maxLength": 4000
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": [
+        "new",
+        "in_review",
+        "quoted",
+        "won",
+        "declined",
+        "closed"
+      ],
+      "default": "new"
+    },
+    "internalNotes": {
+      "type": "text"
+    },
+    "ipHash": {
+      "type": "string",
+      "private": true
+    }
+  }
+}

@@ -1,0 +1,3 @@
+supplier_reference,source_url,name,sku,brand,category,source_price,source_currency,availability,weight,condition,authenticity,country_of_origin,margin_percent,description,notes
+SAMPLE-0001,https://example.com/listing/sample-0001,SAMPLE Front lip (example row - delete before importing),,Example Brand,front-lips,"1,250.00",THB,available,1.8 kg,new,unverified,TH,35,"Example supplier text. Kept privately as provenance, never published.",Example row only
+SAMPLE-0002,https://example.com/listing/sample-0002,SAMPLE Shift knob (example row - delete before importing),SAMPLE-KNOB-01,,shift-knobs,890,THB,limited,350 g,used_good,,JP,,,"Example row only, ""quoted"" text"

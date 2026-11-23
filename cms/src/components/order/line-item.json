@@ -1,0 +1,75 @@
+{
+  "collectionName": "components_order_line_items",
+  "info": {
+    "displayName": "Line item (immutable snapshot)",
+    "icon": "shoppingCart"
+  },
+  "options": {},
+  "attributes": {
+    "productDocumentId": {
+      "type": "string"
+    },
+    "productSlug": {
+      "type": "string"
+    },
+    "productName": {
+      "type": "string",
+      "required": true
+    },
+    "sku": {
+      "type": "string",
+      "required": true
+    },
+    "variantLabel": {
+      "type": "string"
+    },
+    "categoryName": {
+      "type": "string"
+    },
+    "quantity": {
+      "type": "integer",
+      "min": 1,
+      "required": true
+    },
+    "unitPrice": {
+      "type": "decimal",
+      "min": 0,
+      "required": true
+    },
+    "listUnitPrice": {
+      "type": "decimal",
+      "min": 0
+    },
+    "lineTotal": {
+      "type": "decimal",
+      "min": 0,
+      "required": true
+    },
+    "unitCostEstimate": {
+      "type": "decimal",
+      "min": 0
+    },
+    "fulfilmentType": {
+      "type": "enumeration",
+      "enum": [
+        "in_stock",
+        "made_to_order",
+        "source_on_demand"
+      ],
+      "default": "in_stock"
+    },
+    "weightGrams": {
+      "type": "integer",
+      "min": 0
+    },
+    "hsCode": {
+      "type": "string"
+    },
+    "countryOfOrigin": {
+      "type": "string"
+    },
+    "externalLineId": {
+      "type": "string"
+    }
+  }
+}

@@ -21,9 +21,10 @@
     "test:patreon": "node lib/patreon/posts.test.ts",
     "test:youtube": "node lib/youtube/channel.test.ts",
     "test:tiktok": "node lib/tiktok/profile.test.ts && node lib/tiktok/signal.test.ts",
+    "test:store": "node lib/store/filter.test.ts",
 
     "test:media": "node scripts/validate-media.mjs",
-    "test": "npm run test:content && npm run test:markdown && npm run test:document && npm run test:remote && npm run test:infra && npm run test:media-origin && npm run test:patreon && npm run test:youtube && npm run test:tiktok && npm run test:media",
+    "test": "npm run test:content && npm run test:markdown && npm run test:document && npm run test:remote && npm run test:infra && npm run test:media-origin && npm run test:patreon && npm run test:youtube && npm run test:tiktok && npm run test:store && npm run test:media",
     "check": "npm run typecheck && npm run lint && npm run test && npm run build"
   },
   "dependencies": {

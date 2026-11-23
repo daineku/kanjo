@@ -1,0 +1,50 @@
+{
+  "collectionName": "components_catalog_fitments",
+  "info": {
+    "displayName": "Vehicle fitment",
+    "icon": "car"
+  },
+  "options": {},
+  "attributes": {
+    "vehicle": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::vehicle.vehicle"
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": [
+        "confirmed",
+        "conditional",
+        "unverified"
+      ],
+      "default": "unverified",
+      "required": true
+    },
+    "yearFrom": {
+      "type": "integer",
+      "min": 1950,
+      "max": 2100
+    },
+    "yearTo": {
+      "type": "integer",
+      "min": 1950,
+      "max": 2100
+    },
+    "engine": {
+      "type": "string"
+    },
+    "bodyStyle": {
+      "type": "string"
+    },
+    "market": {
+      "type": "string"
+    },
+    "installationRequirements": {
+      "type": "text"
+    },
+    "notes": {
+      "type": "text"
+    }
+  }
+}

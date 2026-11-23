@@ -1,0 +1,70 @@
+{
+  "kind": "collectionType",
+  "collectionName": "import_items",
+  "info": {
+    "singularName": "import-item",
+    "pluralName": "import-items",
+    "displayName": "Import item"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "batch": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::import-batch.import-batch",
+      "inversedBy": "items"
+    },
+    "rowNumber": {
+      "type": "integer"
+    },
+    "supplierReference": {
+      "type": "string"
+    },
+    "sourceUrl": {
+      "type": "string",
+      "maxLength": 600
+    },
+    "name": {
+      "type": "string"
+    },
+    "raw": {
+      "type": "json"
+    },
+    "normalized": {
+      "type": "json"
+    },
+    "issues": {
+      "type": "json"
+    },
+    "state": {
+      "type": "enumeration",
+      "enum": [
+        "valid",
+        "invalid",
+        "duplicate"
+      ],
+      "default": "valid"
+    },
+    "duplicateOf": {
+      "type": "string"
+    },
+    "decision": {
+      "type": "enumeration",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending"
+    },
+    "reviewNote": {
+      "type": "text"
+    },
+    "productDocumentId": {
+      "type": "string"
+    }
+  }
+}

@@ -12,6 +12,9 @@
    ========================================================================== */
 
 @import 'tailwindcss';
+/* The Strapi commerce backend lives in /cms with its own toolchain; keep
+   Tailwind's source scan out of it. */
+@source not "../cms";
 
 /* ── Fonts ────────────────────────────────────────────────────────────────
    The three design families named by UI_Canon/Tokens/typography.json, served

@@ -1,0 +1,57 @@
+{
+  "collectionName": "components_catalog_variants",
+  "info": {
+    "displayName": "Variant",
+    "icon": "layer"
+  },
+  "options": {},
+  "attributes": {
+    "sku": {
+      "type": "string",
+      "maxLength": 64,
+      "regex": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+      "required": true
+    },
+    "label": {
+      "type": "string",
+      "maxLength": 80,
+      "required": true
+    },
+    "color": {
+      "type": "string"
+    },
+    "size": {
+      "type": "string"
+    },
+    "material": {
+      "type": "string"
+    },
+    "finish": {
+      "type": "string"
+    },
+    "vehicle": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::vehicle.vehicle"
+    },
+    "price": {
+      "type": "decimal",
+      "min": 0
+    },
+    "discountPrice": {
+      "type": "decimal",
+      "min": 0
+    },
+    "weightGrams": {
+      "type": "integer",
+      "min": 0
+    },
+    "image": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images"
+      ]
+    }
+  }
+}

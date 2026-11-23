@@ -1,0 +1,43 @@
+{
+  "kind": "collectionType",
+  "collectionName": "shipping_zones",
+  "info": {
+    "singularName": "shipping-zone",
+    "pluralName": "shipping-zones",
+    "displayName": "Shipping zone"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "maxLength": 80,
+      "required": true
+    },
+    "code": {
+      "type": "string",
+      "maxLength": 32,
+      "unique": true,
+      "required": true
+    },
+    "countries": {
+      "type": "text",
+      "required": true
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "customsNotice": {
+      "type": "text"
+    },
+    "rates": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::shipping-rate.shipping-rate",
+      "mappedBy": "zone"
+    }
+  }
+}

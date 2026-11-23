@@ -1,0 +1,58 @@
+{
+  "kind": "collectionType",
+  "collectionName": "inventory_items",
+  "info": {
+    "singularName": "inventory-item",
+    "pluralName": "inventory-items",
+    "displayName": "Inventory item"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "sku": {
+      "type": "string",
+      "maxLength": 64,
+      "unique": true,
+      "required": true
+    },
+    "productName": {
+      "type": "string"
+    },
+    "productDocumentId": {
+      "type": "string"
+    },
+    "onHand": {
+      "type": "integer",
+      "default": 0,
+      "min": 0,
+      "required": true
+    },
+    "reserved": {
+      "type": "integer",
+      "default": 0,
+      "min": 0,
+      "required": true
+    },
+    "lowStockThreshold": {
+      "type": "integer",
+      "default": 1,
+      "min": 0
+    },
+    "marketplaceBuffer": {
+      "type": "integer",
+      "default": 0,
+      "min": 0
+    },
+    "location": {
+      "type": "string"
+    },
+    "stockVerifiedAt": {
+      "type": "datetime"
+    },
+    "notes": {
+      "type": "text"
+    }
+  }
+}

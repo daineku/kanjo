@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next'
 
 import { mediaRemotePattern } from './lib/media/remotePattern.ts'
+import { storeMediaPatternFromEnv } from './lib/store/config.ts'
 
 /**
  * Deliberately does NOT set `eslint.ignoreDuringBuilds` or `typescript.ignoreBuildErrors`.
@@ -23,6 +24,17 @@ import { mediaRemotePattern } from './lib/media/remotePattern.ts'
  * lib/media/remotePattern.ts.
  */
 const mediaPattern = mediaRemotePattern(process.env.R2_PUBLIC_BASE_URL)
+
+/**
+ * THE KANJO PARTS product media: the CMS's /uploads/ directory, or the CDN in
+ * STORE_MEDIA_URL. One host and one path prefix, or nothing — and a malformed
+ * value yields nothing rather than failing the build, because the store is the
+ * optional half of this site. See lib/store/config.ts.
+ */
+const storeMediaPattern = storeMediaPatternFromEnv({
+  STORE_CMS_URL: process.env.STORE_CMS_URL,
+  STORE_MEDIA_URL: process.env.STORE_MEDIA_URL,
+})
 
 const nextConfig: NextConfig = {
   // There is a stray package-lock.json in the user's home directory, which Next
@@ -54,6 +66,7 @@ const nextConfig: NextConfig = {
       // lands here; an r2.dev one is already covered above and duplicating it
       // is harmless.
       ...(mediaPattern ? [mediaPattern] : []),
+      ...(storeMediaPattern ? [storeMediaPattern] : []),
     ],
     dangerouslyAllowSVG: false,
 

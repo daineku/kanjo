@@ -1,0 +1,47 @@
+{
+  "name": "thekanjo-cms",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The Kanjo Parts — Strapi 5 CMS and commerce backend",
+  "scripts": {
+    "build": "strapi build",
+    "console": "strapi console",
+    "dev": "strapi develop",
+    "develop": "strapi develop",
+    "start": "strapi start",
+    "strapi": "strapi",
+    "upgrade": "npx @strapi/upgrade latest",
+    "upgrade:dry": "npx @strapi/upgrade latest --dry",
+    "seed:samples": "node scripts/seed-samples.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "tsc -p tsconfig.json && node --test --test-concurrency=1 tests/units.test.js tests/analytics.test.js tests/importer.test.js tests/tiktok.test.js tests/commerce.e2e.test.js",
+    "check": "npm run typecheck && npm test && npm run build"
+  },
+  "dependencies": {
+    "@strapi/database": "5.63.0",
+    "@strapi/plugin-users-permissions": "5.63.0",
+    "@strapi/provider-upload-aws-s3": "^5.63.0",
+    "@strapi/strapi": "5.63.0",
+    "better-sqlite3": "12.11.1",
+    "pg": "^8.20.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "react-router-dom": "^6.30.3",
+    "stripe": "^23.2.0",
+    "styled-components": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=22.0.0 <=26.x.x",
+    "npm": ">=6.0.0"
+  },
+  "strapi": {
+    "uuid": "f807bf79-bfe0-4f72-a2e7-289b4115cda0",
+    "installId": "383df141cb8752995b2d7647072ad45f68701b15c5fea30f05e7552ad534bf31"
+  }
+}
