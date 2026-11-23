@@ -1,0 +1,103 @@
+{
+  "kind": "collectionType",
+  "collectionName": "shipping_rates",
+  "info": {
+    "singularName": "shipping-rate",
+    "pluralName": "shipping-rates",
+    "displayName": "Shipping rate"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "zone": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::shipping-zone.shipping-zone",
+      "inversedBy": "rates"
+    },
+    "carrier": {
+      "type": "enumeration",
+      "enum": [
+        "thailand_post",
+        "dhl",
+        "fedex",
+        "manual"
+      ],
+      "default": "manual",
+      "required": true
+    },
+    "serviceName": {
+      "type": "string",
+      "maxLength": 80,
+      "required": true
+    },
+    "minWeightGrams": {
+      "type": "integer",
+      "default": 0,
+      "min": 0,
+      "required": true
+    },
+    "maxWeightGrams": {
+      "type": "integer",
+      "min": 1,
+      "required": true
+    },
+    "price": {
+      "type": "decimal",
+      "min": 0,
+      "required": true
+    },
+    "currency": {
+      "type": "enumeration",
+      "enum": [
+        "USD",
+        "EUR",
+        "GBP",
+        "THB",
+        "CAD"
+      ],
+      "default": "USD",
+      "required": true
+    },
+    "incoterm": {
+      "type": "enumeration",
+      "enum": [
+        "DAP",
+        "DDP"
+      ],
+      "default": "DAP",
+      "required": true
+    },
+    "minDays": {
+      "type": "integer",
+      "min": 0
+    },
+    "maxDays": {
+      "type": "integer",
+      "min": 0
+    },
+    "tracked": {
+      "type": "boolean",
+      "default": true
+    },
+    "excludedShippingClasses": {
+      "type": "string"
+    },
+    "verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "verifiedAt": {
+      "type": "datetime"
+    },
+    "verifiedSource": {
+      "type": "string"
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true
+    }
+  }
+}

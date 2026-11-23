@@ -1,0 +1,64 @@
+{
+  "kind": "collectionType",
+  "collectionName": "refunds",
+  "info": {
+    "singularName": "refund",
+    "pluralName": "refunds",
+    "displayName": "Refund"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "order": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::order.order",
+      "inversedBy": "refunds"
+    },
+    "amount": {
+      "type": "decimal",
+      "min": 0,
+      "required": true
+    },
+    "reason": {
+      "type": "enumeration",
+      "enum": [
+        "requested_by_customer",
+        "duplicate",
+        "fraudulent",
+        "item_unavailable",
+        "damaged",
+        "other"
+      ],
+      "default": "requested_by_customer"
+    },
+    "note": {
+      "type": "text"
+    },
+    "restock": {
+      "type": "boolean",
+      "default": false
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": [
+        "requested",
+        "processing",
+        "succeeded",
+        "failed"
+      ],
+      "default": "requested"
+    },
+    "providerRefundId": {
+      "type": "string"
+    },
+    "failureMessage": {
+      "type": "text"
+    },
+    "requestedBy": {
+      "type": "string"
+    }
+  }
+}

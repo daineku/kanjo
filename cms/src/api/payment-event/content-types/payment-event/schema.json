@@ -1,0 +1,53 @@
+{
+  "kind": "collectionType",
+  "collectionName": "payment_events",
+  "info": {
+    "singularName": "payment-event",
+    "pluralName": "payment-events",
+    "displayName": "Payment event (webhook log)"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "provider": {
+      "type": "enumeration",
+      "enum": [
+        "stripe",
+        "tiktok_shop",
+        "mock"
+      ],
+      "required": true
+    },
+    "eventId": {
+      "type": "string",
+      "unique": true,
+      "required": true
+    },
+    "eventType": {
+      "type": "string",
+      "required": true
+    },
+    "orderReference": {
+      "type": "string"
+    },
+    "outcome": {
+      "type": "enumeration",
+      "enum": [
+        "processing",
+        "processed",
+        "ignored",
+        "failed"
+      ],
+      "default": "processing"
+    },
+    "message": {
+      "type": "text"
+    },
+    "livemode": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "kind": "collectionType",
+  "collectionName": "vehicles",
+  "info": {
+    "singularName": "vehicle",
+    "pluralName": "vehicles",
+    "displayName": "Vehicle"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "label": {
+      "type": "string",
+      "maxLength": 120,
+      "required": true
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "label",
+      "required": true
+    },
+    "make": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::vehicle-make.vehicle-make",
+      "inversedBy": "vehicles"
+    },
+    "model": {
+      "type": "string",
+      "maxLength": 60,
+      "required": true
+    },
+    "generation": {
+      "type": "string",
+      "maxLength": 60
+    },
+    "chassisCode": {
+      "type": "string",
+      "maxLength": 20,
+      "required": true
+    },
+    "chassisCodes": {
+      "type": "text"
+    },
+    "yearFrom": {
+      "type": "integer",
+      "min": 1950,
+      "max": 2100,
+      "required": true
+    },
+    "yearTo": {
+      "type": "integer",
+      "min": 1950,
+      "max": 2100
+    },
+    "bodyStyles": {
+      "type": "text"
+    },
+    "engines": {
+      "type": "text"
+    },
+    "marketNotes": {
+      "type": "text"
+    },
+    "sortOrder": {
+      "type": "integer",
+      "default": 0
+    }
+  }
+}

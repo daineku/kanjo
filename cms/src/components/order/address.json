@@ -1,0 +1,47 @@
+{
+  "collectionName": "components_order_addresss",
+  "info": {
+    "displayName": "Address",
+    "icon": "pinMap"
+  },
+  "options": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "maxLength": 120,
+      "required": true
+    },
+    "line1": {
+      "type": "string",
+      "maxLength": 160,
+      "required": true
+    },
+    "line2": {
+      "type": "string",
+      "maxLength": 160
+    },
+    "city": {
+      "type": "string",
+      "maxLength": 100,
+      "required": true
+    },
+    "region": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "postalCode": {
+      "type": "string",
+      "maxLength": 20
+    },
+    "country": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 2,
+      "required": true
+    },
+    "phone": {
+      "type": "string",
+      "maxLength": 40
+    }
+  }
+}

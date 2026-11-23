@@ -1,0 +1,43 @@
+{
+  "kind": "collectionType",
+  "collectionName": "review_reports",
+  "info": {
+    "singularName": "review-report",
+    "pluralName": "review-reports",
+    "displayName": "Review report"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "reviewDocumentId": {
+      "type": "string",
+      "required": true
+    },
+    "reason": {
+      "type": "enumeration",
+      "enum": [
+        "spam",
+        "offensive",
+        "fake",
+        "off_topic",
+        "other"
+      ],
+      "default": "other",
+      "required": true
+    },
+    "detail": {
+      "type": "text",
+      "maxLength": 1000
+    },
+    "ipHash": {
+      "type": "string",
+      "private": true
+    },
+    "resolved": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

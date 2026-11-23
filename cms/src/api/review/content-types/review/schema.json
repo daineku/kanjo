@@ -1,0 +1,94 @@
+{
+  "kind": "collectionType",
+  "collectionName": "reviews",
+  "info": {
+    "singularName": "review",
+    "pluralName": "reviews",
+    "displayName": "Review"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "productDocumentId": {
+      "type": "string",
+      "required": true
+    },
+    "productSlug": {
+      "type": "string"
+    },
+    "productName": {
+      "type": "string"
+    },
+    "rating": {
+      "type": "integer",
+      "min": 1,
+      "max": 5,
+      "required": true
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 120
+    },
+    "body": {
+      "type": "text",
+      "maxLength": 4000,
+      "required": true
+    },
+    "authorName": {
+      "type": "string",
+      "maxLength": 60,
+      "required": true
+    },
+    "email": {
+      "type": "email",
+      "required": true,
+      "private": true
+    },
+    "photos": {
+      "type": "media",
+      "multiple": true,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected",
+        "spam"
+      ],
+      "default": "pending",
+      "required": true
+    },
+    "verifiedPurchase": {
+      "type": "boolean",
+      "default": false
+    },
+    "orderReference": {
+      "type": "string",
+      "private": true
+    },
+    "adminReply": {
+      "type": "text",
+      "maxLength": 2000
+    },
+    "adminRepliedAt": {
+      "type": "datetime"
+    },
+    "reportCount": {
+      "type": "integer",
+      "default": 0
+    },
+    "submittedAt": {
+      "type": "datetime"
+    },
+    "ipHash": {
+      "type": "string",
+      "private": true
+    }
+  }
+}

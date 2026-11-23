@@ -1,0 +1,33 @@
+{
+  "kind": "collectionType",
+  "collectionName": "redirects",
+  "info": {
+    "singularName": "redirect",
+    "pluralName": "redirects",
+    "displayName": "Redirect"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "fromPath": {
+      "type": "string",
+      "unique": true,
+      "maxLength": 300,
+      "required": true
+    },
+    "toPath": {
+      "type": "string",
+      "maxLength": 300,
+      "required": true
+    },
+    "permanent": {
+      "type": "boolean",
+      "default": true
+    },
+    "reason": {
+      "type": "string"
+    }
+  }
+}
