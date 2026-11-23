@@ -16,7 +16,7 @@ const compat = new FlatCompat({ baseDirectory: import.meta.dirname })
 
 const config = [
   {
-    ignores: ['.next/**', 'out/**', 'build/**', 'next-env.d.ts', 'node_modules/**'],
+    ignores: ['.next/**', 'out/**', 'build/**', 'next-env.d.ts', 'node_modules/**', 'cms/**'],
   },
   ...compat.extends('next/core-web-vitals', 'next/typescript'),
   {

@@ -1,0 +1,48 @@
+/* THE KANJO PARTS — the only store styles loaded outside the store's own
+   routes: the header cart link and the homepage promo. Imported by those two
+   components, so a deployment with the store switched off renders neither and
+   the rules are inert. */
+
+/* ── Header cart link ─────────────────────────────────────────────────── */
+
+.k-store-cartlink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--k-space-xs);
+  min-height: var(--k-touch-target-min);
+  padding: 0 var(--k-space-sm);
+  color: var(--k-text-primary);
+  text-decoration: none;
+  border-left: var(--k-divider-width) solid var(--k-divider);
+  flex: 0 0 auto;
+}
+
+.k-store-cartlink:hover,
+.k-store-cartlink:focus-visible {
+  border-left-color: var(--k-accent);
+  color: var(--k-accent-bright);
+}
+
+.k-store-cartlink-count {
+  display: inline-block;
+  min-width: 2ch;
+  color: var(--k-accent-bright);
+}
+
+/* ── Homepage promo ──────────────────────────────────────────────────────── */
+
+.k-store-promo-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--k-space-lg);
+  padding: var(--k-space-lg);
+  border-left: var(--k-divider-width) solid var(--k-accent);
+  background: var(--k-accent-tint);
+}
+
+.k-store-promo-inner > div {
+  min-width: 0;
+  max-width: 60ch;
+}

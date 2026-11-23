@@ -3,6 +3,8 @@ import Link from 'next/link'
 
 import { real } from '@/lib/content/placeholder'
 import type { SiteSettings } from '@/lib/content/types'
+import { withStoreNav } from '@/lib/store/nav'
+import { storeEnabled } from '@/lib/store/server'
 
 /**
  * The footer.
@@ -19,7 +21,8 @@ import type { SiteSettings } from '@/lib/content/types'
  * client JavaScript, and it refreshes with the next deploy.
  */
 
-export function SiteFooter({ settings }: { settings: SiteSettings }) {
+export function SiteFooter({ settings: base }: { settings: SiteSettings }) {
+  const settings = withStoreNav(base, storeEnabled())
   const year = new Date().getFullYear()
   const links = settings.footer.links.filter((link) => link.visible && link.href !== '/updates')
   const note = real(settings.footer.note)

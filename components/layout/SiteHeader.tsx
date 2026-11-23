@@ -1,7 +1,10 @@
 import Image from 'next/image'
 import Link from 'next/link'
 
+import { CartLink } from '@/components/store/CartLink'
 import type { SiteSettings } from '@/lib/content/types'
+import { withStoreNav } from '@/lib/store/nav'
+import { storeEnabled } from '@/lib/store/server'
 
 import { NavStrip } from './NavStrip'
 
@@ -39,7 +42,10 @@ import { NavStrip } from './NavStrip'
  * does not follow the player around.
  */
 
-export function SiteHeader({ settings }: { settings: SiteSettings }) {
+export function SiteHeader({ settings: base }: { settings: SiteSettings }) {
+  // PARTS (and CART) exist exactly when the store does. See lib/store/nav.ts.
+  const store = storeEnabled()
+  const settings = withStoreNav(base, store)
   return (
     <header className="k-site-header">
       <div className="k-shell k-site-header-bar">
@@ -79,6 +85,7 @@ export function SiteHeader({ settings }: { settings: SiteSettings }) {
         </Link>
 
         <NavStrip items={settings.nav} />
+        {store && <CartLink />}
       </div>
     </header>
   )

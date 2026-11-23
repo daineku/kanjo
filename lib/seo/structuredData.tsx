@@ -19,7 +19,7 @@ import { absoluteUrl, siteOrigin } from './metadata'
  * "</script>" cannot close the element.
  */
 
-function JsonLd({ data }: { data: Record<string, unknown> }) {
+export function JsonLd({ data }: { data: Record<string, unknown> }) {
   return (
     <script
       type="application/ld+json"

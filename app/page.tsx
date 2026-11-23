@@ -1,5 +1,6 @@
 import { SiteHeader } from '@/components/layout/SiteHeader'
 import { renderSection } from '@/components/sections/registry'
+import { PartsPromo } from '@/components/store/PartsPromo'
 import { resolveContentSource } from '@/lib/content/source'
 import { SiteStructuredData } from '@/lib/seo/structuredData'
 
@@ -39,6 +40,8 @@ export default async function HomePage() {
       {/* Off by default: the homepage is a title screen. See ChromeSettings. */}
       {content.settings.chrome.headerOnHome && <SiteHeader settings={content.settings} />}
       {content.sections.map((section) => renderSection(section, content))}
+      {/* THE KANJO PARTS: renders nothing unless the store is on and has real stock. */}
+      <PartsPromo />
     </>
   )
 }
